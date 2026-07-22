@@ -114,6 +114,7 @@ namespace AVTOKarta.Services
                     string downloadUrl = null;
                     string assetName = null;
                     long assetSize = 0;
+                    string expectedHash = null;
                     var assets = release["assets"] as JArray;
                     if (assets != null)
                     {
@@ -125,6 +126,9 @@ namespace AVTOKarta.Services
                                 downloadUrl = asset["browser_download_url"]?.ToString();
                                 assetName = name;
                                 assetSize = asset["size"] != null ? asset["size"].Value<long>() : 0;
+                                string digest = asset["digest"]?.ToString() ?? "";
+                                if (digest.StartsWith("sha256:"))
+                                    expectedHash = digest.Substring(7);
                                 break;
                             }
                         }
@@ -139,6 +143,9 @@ namespace AVTOKarta.Services
                                     downloadUrl = asset["browser_download_url"]?.ToString();
                                     assetName = name;
                                     assetSize = asset["size"] != null ? asset["size"].Value<long>() : 0;
+                                    string digest = asset["digest"]?.ToString() ?? "";
+                                    if (digest.StartsWith("sha256:"))
+                                        expectedHash = digest.Substring(7);
                                     break;
                                 }
                             }
@@ -155,7 +162,8 @@ namespace AVTOKarta.Services
                         PublishedAt = publishedAt,
                         DownloadUrl = downloadUrl,
                         AssetName = assetName,
-                        AssetSize = assetSize
+                        AssetSize = assetSize,
+                        ExpectedHash = expectedHash
                     };
             }
             catch (WebException ex)
@@ -216,7 +224,7 @@ namespace AVTOKarta.Services
             return filePath;
         }
 
-        public bool ValidateDownload(string filePath, long expectedSize)
+        public bool ValidateDownload(string filePath, long expectedSize, string expectedHash)
         {
             try
             {
@@ -230,6 +238,18 @@ namespace AVTOKarta.Services
                 if (expectedSize > 0 && fi.Length != expectedSize)
                     return false;
 
+                if (!string.IsNullOrEmpty(expectedHash))
+                {
+                    using (var sha = SHA256.Create())
+                    using (var fs = File.OpenRead(filePath))
+                    {
+                        byte[] hash = sha.ComputeHash(fs);
+                        string hashHex = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+                        if (!hashHex.Equals(expectedHash, StringComparison.OrdinalIgnoreCase))
+                            return false;
+                    }
+                }
+
                 if (filePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
                 {
                     using (var fs = File.OpenRead(filePath))
@@ -237,7 +257,6 @@ namespace AVTOKarta.Services
                         byte[] header = new byte[4];
                         if (fs.Read(header, 0, 4) == 4)
                         {
-                            // PK signature for zip
                             if (header[0] != 0x50 || header[1] != 0x4B)
                                 return false;
                         }
@@ -252,12 +271,24 @@ namespace AVTOKarta.Services
             }
         }
 
+        private static string EscapeBatPath(string path)
+        {
+            return path
+                .Replace("%", "%%")
+                .Replace("!", "^!")
+                .Replace("&", "^&")
+                .Replace("|", "^|")
+                .Replace(">", "^>")
+                .Replace("<", "^<")
+                .Replace("^", "^^");
+        }
+
         public void ApplyUpdate(string downloadedFilePath)
         {
             string appDir = AppDomain.CurrentDomain.BaseDirectory;
             string updaterBat = Path.Combine(GetTempDir(), "update.bat");
             string logPath = GetLogPath();
-            string escapedLogPath = logPath.Replace("&", "^&");
+            string escapedLogPath = EscapeBatPath(logPath);
 
             bool isZip = downloadedFilePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
             bool isExe = downloadedFilePath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
@@ -266,10 +297,6 @@ namespace AVTOKarta.Services
             if (isZip)
             {
                 string extractDir = Path.Combine(GetTempDir(), "extracted");
-                string escapedZip = downloadedFilePath.Replace("&", "^&");
-                string escapedExtract = extractDir.Replace("&", "^&");
-                string escapedAppDir = appDir.Replace("&", "^&");
-                string escapedTempDir = GetTempDir().Replace("&", "^&");
 
                 batContent =
                     "@echo off\r\n" +
@@ -279,31 +306,30 @@ namespace AVTOKarta.Services
                     "taskkill /f /im AVTOKarta.exe >nul 2>&1\r\n" +
                     "timeout /t 1 /nobreak >nul\r\n" +
 
-                    "if not exist \"" + extractDir + "\" mkdir \"" + extractDir + "\"\r\n" +
+                    "if not exist \"" + EscapeBatPath(extractDir) + "\" mkdir \"" + EscapeBatPath(extractDir) + "\"\r\n" +
                     "powershell -NoProfile -ExecutionPolicy Bypass -Command \"try { Expand-Archive -Path '" + downloadedFilePath.Replace("'", "''") + "' -DestinationPath '" + extractDir.Replace("'", "''") + "' -Force } catch { exit 1 }\"\r\n" +
                     "if errorlevel 1 (\r\n" +
                     "  echo [UPDATE] Extract failed >> \"" + escapedLogPath + "\"\r\n" +
-                    "  start \"\" \"" + Path.Combine(appDir, "AVTOKarta.exe") + "\"\r\n" +
+                    "  start \"\" \"" + EscapeBatPath(Path.Combine(appDir, "AVTOKarta.exe")) + "\"\r\n" +
                     "  del \"%~f0\"\r\n" +
                     "  exit /b\r\n" +
                     ")\r\n" +
 
-                    "xcopy /s /y /e /q \"" + extractDir + "\\*.*\" \"" + appDir + "\"\r\n" +
+                    "xcopy /s /y /e /q \"" + EscapeBatPath(extractDir) + "\\*.*\" \"" + EscapeBatPath(appDir) + "\"\r\n" +
                     "if errorlevel 1 (\r\n" +
                     "  echo [UPDATE] Copy failed >> \"" + escapedLogPath + "\"\r\n" +
-                    "  start \"\" \"" + Path.Combine(appDir, "AVTOKarta.exe") + "\"\r\n" +
+                    "  start \"\" \"" + EscapeBatPath(Path.Combine(appDir, "AVTOKarta.exe")) + "\"\r\n" +
                     "  del \"%~f0\"\r\n" +
                     "  exit /b\r\n" +
                     ")\r\n" +
 
-                    "rmdir /s /q \"" + escapedTempDir + "\" 2>nul\r\n" +
-                    "start \"\" \"" + Path.Combine(appDir, "AVTOKarta.exe") + "\"\r\n" +
+                    "rmdir /s /q \"" + EscapeBatPath(GetTempDir()) + "\" 2>nul\r\n" +
+                    "start \"\" \"" + EscapeBatPath(Path.Combine(appDir, "AVTOKarta.exe")) + "\"\r\n" +
                     "del \"%~f0\"\r\n";
             }
             else if (isExe)
             {
-                string escapedSetup = downloadedFilePath.Replace("&", "^&");
-                string escapedTempDir = GetTempDir().Replace("&", "^&");
+                string installLog = Path.Combine(GetTempDir(), "install.log");
 
                 batContent =
                     "@echo off\r\n" +
@@ -313,17 +339,17 @@ namespace AVTOKarta.Services
                     "taskkill /f /im AVTOKarta.exe >nul 2>&1\r\n" +
                     "timeout /t 1 /nobreak >nul\r\n" +
 
-                    "echo [UPDATE] Running installer: " + escapedSetup + " >> \"" + escapedLogPath + "\"\r\n" +
-                    "\"" + downloadedFilePath + "\" /SILENT /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /LOG=\"" + Path.Combine(GetTempDir(), "install.log").Replace("&", "^&") + "\"\r\n" +
+                    "echo [UPDATE] Running installer >> \"" + escapedLogPath + "\"\r\n" +
+                    "\"" + downloadedFilePath + "\" /SILENT /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /LOG=\"" + EscapeBatPath(installLog) + "\"\r\n" +
                     "if errorlevel 1 (\r\n" +
-                    "  echo [UPDATE] Installer failed with code !errorlevel! >> \"" + escapedLogPath + "\"\r\n" +
-                    "  start \"\" \"" + Path.Combine(appDir, "AVTOKarta.exe") + "\" 2>nul\r\n" +
+                    "  echo [UPDATE] Installer failed >> \"" + escapedLogPath + "\"\r\n" +
+                    "  start \"\" \"" + EscapeBatPath(Path.Combine(appDir, "AVTOKarta.exe")) + "\" 2>nul\r\n" +
                     "  del \"%~f0\"\r\n" +
                     "  exit /b\r\n" +
                     ")\r\n" +
 
-                    "rmdir /s /q \"" + escapedTempDir + "\" 2>nul\r\n" +
-                    "start \"\" \"" + Path.Combine(appDir, "AVTOKarta.exe") + "\"\r\n" +
+                    "rmdir /s /q \"" + EscapeBatPath(GetTempDir()) + "\" 2>nul\r\n" +
+                    "start \"\" \"" + EscapeBatPath(Path.Combine(appDir, "AVTOKarta.exe")) + "\"\r\n" +
                     "del \"%~f0\"\r\n";
             }
             else
@@ -407,7 +433,7 @@ namespace AVTOKarta.Services
 
                 Log("Скачано: " + filePath);
 
-                if (!ValidateDownload(filePath, result.AssetSize))
+                if (!ValidateDownload(filePath, result.AssetSize, result.ExpectedHash))
                 {
                     Log("Файл повреждён или пустой, отмена обновления");
                     CleanupTemp(tempDir);
@@ -461,6 +487,7 @@ namespace AVTOKarta.Services
         public string DownloadUrl { get; set; }
         public string AssetName { get; set; }
         public long AssetSize { get; set; }
+        public string ExpectedHash { get; set; }
         public string Message { get; set; }
     }
 }

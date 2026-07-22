@@ -3,14 +3,14 @@
 // Лицензия: см. файл LICENSE в корне проекта.
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace AVTOKarta.Services
 {
-    public class EncryptionService
+    public class EncryptionService : IDisposable
     {
         private const int KeySize = 256;
         private const int BlockSize = 128;
@@ -19,10 +19,11 @@ namespace AVTOKarta.Services
         private const int HmacSize = 32;
         private const int DerivedBytesLength = 80;
 
-        private readonly byte[] _passwordBytes;
+        private byte[] _passwordBytes;
+        private bool _disposed;
 
-        private readonly Dictionary<string, DerivedKeyPair> _keyCache =
-            new Dictionary<string, DerivedKeyPair>();
+        private readonly ConcurrentDictionary<string, DerivedKeyPair> _keyCache =
+            new ConcurrentDictionary<string, DerivedKeyPair>();
 
         private class DerivedKeyPair
         {
@@ -219,14 +220,11 @@ namespace AVTOKarta.Services
         {
             string saltKey = Convert.ToBase64String(salt);
 
-            if (_keyCache.TryGetValue(saltKey, out DerivedKeyPair cached))
+            DerivedKeyPair cached;
+            if (_keyCache.TryGetValue(saltKey, out cached))
                 return cached;
 
-            byte[] all;
-            using (var derive = new Rfc2898DeriveBytes(_passwordBytes, salt, Iterations))
-            {
-                all = derive.GetBytes(DerivedBytesLength);
-            }
+            byte[] all = Pbkdf2Sha256(_passwordBytes, salt, Iterations, DerivedBytesLength);
 
             var pair = new DerivedKeyPair
             {
@@ -240,6 +238,44 @@ namespace AVTOKarta.Services
 
             _keyCache[saltKey] = pair;
             return pair;
+        }
+
+        private static byte[] Pbkdf2Sha256(byte[] password, byte[] salt, int iterations, int outputBytes)
+        {
+            byte[] result = new byte[outputBytes];
+            byte[] buffer = new byte[32];
+            int blocks = (outputBytes + 31) / 32;
+
+            using (var hmac = new HMACSHA256(password))
+            {
+                byte[] saltAndBlock = new byte[salt.Length + 4];
+                Buffer.BlockCopy(salt, 0, saltAndBlock, 0, salt.Length);
+
+                for (int i = 1; i <= blocks; i++)
+                {
+                    saltAndBlock[salt.Length] = (byte)(i >> 24);
+                    saltAndBlock[salt.Length + 1] = (byte)(i >> 16);
+                    saltAndBlock[salt.Length + 2] = (byte)(i >> 8);
+                    saltAndBlock[salt.Length + 3] = (byte)i;
+
+                    byte[] u = hmac.ComputeHash(saltAndBlock);
+                    Buffer.BlockCopy(u, 0, buffer, 0, Math.Min(u.Length, 32));
+
+                    byte[] prev = u;
+                    for (int j = 1; j < iterations; j++)
+                    {
+                        prev = hmac.ComputeHash(prev);
+                        for (int k = 0; k < 32; k++)
+                            buffer[k] ^= prev[k];
+                    }
+
+                    int offset = (i - 1) * 32;
+                    int count = Math.Min(32, outputBytes - offset);
+                    Buffer.BlockCopy(buffer, 0, result, offset, count);
+                }
+            }
+
+            return result;
         }
 
         private static byte[] DecryptLegacyOrCurrent(string password, byte[] encryptedData)
@@ -297,6 +333,20 @@ namespace AVTOKarta.Services
                     cs.CopyTo(result);
                     return result.ToArray();
                 }
+            }
+        }
+
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                if (_passwordBytes != null)
+                {
+                    Array.Clear(_passwordBytes, 0, _passwordBytes.Length);
+                    _passwordBytes = null;
+                }
+                _keyCache.Clear();
+                _disposed = true;
             }
         }
     }

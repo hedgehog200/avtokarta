@@ -185,7 +185,7 @@ namespace AVTOKarta.ViewModels
 
                     downloadedPath = _updateService.DownloadUpdate(checkResult.DownloadUrl, null);
 
-                    if (!_updateService.ValidateDownload(downloadedPath, checkResult.AssetSize))
+                    if (!_updateService.ValidateDownload(downloadedPath, checkResult.AssetSize, checkResult.ExpectedHash))
                     {
                         UpdateService.Log("Файл повреждён после скачивания");
                         downloadedPath = null;

@@ -22,6 +22,8 @@ namespace AVTOKarta.Services
         private const string SquadsFile = "squads.json";
         private const string VehiclesFile = "vehicles.json";
         private const string CardsDir = "cards";
+        private const long MaxZipEntrySize = 50 * 1024 * 1024;
+        private const int MaxZipEntryCount = 10000;
 
         public DataTransferService(string password, string dataPath)
         {
@@ -58,6 +60,14 @@ namespace AVTOKarta.Services
             using (var stream = new MemoryStream(zipBytes))
             using (var archive = new ZipArchive(stream, ZipArchiveMode.Read))
             {
+                if (archive.Entries.Count > MaxZipEntryCount)
+                    throw new InvalidOperationException("Archive contains too many entries — possible zip bomb.");
+
+                foreach (var entry in archive.Entries)
+                {
+                    if (entry.Length > MaxZipEntrySize || entry.CompressedLength > MaxZipEntrySize)
+                        throw new InvalidOperationException("Archive entry too large — possible zip bomb.");
+                }
                 var metaEntry = archive.GetEntry(MetadataFile);
                 if (metaEntry != null)
                 {
