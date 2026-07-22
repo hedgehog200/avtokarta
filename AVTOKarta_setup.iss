@@ -1,8 +1,8 @@
-; Inno Setup Script for AVTOKarta v1.1.1
+; Inno Setup Script for AVTOKarta v1.1.3
 ; Requires Inno Setup 6+
 
 #define MyAppName "АВТОКАРТА МЧС"
-#define MyAppVersion "1.1.1"
+#define MyAppVersion "1.1.3"
 #define MyAppPublisher "WebARTup - Studio: Technologies"
 #define MyAppCopyright "Copyright © 2026 WebARTup - Studio: Technologies"
 #define MyAppExeName "AVTOKarta.exe"
