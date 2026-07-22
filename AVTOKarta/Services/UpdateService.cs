@@ -240,7 +240,7 @@ namespace AVTOKarta.Services
 
                 if (!string.IsNullOrEmpty(expectedHash))
                 {
-                    using (var sha = SHA256.Create())
+                    using (var sha = new SHA256CryptoServiceProvider())
                     using (var fs = File.OpenRead(filePath))
                     {
                         byte[] hash = sha.ComputeHash(fs);
