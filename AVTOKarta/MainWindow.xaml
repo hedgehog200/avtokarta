@@ -5,7 +5,7 @@
         xmlns:views="clr-namespace:AVTOKarta.Views"
         xmlns:hc="https://handyorg.github.io/handycontrol"
         xml:lang="ru-RU"
-        Title="АВТОКарта v1.0" Height="750" Width="1150"
+        Title="АВТОКарта v1.1.0 — WebARTup - Studio: Technologies" Height="750" Width="1150"
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized"
         KeyDown="Window_KeyDown"
