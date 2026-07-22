@@ -1,0 +1,12 @@
+.vs/
+bin/
+obj/
+packages/
+*.user
+*.suo
+*.cache
+full_dump.txt
+page_setup_dump.txt
+page_setup_dump.ps1
+title_dump.txt
+nuget.exe

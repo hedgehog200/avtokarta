@@ -1,0 +1,52 @@
+<UserControl x:Class="AVTOKarta.Views.SquadListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:hc="https://handyorg.github.io/handycontrol">
+    <DockPanel Margin="16">
+        <Border Style="{StaticResource CardBorder}" Padding="16" Margin="0,0,0,16">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Управление частями" FontSize="18" FontWeight="Bold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Content="+ Добавить часть"
+                                Command="{Binding AddSquadCommand}"
+                                Style="{StaticResource SuccessButton}" Padding="14,8"/>
+                    </Grid>
+                </StackPanel>
+
+                <DataGrid Grid.Column="0" ItemsSource="{Binding Squads}"
+                          SelectedItem="{Binding SelectedSquad}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Наименование" Binding="{Binding Name}" Width="200"/>
+                        <DataGridTextColumn Header="Номер" Binding="{Binding Number}" Width="80"/>
+                        <DataGridTextColumn Header="Отряд" Binding="{Binding CrewNumber}" Width="80"/>
+                        <DataGridTextColumn Header="Начальник" Binding="{Binding ChiefName}" Width="180"/>
+                        <DataGridTextColumn Header="Ст. водитель" Binding="{Binding SeniorDriverName}" Width="180"/>
+                        <DataGridTextColumn Header="Телефон" Binding="{Binding Phone}" Width="120"/>
+                        <DataGridTemplateColumn Header="Действия" Width="80" IsReadOnly="True">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Button Content="&#x270E;" Style="{StaticResource IconButton}"
+                                                Command="{Binding DataContext.EditSquadCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                CommandParameter="{Binding}" FontSize="14" Padding="6"
+                                                Foreground="{StaticResource PrimaryBrush}"/>
+                                        <Button Content="&#x2716;" Style="{StaticResource IconButton}"
+                                                Command="{Binding DataContext.DeleteSquadCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                CommandParameter="{Binding}" FontSize="12" Padding="6"
+                                                Foreground="{StaticResource DangerBrush}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Border>
+    </DockPanel>
+</UserControl>

@@ -1,0 +1,58 @@
+<UserControl x:Class="AVTOKarta.Views.SquadSetupView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:hc="https://handyorg.github.io/handycontrol">
+    <Border Margin="20" BorderBrush="{StaticResource PrimaryBrush}" BorderThickness="2" CornerRadius="12"
+            Padding="24" Background="{StaticResource CardBrush}">
+        <StackPanel MaxWidth="500" HorizontalAlignment="Center">
+            <TextBlock Text="Настройка части" FontSize="20" FontWeight="Bold"
+                       Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,20" TextAlignment="Center"/>
+
+            <TextBlock Text="Наименование части:" FontWeight="SemiBold" Margin="0,0,0,2"/>
+            <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <TextBlock Text="Номер части:" FontWeight="SemiBold" Margin="0,8,0,2"/>
+            <TextBox Text="{Binding Number, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <TextBlock Text="Номер отряда:" FontWeight="SemiBold" Margin="0,8,0,2"/>
+            <TextBox Text="{Binding CrewNumber, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <TextBlock Text="Область / регион:" FontWeight="SemiBold" Margin="0,8,0,2"/>
+            <TextBox Text="{Binding Region, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <TextBlock Text="ФИО начальника части:" FontWeight="SemiBold" Margin="0,8,0,2"/>
+            <TextBox Text="{Binding ChiefName, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <TextBlock Text="ФИО старшего водителя:" FontWeight="SemiBold" Margin="0,8,0,2"/>
+            <TextBox Text="{Binding SeniorDriverName, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <TextBlock Text="Контактный телефон:" FontWeight="SemiBold" Margin="0,8,0,2"/>
+            <TextBox Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <TextBlock Text="Адрес расположения:" FontWeight="SemiBold" Margin="0,8,0,2"/>
+            <TextBox Text="{Binding Address, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <Separator Margin="0,16"/>
+
+            <TextBlock Text="Защита данных" FontSize="16" FontWeight="Bold"
+                       Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10"/>
+
+            <TextBlock Text="Пароль шифрования:" FontWeight="SemiBold" Margin="0,0,0,2"/>
+            <hc:PasswordBox x:Name="PasswordBox1" Margin="4,0,4,8" Height="32"/>
+
+            <TextBlock Text="Подтвердите пароль:" FontWeight="SemiBold" Margin="0,0,0,2"/>
+            <hc:PasswordBox x:Name="PasswordBox2" Margin="4,0,4,8" Height="32"/>
+
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" FontWeight="SemiBold"
+                       Margin="0,4" TextWrapping="Wrap"/>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
+                <Button Content="Отмена" Command="{Binding CancelCommand}" MinWidth="100"
+                        Margin="0,0,8,0" Style="{StaticResource GhostButton}"
+                        Foreground="{StaticResource TextSecondaryBrush}"/>
+                <Button Content="Сохранить" MinWidth="120"
+                        Style="{StaticResource SuccessButton}" Click="SaveButton_Click"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl>

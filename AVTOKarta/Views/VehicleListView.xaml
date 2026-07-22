@@ -1,0 +1,28 @@
+<UserControl x:Class="AVTOKarta.Views.VehicleListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:AVTOKarta.Converters">
+    <UserControl.Resources>
+        <conv:SquadIdToNumberConverter x:Key="SquadIdToNum"/>
+    </UserControl.Resources>
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="8">
+            <Button Content="Добавить" Command="{Binding AddVehicleCommand}" MinWidth="100"/>
+            <Button Content="Редактировать" Command="{Binding EditVehicleCommand}" MinWidth="100"/>
+            <Button Content="Удалить" Command="{Binding DeleteVehicleCommand}" MinWidth="100"/>
+        </StackPanel>
+
+        <DataGrid ItemsSource="{Binding Vehicles}"
+                  SelectedItem="{Binding SelectedVehicle}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Гос. знак" Binding="{Binding LicensePlate}" Width="100"/>
+                <DataGridTextColumn Header="Марка" Binding="{Binding Make}" Width="120"/>
+                <DataGridTextColumn Header="Тип" Binding="{Binding Type}" Width="120"/>
+                <DataGridTextColumn Header="№ карточки" Binding="{Binding CardNumber}" Width="90"/>
+                <DataGridTextColumn Header="№ отряда" Binding="{Binding SquadId, Converter={StaticResource SquadIdToNum}}" Width="90"/>
+                <DataGridTextColumn Header="Пробег шасси" Binding="{Binding InitialChassisMileage}" Width="100"/>
+                <DataGridTextColumn Header="Пробег двиг." Binding="{Binding InitialEngineMileage}" Width="100"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</UserControl>

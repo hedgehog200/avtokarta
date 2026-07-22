@@ -1,0 +1,84 @@
+<Window x:Class="AVTOKarta.Views.VehicleEditView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:hc="https://handyorg.github.io/handycontrol"
+        Title="Редактирование автомобиля" Height="560" Width="450"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{StaticResource BackgroundBrush}">
+    <Border Background="White">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="20">
+                <TextBlock Text="Данные автомобиля" FontSize="18" FontWeight="Bold"
+                           Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,16"/>
+
+                <TextBlock Text="Часть:" FontWeight="SemiBold"/>
+                <ComboBox ItemsSource="{Binding AvailableSquads}"
+                          SelectedValue="{Binding SelectedSquadId}"
+                          SelectedValuePath="Id"
+                          Margin="4,4,4,8" Height="28"
+                          ItemContainerStyle="{StaticResource ComboBoxItemStyle}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding Number}" Margin="6,0,0,0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <TextBlock Text="Государственный знак:" FontWeight="SemiBold"/>
+                <TextBox Text="{Binding LicensePlate, UpdateSourceTrigger=PropertyChanged}"/>
+
+                <TextBlock Text="Марка автомобиля:" FontWeight="SemiBold" Margin="0,8,0,2"/>
+                <TextBox Text="{Binding Make, UpdateSourceTrigger=PropertyChanged}"/>
+
+                <TextBlock Text="Тип автомобиля:" FontWeight="SemiBold" Margin="0,8,0,2"/>
+                <TextBox Text="{Binding Type, UpdateSourceTrigger=PropertyChanged}"/>
+
+                <TextBlock Text="Номер карточки:" FontWeight="SemiBold" Margin="0,8,0,2"/>
+                <TextBox Text="{Binding CardNumber, UpdateSourceTrigger=PropertyChanged}"/>
+
+                <TextBlock Text="Начальный пробег шасси (км):" FontWeight="SemiBold" Margin="0,8,0,2"/>
+                <TextBox Text="{Binding InitialChassisMileage, StringFormat=N2, TargetNullValue=0, FallbackValue=0}"/>
+
+                <TextBlock Text="Начальный пробег двигателя (прив.) (км):" FontWeight="SemiBold" Margin="0,8,0,2"/>
+                <TextBox Text="{Binding InitialEngineMileage, StringFormat=N2, TargetNullValue=0, FallbackValue=0}"/>
+
+                <Border Background="{StaticResource PrimaryLightBrush}" CornerRadius="8" Padding="12" Margin="0,12,0,0">
+                    <TextBlock Text="Нормы расхода топлива" FontSize="14" FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrush}"/>
+                </Border>
+
+                <TextBlock Text="Норма на пробег без насоса (л/км):" FontWeight="SemiBold" Margin="0,8,0,2"/>
+                <TextBox Text="{Binding NormPerKmWithoutPump, StringFormat=F2, TargetNullValue=0, FallbackValue=0}"/>
+
+                <TextBlock Text="Норма на пробег с насосом (л/км):" FontWeight="SemiBold" Margin="0,8,0,2"/>
+                <TextBox Text="{Binding NormPerKmWithPump, StringFormat=F2, TargetNullValue=0, FallbackValue=0}"/>
+
+                <TextBlock Text="Норма на работу насоса (л/мин):" FontWeight="SemiBold" Margin="0,8,0,2"/>
+                <TextBox Text="{Binding NormPerMinPump, StringFormat=F2, TargetNullValue=0, FallbackValue=0}"/>
+
+                <TextBlock Text="Норма холостого хода (л/мин):" FontWeight="SemiBold" Margin="0,8,0,2"/>
+                <TextBox Text="{Binding NormPerMinIdle, StringFormat=F2, TargetNullValue=0, FallbackValue=0}"/>
+
+                <TextBlock Text="Норма смены караула (л/мин):" FontWeight="SemiBold" Margin="0,8,0,2"/>
+                <TextBox Text="{Binding NormPerMinShiftChange, StringFormat=F2, TargetNullValue=0, FallbackValue=0}"/>
+
+                <TextBlock Text="Норма прочих работ (л/мин):" FontWeight="SemiBold" Margin="0,8,0,2"/>
+                <TextBox Text="{Binding NormPerMinMisc, StringFormat=F2, TargetNullValue=0, FallbackValue=0}"/>
+
+                <TextBlock Text="Коэффициент приведения (км/мин):" FontWeight="SemiBold" Margin="0,8,0,2"/>
+                <TextBox Text="{Binding ReductionCoefficient, StringFormat=F2, TargetNullValue=0, FallbackValue=0}"/>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,12">
+                    <Button Content="Отмена" Command="{Binding CancelCommand}" MinWidth="100" Margin="0,0,8,0"
+                            Style="{StaticResource GhostButton}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <Button Content="Сохранить" MinWidth="100"
+                            Style="{StaticResource SuccessButton}" Click="SaveButton_Click"/>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
+</Window>
