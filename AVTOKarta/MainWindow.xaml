@@ -52,7 +52,7 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Squad info -->
+                <!-- Squad info (fixed bottom) -->
                 <Border DockPanel.Dock="Bottom" Background="{StaticResource SidebarHoverBrush}" Margin="12,0,12,12" Padding="12"
                         CornerRadius="8">
                     <StackPanel>
@@ -63,108 +63,111 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Navigation -->
-                <StackPanel Margin="8,0,8,0">
-                    <TextBlock Text="НАВИГАЦИЯ" Foreground="{StaticResource SidebarLabelBrush}" FontSize="10" FontWeight="Bold"
-                               Margin="12,12,12,8"/>
+                <!-- Navigation (scrollable) -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              VerticalContentAlignment="Top">
+                    <StackPanel Margin="8,0,8,0">
+                        <TextBlock Text="НАВИГАЦИЯ" Foreground="{StaticResource SidebarLabelBrush}" FontSize="10" FontWeight="Bold"
+                                   Margin="12,12,12,8"/>
 
-                    <Button Command="{Binding SquadListCommand}" Style="{StaticResource NavButton}">
-                        <StackPanel Orientation="Horizontal">
-                            <Border Width="26" Height="26" CornerRadius="13" Background="#3F51B5" Margin="0,0,10,0">
-                                <TextBlock Text="&#x263A;" FontSize="14" Foreground="White"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <TextBlock Text="Части" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
+                        <Button Command="{Binding SquadListCommand}" Style="{StaticResource NavButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="26" Height="26" CornerRadius="13" Background="#3F51B5" Margin="0,0,10,0">
+                                    <TextBlock Text="&#x263A;" FontSize="14" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Части" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
 
-                    <Button Command="{Binding VehicleListCommand}" Style="{StaticResource NavButton}">
-                        <StackPanel Orientation="Horizontal">
-                            <Border Width="26" Height="26" CornerRadius="13" Background="#00897B" Margin="0,0,10,0">
-                                <TextBlock Text="&#x25CF;" FontSize="14" Foreground="White"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <TextBlock Text="Автомобили" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
+                        <Button Command="{Binding VehicleListCommand}" Style="{StaticResource NavButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="26" Height="26" CornerRadius="13" Background="#00897B" Margin="0,0,10,0">
+                                    <TextBlock Text="&#x25CF;" FontSize="14" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Автомобили" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
 
-                    <Button Command="{Binding CardListCommand}" Style="{StaticResource NavButton}">
-                        <StackPanel Orientation="Horizontal">
-                            <Border Width="26" Height="26" CornerRadius="13" Background="#F4511E" Margin="0,0,10,0">
-                                <TextBlock Text="&#x25A0;" FontSize="14" Foreground="White"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <TextBlock Text="Карточки" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
+                        <Button Command="{Binding CardListCommand}" Style="{StaticResource NavButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="26" Height="26" CornerRadius="13" Background="#F4511E" Margin="0,0,10,0">
+                                    <TextBlock Text="&#x25A0;" FontSize="14" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Карточки" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
 
-                    <Button Command="{Binding WarehouseCommand}" Style="{StaticResource NavButton}">
-                        <StackPanel Orientation="Horizontal">
-                            <Border Width="26" Height="26" CornerRadius="13" Background="#6A1B9A" Margin="0,0,10,0">
-                                <TextBlock Text="&#x25C6;" FontSize="14" Foreground="White"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <TextBlock Text="Склад ГСМ" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
+                        <Button Command="{Binding WarehouseCommand}" Style="{StaticResource NavButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="26" Height="26" CornerRadius="13" Background="#6A1B9A" Margin="0,0,10,0">
+                                    <TextBlock Text="&#x25C6;" FontSize="14" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Склад ГСМ" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
 
-                    <Button Command="{Binding SettingsCommand}" Style="{StaticResource NavButton}">
-                        <StackPanel Orientation="Horizontal">
-                            <Border Width="26" Height="26" CornerRadius="13" Background="#757575" Margin="0,0,10,0">
-                                <TextBlock Text="&#x2699;" FontSize="14" Foreground="White"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <TextBlock Text="Настройки" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
+                        <Button Command="{Binding SettingsCommand}" Style="{StaticResource NavButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="26" Height="26" CornerRadius="13" Background="#757575" Margin="0,0,10,0">
+                                    <TextBlock Text="&#x2699;" FontSize="14" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Настройки" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
 
-                    <Button Command="{Binding FuelReportCommand}" Style="{StaticResource NavButton}">
-                        <StackPanel Orientation="Horizontal">
-                            <Border Width="26" Height="26" CornerRadius="13" Background="#FB8C00" Margin="0,0,10,0">
-                                <TextBlock Text="&#x25B2;" FontSize="12" Foreground="White"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <TextBlock Text="Отчёт ГСМ" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
+                        <Button Command="{Binding FuelReportCommand}" Style="{StaticResource NavButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="26" Height="26" CornerRadius="13" Background="#FB8C00" Margin="0,0,10,0">
+                                    <TextBlock Text="&#x25B2;" FontSize="12" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Отчёт ГСМ" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
 
-                    <Border Height="1" Background="{StaticResource SidebarDividerBrush}" Margin="12,8,12,8"/>
+                        <Border Height="1" Background="{StaticResource SidebarDividerBrush}" Margin="12,8,12,8"/>
 
-                    <TextBlock Text="ДАННЫЕ" Foreground="{StaticResource SidebarLabelBrush}" FontSize="10" FontWeight="Bold"
-                               Margin="12,0,12,8"/>
+                        <TextBlock Text="ДАННЫЕ" Foreground="{StaticResource SidebarLabelBrush}" FontSize="10" FontWeight="Bold"
+                                   Margin="12,0,12,8"/>
 
-                    <Button Command="{Binding ExportDataCommand}" Style="{StaticResource NavButton}">
-                        <StackPanel Orientation="Horizontal">
-                            <Border Width="26" Height="26" CornerRadius="13" Background="#43A047" Margin="0,0,10,0">
-                                <TextBlock Text="&#x2191;" FontSize="14" Foreground="White"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <TextBlock Text="Выгрузка данных" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
+                        <Button Command="{Binding ExportDataCommand}" Style="{StaticResource NavButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="26" Height="26" CornerRadius="13" Background="#43A047" Margin="0,0,10,0">
+                                    <TextBlock Text="&#x2191;" FontSize="14" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Выгрузка данных" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
 
-                    <Button Command="{Binding ImportDataCommand}" Style="{StaticResource NavButton}">
-                        <StackPanel Orientation="Horizontal">
-                            <Border Width="26" Height="26" CornerRadius="13" Background="#1E88E5" Margin="0,0,10,0">
-                                <TextBlock Text="&#x2193;" FontSize="14" Foreground="White"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <TextBlock Text="Загрузка данных" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
+                        <Button Command="{Binding ImportDataCommand}" Style="{StaticResource NavButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="26" Height="26" CornerRadius="13" Background="#1E88E5" Margin="0,0,10,0">
+                                    <TextBlock Text="&#x2193;" FontSize="14" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Загрузка данных" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
 
-                    <Border Height="1" Background="{StaticResource SidebarDividerBrush}" Margin="12,12,12,8"/>
+                        <Border Height="1" Background="{StaticResource SidebarDividerBrush}" Margin="12,12,12,8"/>
 
-                    <Button Click="MenuItem_Exit_Click" Style="{StaticResource ExitButton}">
-                        <StackPanel Orientation="Horizontal">
-                            <Border Width="26" Height="26" CornerRadius="13" Background="#C62828" Margin="0,0,10,0">
-                                <TextBlock Text="&#x2716;" FontSize="12" Foreground="White"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <TextBlock Text="Выход" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
-                </StackPanel>
+                        <Button Click="MenuItem_Exit_Click" Style="{StaticResource ExitButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="26" Height="26" CornerRadius="13" Background="#C62828" Margin="0,0,10,0">
+                                    <TextBlock Text="&#x2716;" FontSize="12" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Выход" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </ScrollViewer>
             </DockPanel>
         </Border>
 

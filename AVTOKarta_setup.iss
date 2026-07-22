@@ -6,8 +6,8 @@
 #define MyAppPublisher "WebARTup - Studio: Technologies"
 #define MyAppCopyright "Copyright © 2026 WebARTup - Studio: Technologies"
 #define MyAppExeName "AVTOKarta.exe"
-#define MyAppSource "C:\Users\apari\OneDrive\Документы\project\mchs gsm\AVTOKarta\bin\Release"
-#define MyAppLicense "C:\Users\apari\OneDrive\Документы\project\mchs gsm\LICENSE"
+#define MyAppSource "AVTOKarta\bin\Release"
+#define MyAppLicense "LICENSE"
 #define MyAppURL "https://github.com/hedgehog200/avtokarta"
 
 [Setup]
@@ -21,7 +21,7 @@ AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}/releases
 DefaultDirName={autopf}\AVTOKarta
 DefaultGroupName={#MyAppName}
-OutputDir=C:\Users\apari\OneDrive\Документы\project\mchs gsm\Output
+OutputDir=Output
 OutputBaseFilename=AVTOKarta_v{#MyAppVersion}_setup
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -29,7 +29,7 @@ WizardStyle=modern
 UninstallDisplayIcon={app}\{#MyAppExeName}
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x86compatible
-ArchitecturesInstallIn64BitMode=x86compatible
+ArchitecturesInstallIn64BitMode=
 DisableProgramGroupPage=yes
 LicenseFile={#MyAppLicense}
 Password=reApCeVAfuHV
@@ -40,7 +40,7 @@ VersionInfoCopyright={#MyAppCopyright}
 VersionInfoDescription={#MyAppName}
 VersionInfoProductName={#MyAppName}
 VersionInfoProductVersion={#MyAppVersion}
-SetupIconFile=C:\Users\apari\OneDrive\Документы\project\mchs gsm\AVTOKarta\app.ico
+SetupIconFile={#SourcePath}\AVTOKarta\app.ico
 UninstallDisplayName={#MyAppName}
 
 [Languages]

@@ -4,6 +4,7 @@
              xmlns:hc="https://handyorg.github.io/handycontrol">
     <Border Margin="20" BorderBrush="{StaticResource PrimaryBrush}" BorderThickness="2" CornerRadius="12"
             Padding="24" Background="{StaticResource CardBrush}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel MaxWidth="500" HorizontalAlignment="Center">
             <TextBlock Text="Настройка части" FontSize="20" FontWeight="Bold"
                        Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,20" TextAlignment="Center"/>
@@ -54,5 +55,6 @@
                         Style="{StaticResource SuccessButton}" Click="SaveButton_Click"/>
             </StackPanel>
         </StackPanel>
+        </ScrollViewer>
     </Border>
 </UserControl>
