@@ -76,12 +76,18 @@ namespace AVTOKarta.Services
             {
                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
-                using (var wc = new WebClient())
-                {
-                    wc.Headers.Add("User-Agent", "AVTOKarta-Updater");
+                var request = (HttpWebRequest)WebRequest.Create(ApiUrl);
+                request.UserAgent = "AVTOKarta-Updater";
+                request.AllowAutoRedirect = true;
 
-                    string json = wc.DownloadString(ApiUrl);
-                    var release = JObject.Parse(json);
+                string json;
+                using (var response = (HttpWebResponse)request.GetResponse())
+                using (var reader = new StreamReader(response.GetResponseStream()))
+                {
+                    json = reader.ReadToEnd();
+                }
+
+                var release = JObject.Parse(json);
 
                     string tagName = release["tag_name"]?.ToString() ?? "";
                     string body = release["body"]?.ToString() ?? "";
@@ -149,7 +155,6 @@ namespace AVTOKarta.Services
                         AssetName = assetName,
                         AssetSize = assetSize
                     };
-                }
             }
             catch (WebException ex)
             {
@@ -172,24 +177,38 @@ namespace AVTOKarta.Services
         public string DownloadUpdate(string downloadUrl, Action<int> progressCallback)
         {
             string tempDir = GetTempDir();
+            if (!Directory.Exists(tempDir))
+                Directory.CreateDirectory(tempDir);
             string fileName = Path.GetFileName(new Uri(downloadUrl).AbsolutePath);
             string filePath = Path.Combine(tempDir, fileName);
 
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
-            using (var wc = new WebClient())
+            var request = (HttpWebRequest)WebRequest.Create(downloadUrl);
+            request.UserAgent = "AVTOKarta-Updater";
+            request.AllowAutoRedirect = true;
+            request.MaximumAutomaticRedirections = 5;
+
+            using (var response = (HttpWebResponse)request.GetResponse())
+            using (var responseStream = response.GetResponseStream())
+            using (var fileStream = File.Create(filePath))
             {
-                wc.Headers.Add("User-Agent", "AVTOKarta-Updater");
+                byte[] buffer = new byte[8192];
+                long totalBytesRead = 0;
+                long totalBytes = response.ContentLength;
+                int bytesRead;
 
-                if (progressCallback != null)
+                while ((bytesRead = responseStream.Read(buffer, 0, buffer.Length)) > 0)
                 {
-                    wc.DownloadProgressChanged += (s, e) =>
-                    {
-                        progressCallback(e.ProgressPercentage);
-                    };
-                }
+                    fileStream.Write(buffer, 0, bytesRead);
+                    totalBytesRead += bytesRead;
 
-                wc.DownloadFile(downloadUrl, filePath);
+                    if (progressCallback != null && totalBytes > 0)
+                    {
+                        int progress = (int)((totalBytesRead * 100) / totalBytes);
+                        progressCallback(progress);
+                    }
+                }
             }
 
             return filePath;
@@ -363,10 +382,21 @@ namespace AVTOKarta.Services
 
                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
-                using (var wc = new WebClient())
+                var request = (HttpWebRequest)WebRequest.Create(result.DownloadUrl);
+                request.UserAgent = "AVTOKarta-Updater";
+                request.AllowAutoRedirect = true;
+                request.MaximumAutomaticRedirections = 5;
+
+                using (var response = (HttpWebResponse)request.GetResponse())
+                using (var responseStream = response.GetResponseStream())
+                using (var fileStream = File.Create(filePath))
                 {
-                    wc.Headers.Add("User-Agent", "AVTOKarta-Updater");
-                    wc.DownloadFile(result.DownloadUrl, filePath);
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+                    while ((bytesRead = responseStream.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        fileStream.Write(buffer, 0, bytesRead);
+                    }
                 }
 
                 Log("Скачано: " + filePath);
