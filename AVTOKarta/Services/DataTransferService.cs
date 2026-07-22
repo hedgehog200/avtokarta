@@ -63,10 +63,18 @@ namespace AVTOKarta.Services
                 if (archive.Entries.Count > MaxZipEntryCount)
                     throw new InvalidOperationException("Archive contains too many entries — possible zip bomb.");
 
+                long totalUncompressed = 0;
                 foreach (var entry in archive.Entries)
                 {
                     if (entry.Length > MaxZipEntrySize || entry.CompressedLength > MaxZipEntrySize)
                         throw new InvalidOperationException("Archive entry too large — possible zip bomb.");
+
+                    if (entry.Length > 0)
+                    {
+                        totalUncompressed += entry.Length;
+                        if (totalUncompressed > MaxZipEntrySize * 10)
+                            throw new InvalidOperationException("Total decompressed size too large — possible zip bomb.");
+                    }
                 }
                 var metaEntry = archive.GetEntry(MetadataFile);
                 if (metaEntry != null)

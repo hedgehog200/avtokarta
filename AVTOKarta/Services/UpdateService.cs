@@ -274,13 +274,15 @@ namespace AVTOKarta.Services
         private static string EscapeBatPath(string path)
         {
             return path
-                .Replace("%", "%%")
+                .Replace("^", "^^")
                 .Replace("!", "^!")
                 .Replace("&", "^&")
                 .Replace("|", "^|")
                 .Replace(">", "^>")
                 .Replace("<", "^<")
-                .Replace("^", "^^");
+                .Replace("%", "%%")
+                .Replace("(", "^(")
+                .Replace(")", "^)");
         }
 
         public void ApplyUpdate(string downloadedFilePath)
@@ -340,7 +342,7 @@ namespace AVTOKarta.Services
                     "timeout /t 1 /nobreak >nul\r\n" +
 
                     "echo [UPDATE] Running installer >> \"" + escapedLogPath + "\"\r\n" +
-                    "\"" + downloadedFilePath + "\" /SILENT /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /LOG=\"" + EscapeBatPath(installLog) + "\"\r\n" +
+                    "\"" + EscapeBatPath(downloadedFilePath) + "\" /SILENT /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /LOG=\"" + EscapeBatPath(installLog) + "\"\r\n" +
                     "if errorlevel 1 (\r\n" +
                     "  echo [UPDATE] Installer failed >> \"" + escapedLogPath + "\"\r\n" +
                     "  start \"\" \"" + EscapeBatPath(Path.Combine(appDir, "AVTOKarta.exe")) + "\" 2>nul\r\n" +

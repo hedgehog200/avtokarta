@@ -21,18 +21,18 @@ namespace AVTOKarta
                 string dir = Path.Combine(Environment.GetFolderPath(
                     Environment.SpecialFolder.LocalApplicationData), "AVTOKarta");
                 if (!Directory.Exists(dir))
-                {
                     Directory.CreateDirectory(dir);
-                    var di = new DirectoryInfo(dir);
-                    var acl = di.GetAccessControl();
-                    acl.SetAccessRuleProtection(true, false);
-                    var rule = new FileSystemAccessRule(
-                        WindowsIdentity.GetCurrent().Name,
-                        FileSystemRights.FullControl,
-                        AccessControlType.Allow);
-                    acl.AddAccessRule(rule);
-                    di.SetAccessControl(acl);
-                }
+
+                var di = new DirectoryInfo(dir);
+                var acl = di.GetAccessControl();
+                acl.SetAccessRuleProtection(true, false);
+                var rule = new FileSystemAccessRule(
+                    WindowsIdentity.GetCurrent().Name,
+                    FileSystemRights.FullControl,
+                    AccessControlType.Allow);
+                acl.AddAccessRule(rule);
+                di.SetAccessControl(acl);
+
                 File.AppendAllText(Path.Combine(dir, "crash.log"),
                     DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " " + msg + Environment.NewLine);
             }
