@@ -78,7 +78,9 @@ namespace AVTOKarta.Services
 
                 var request = (HttpWebRequest)WebRequest.Create(ApiUrl);
                 request.UserAgent = "AVTOKarta-Updater";
+                request.Accept = "application/vnd.github.v3+json";
                 request.AllowAutoRedirect = true;
+                request.MaximumAutomaticRedirections = 5;
 
                 string json;
                 using (var response = (HttpWebResponse)request.GetResponse())
@@ -254,13 +256,21 @@ namespace AVTOKarta.Services
         {
             string appDir = AppDomain.CurrentDomain.BaseDirectory;
             string updaterBat = Path.Combine(GetTempDir(), "update.bat");
+            string logPath = GetLogPath();
+            string escapedLogPath = logPath.Replace("&", "^&");
 
             bool isZip = downloadedFilePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
+            bool isExe = downloadedFilePath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
 
             string batContent;
             if (isZip)
             {
                 string extractDir = Path.Combine(GetTempDir(), "extracted");
+                string escapedZip = downloadedFilePath.Replace("&", "^&");
+                string escapedExtract = extractDir.Replace("&", "^&");
+                string escapedAppDir = appDir.Replace("&", "^&");
+                string escapedTempDir = GetTempDir().Replace("&", "^&");
+
                 batContent =
                     "@echo off\r\n" +
                     "chcp 65001 >nul\r\n" +
@@ -272,7 +282,7 @@ namespace AVTOKarta.Services
                     "if not exist \"" + extractDir + "\" mkdir \"" + extractDir + "\"\r\n" +
                     "powershell -NoProfile -ExecutionPolicy Bypass -Command \"try { Expand-Archive -Path '" + downloadedFilePath.Replace("'", "''") + "' -DestinationPath '" + extractDir.Replace("'", "''") + "' -Force } catch { exit 1 }\"\r\n" +
                     "if errorlevel 1 (\r\n" +
-                    "  echo Ошибка распаковки >> \"" + GetLogPath() + "\"\r\n" +
+                    "  echo [UPDATE] Extract failed >> \"" + escapedLogPath + "\"\r\n" +
                     "  start \"\" \"" + Path.Combine(appDir, "AVTOKarta.exe") + "\"\r\n" +
                     "  del \"%~f0\"\r\n" +
                     "  exit /b\r\n" +
@@ -280,20 +290,21 @@ namespace AVTOKarta.Services
 
                     "xcopy /s /y /e /q \"" + extractDir + "\\*.*\" \"" + appDir + "\"\r\n" +
                     "if errorlevel 1 (\r\n" +
-                    "  echo Ошибка копирования >> \"" + GetLogPath() + "\"\r\n" +
+                    "  echo [UPDATE] Copy failed >> \"" + escapedLogPath + "\"\r\n" +
                     "  start \"\" \"" + Path.Combine(appDir, "AVTOKarta.exe") + "\"\r\n" +
                     "  del \"%~f0\"\r\n" +
                     "  exit /b\r\n" +
                     ")\r\n" +
 
-                    "rmdir /s /q \"" + GetTempDir() + "\" 2>nul\r\n" +
+                    "rmdir /s /q \"" + escapedTempDir + "\" 2>nul\r\n" +
                     "start \"\" \"" + Path.Combine(appDir, "AVTOKarta.exe") + "\"\r\n" +
                     "del \"%~f0\"\r\n";
             }
-            else
+            else if (isExe)
             {
-                string targetExe = Path.Combine(appDir, "AVTOKarta.exe");
-                string backupExe = targetExe + ".bak";
+                string escapedSetup = downloadedFilePath.Replace("&", "^&");
+                string escapedTempDir = GetTempDir().Replace("&", "^&");
+
                 batContent =
                     "@echo off\r\n" +
                     "chcp 65001 >nul\r\n" +
@@ -302,33 +313,28 @@ namespace AVTOKarta.Services
                     "taskkill /f /im AVTOKarta.exe >nul 2>&1\r\n" +
                     "timeout /t 1 /nobreak >nul\r\n" +
 
-                    "del \"" + backupExe + "\" 2>nul\r\n" +
-                    "copy /y \"" + targetExe + "\" \"" + backupExe + "\"\r\n" +
+                    "echo [UPDATE] Running installer: " + escapedSetup + " >> \"" + escapedLogPath + "\"\r\n" +
+                    "\"" + downloadedFilePath + "\" /SILENT /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /LOG=\"" + Path.Combine(GetTempDir(), "install.log").Replace("&", "^&") + "\"\r\n" +
                     "if errorlevel 1 (\r\n" +
-                    "  echo Ошибка резервного копирования >> \"" + GetLogPath() + "\"\r\n" +
-                    "  start \"\" \"" + targetExe + "\"\r\n" +
+                    "  echo [UPDATE] Installer failed with code !errorlevel! >> \"" + escapedLogPath + "\"\r\n" +
+                    "  start \"\" \"" + Path.Combine(appDir, "AVTOKarta.exe") + "\" 2>nul\r\n" +
                     "  del \"%~f0\"\r\n" +
                     "  exit /b\r\n" +
                     ")\r\n" +
 
-                    "copy /y \"" + downloadedFilePath + "\" \"" + targetExe + "\"\r\n" +
-                    "if errorlevel 1 (\r\n" +
-                    "  echo Ошибка замены, откат >> \"" + GetLogPath() + "\"\r\n" +
-                    "  copy /y \"" + backupExe + "\" \"" + targetExe + "\"\r\n" +
-                    "  start \"\" \"" + targetExe + "\"\r\n" +
-                    "  del \"%~f0\"\r\n" +
-                    "  exit /b\r\n" +
-                    ")\r\n" +
-
-                    "del \"" + backupExe + "\" 2>nul\r\n" +
-                    "rmdir /s /q \"" + GetTempDir() + "\" 2>nul\r\n" +
-                    "start \"\" \"" + targetExe + "\"\r\n" +
+                    "rmdir /s /q \"" + escapedTempDir + "\" 2>nul\r\n" +
+                    "start \"\" \"" + Path.Combine(appDir, "AVTOKarta.exe") + "\"\r\n" +
                     "del \"%~f0\"\r\n";
             }
+            else
+            {
+                Log("Unsupported update file type: " + downloadedFilePath);
+                return;
+            }
 
-            File.WriteAllText(updaterBat, batContent);
+            File.WriteAllText(updaterBat, batContent, System.Text.Encoding.ASCII);
 
-            Log("Запуск обновления: " + downloadedFilePath);
+            Log("Launching update: " + downloadedFilePath);
 
             Process.Start(new ProcessStartInfo
             {
