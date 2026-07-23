@@ -6,7 +6,9 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Net.Security;
 using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Newtonsoft.Json.Linq;
@@ -20,6 +22,30 @@ namespace AVTOKarta.Services
         private const string ApiUrl = "https://api.github.com/repos/" + RepoOwner + "/" + RepoName + "/releases/latest";
         private const string LogFile = "updater.log";
         private static Mutex _updateMutex;
+
+        static UpdateService()
+        {
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+            ServicePointManager.ServerCertificateValidationCallback = ValidateCertificate;
+        }
+
+        private static bool ValidateCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        {
+            if (sslPolicyErrors == SslPolicyErrors.None)
+                return true;
+
+            foreach (var status in chain.ChainStatus)
+            {
+                if (status.Status != X509ChainStatusFlags.NoError &&
+                    status.Status != X509ChainStatusFlags.RevocationStatusUnknown &&
+                    status.Status != X509ChainStatusFlags.OfflineRevocation)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
 
         public static Version GetCurrentVersion()
         {
@@ -74,8 +100,6 @@ namespace AVTOKarta.Services
         {
             try
             {
-                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-
                 var request = (HttpWebRequest)WebRequest.Create(ApiUrl);
                 request.UserAgent = "AVTOKarta-Updater";
                 request.Accept = "application/vnd.github.v3+json";
@@ -191,8 +215,6 @@ namespace AVTOKarta.Services
                 Directory.CreateDirectory(tempDir);
             string fileName = Path.GetFileName(new Uri(downloadUrl).AbsolutePath);
             string filePath = Path.Combine(tempDir, fileName);
-
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
             var request = (HttpWebRequest)WebRequest.Create(downloadUrl);
             request.UserAgent = "AVTOKarta-Updater";
@@ -413,8 +435,6 @@ namespace AVTOKarta.Services
 
                 string fileName = Path.GetFileName(new Uri(result.DownloadUrl).AbsolutePath);
                 string filePath = Path.Combine(tempDir, fileName);
-
-                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
                 var request = (HttpWebRequest)WebRequest.Create(result.DownloadUrl);
                 request.UserAgent = "AVTOKarta-Updater";
