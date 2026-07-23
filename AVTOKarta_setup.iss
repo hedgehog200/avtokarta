@@ -34,6 +34,7 @@ DisableProgramGroupPage=yes
 LicenseFile={#MyAppLicense}
 Password=reApCeVAfuHV
 Encryption=yes
+
 VersionInfoVersion={#MyAppVersion}.0
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoCopyright={#MyAppCopyright}

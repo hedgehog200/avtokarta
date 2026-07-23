@@ -24,6 +24,17 @@ namespace AVTOKarta.Services
         private const string LogFile = "updater.log";
         private static Mutex _updateMutex;
 
+        private static readonly byte[] _encPassword = new byte[] { 0x33, 0x33, 0x15, 0x3F, 0x08, 0x24, 0x04, 0x15, 0x27, 0x34, 0x1E, 0x02 };
+        private static readonly byte[] _xorKey = new byte[] { 0x41, 0x56, 0x54, 0x4F, 0x4B, 0x41, 0x52, 0x54, 0x41 };
+
+        private static string GetInstallerPassword()
+        {
+            char[] result = new char[_encPassword.Length];
+            for (int i = 0; i < _encPassword.Length; i++)
+                result[i] = (char)(_encPassword[i] ^ _xorKey[i % _xorKey.Length]);
+            return new string(result);
+        }
+
         static UpdateService()
         {
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
@@ -365,7 +376,7 @@ namespace AVTOKarta.Services
                     "timeout /t 1 /nobreak >nul\r\n" +
 
                     "echo [UPDATE] Running installer >> \"" + escapedLogPath + "\"\r\n" +
-                    "\"" + EscapeBatPath(downloadedFilePath) + "\" /SILENT /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /PASSWORD=reApCeVAfuHV /LOG=\"" + EscapeBatPath(installLog) + "\"\r\n" +
+                    "\"" + EscapeBatPath(downloadedFilePath) + "\" /SILENT /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /PASSWORD=" + GetInstallerPassword() + " /LOG=\"" + EscapeBatPath(installLog) + "\"\r\n" +
                     "if errorlevel 1 (\r\n" +
                     "  echo [UPDATE] Installer failed >> \"" + escapedLogPath + "\"\r\n" +
                     "  start \"\" \"" + EscapeBatPath(Path.Combine(appDir, "AVTOKarta.exe")) + "\" 2>nul\r\n" +
