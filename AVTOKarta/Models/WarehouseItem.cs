@@ -37,6 +37,8 @@ namespace AVTOKarta.Models
                     case OilType.TransmissionOil: return "Трансмиссионное масло";
                     case OilType.SpecialLiquid: return "Спец. жидкость";
                     case OilType.PlasticLubricant: return "Пластичная смазка";
+                    case OilType.Gasoline: return "Бензин (АИ-92)";
+                    case OilType.Diesel: return "Диз. топливо (ДТ)";
                     default: return Type.ToString();
                 }
             }

@@ -10,7 +10,7 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel>
-                    <TextBlock Text="Склад ГСМ (масла, смазки, спец. жидкости)" FontSize="18" FontWeight="Bold"
+                    <TextBlock Text="Склад ГСМ (топливо, масла, смазки, спец. жидкости)" FontSize="18" FontWeight="Bold"
                                Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                     <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0">
                         <Run Text="Полный учёт прихода, расхода и остатков"/>
@@ -76,6 +76,22 @@
         <!-- TOTALS -->
         <Border DockPanel.Dock="Top" Style="{StaticResource InfoBanner}" Margin="16,0,16,8" Padding="16,10">
             <StackPanel Orientation="Horizontal">
+                <Border Background="{StaticResource PillSuccessBrush}" CornerRadius="10" Padding="10,4" Margin="0,0,10,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Диз. топливо: " Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
+                        <TextBlock Text="{Binding WarehouseVm.TotalDiesel, StringFormat=F2}" FontWeight="Bold" FontSize="12"
+                                   Foreground="{StaticResource SuccessBrush}"/>
+                        <TextBlock Text=" л" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
+                    </StackPanel>
+                </Border>
+                <Border Background="{StaticResource PillWarningBrush}" CornerRadius="10" Padding="10,4" Margin="0,0,10,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Бензин: " Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
+                        <TextBlock Text="{Binding WarehouseVm.TotalGasoline, StringFormat=F2}" FontWeight="Bold" FontSize="12"
+                                   Foreground="{StaticResource WarningBrush}"/>
+                        <TextBlock Text=" л" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
+                    </StackPanel>
+                </Border>
                 <Border Background="{StaticResource PillPrimaryBrush}" CornerRadius="10" Padding="10,4" Margin="0,0,10,0">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="Моторное масло: " Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>

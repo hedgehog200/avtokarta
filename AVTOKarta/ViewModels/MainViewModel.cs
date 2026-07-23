@@ -176,7 +176,7 @@ namespace AVTOKarta.ViewModels
                     if (_squads.Count > 0)
                         SelectedSquad = _squads[0];
                     UpdateSquadInfo();
-                    StatusMessage = "Загружено: " + squadsList.Count + " частей, " + vehiclesList.Count + " автомобилей";
+                    StatusMessage = "Загружено: " + squadsList.Count + " частей, " + _vehicles.Count + " автомобилей";
                 });
 
                 _cacheService.StartAutoSave(SaveAll, 60000);
@@ -582,6 +582,12 @@ namespace AVTOKarta.ViewModels
             }
             else
             {
+                _selectedVehicle = CardVehicle;
+                OnPropertyChanged("SelectedVehicle");
+                OnPropertyChanged("SelectedVehicleMake");
+                OnPropertyChanged("SelectedVehiclePlate");
+                OnPropertyChanged("SelectedVehicleType");
+                OnPropertyChanged("CurrentCardNumber");
                 LoadCardForVehicle(CardVehicle);
             }
         }
@@ -652,6 +658,12 @@ namespace AVTOKarta.ViewModels
 
         private void AddSquad()
         {
+            if (_dataService == null)
+            {
+                StatusMessage = "Данные не инициализированы. Перезапустите приложение.";
+                return;
+            }
+
             var squad = new Squad();
             if (EditSquadDialog(squad))
             {
@@ -668,7 +680,7 @@ namespace AVTOKarta.ViewModels
 
         private void EditSquad()
         {
-            if (SelectedSquad == null) return;
+            if (SelectedSquad == null || _dataService == null) return;
             if (EditSquadDialog(SelectedSquad))
             {
                 _dataService.SaveSquadsAsync(new List<Squad>(_squads));
@@ -680,7 +692,7 @@ namespace AVTOKarta.ViewModels
 
         private void DeleteSquad()
         {
-            if (SelectedSquad == null) return;
+            if (SelectedSquad == null || _dataService == null) return;
             var vehiclesInSquad = _allVehicles.Where(v => v.SquadId == SelectedSquad.Id).ToList();
             if (vehiclesInSquad.Count > 0)
             {
@@ -950,30 +962,47 @@ namespace AVTOKarta.ViewModels
         {
             if (_dataService == null) return;
 
-            _dataService.SaveSquadsAsync(new List<Squad>(_squads));
-            _dataService.SaveVehiclesAsync(new List<Vehicle>(_allVehicles));
+            try
+            {
+                var squadsCopy = new List<Squad>(_squads);
+                _dataService.SaveSquadsAsync(squadsCopy);
+            }
+            catch (Exception) { }
+
+            try
+            {
+                var vehiclesCopy = new List<Vehicle>(_allVehicles);
+                _dataService.SaveVehiclesAsync(vehiclesCopy);
+            }
+            catch (Exception) { }
+
             SyncConverterSquads();
 
             if (CurrentCard != null)
             {
-                CurrentCard.Records = new List<DailyRecord>(Records);
-                int year = CurrentCard.Year;
-                int monthIdx = DateTimeHelper.GetMonthIndex(CurrentCard.Month);
-                var cardCopy = new MonthlyCard
+                try
                 {
-                    VehicleLicensePlate = CurrentCard.VehicleLicensePlate,
-                    Month = CurrentCard.Month,
-                    Year = CurrentCard.Year,
-                    ChassisMileageOnFirst = CurrentCard.ChassisMileageOnFirst,
-                    EngineMileageOnFirst = CurrentCard.EngineMileageOnFirst,
-                    FuelRemainingOnFirst = CurrentCard.FuelRemainingOnFirst,
-                    FuelRefueledMonth = CurrentCard.FuelRefueledMonth,
-                    FuelRemainingOnLast = CurrentCard.FuelRemainingOnLast,
-                    FuelLevelCm = CurrentCard.FuelLevelCm,
-                    DeliveryType = CurrentCard.DeliveryType,
-                    Records = new List<DailyRecord>(Records)
-                };
-                _dataService.SaveCardAsync(cardCopy, year, monthIdx);
+                    var recordsCopy = new List<DailyRecord>(Records);
+                    CurrentCard.Records = recordsCopy;
+                    int year = CurrentCard.Year;
+                    int monthIdx = DateTimeHelper.GetMonthIndex(CurrentCard.Month);
+                    var cardCopy = new MonthlyCard
+                    {
+                        VehicleLicensePlate = CurrentCard.VehicleLicensePlate,
+                        Month = CurrentCard.Month,
+                        Year = CurrentCard.Year,
+                        ChassisMileageOnFirst = CurrentCard.ChassisMileageOnFirst,
+                        EngineMileageOnFirst = CurrentCard.EngineMileageOnFirst,
+                        FuelRemainingOnFirst = CurrentCard.FuelRemainingOnFirst,
+                        FuelRefueledMonth = CurrentCard.FuelRefueledMonth,
+                        FuelRemainingOnLast = CurrentCard.FuelRemainingOnLast,
+                        FuelLevelCm = CurrentCard.FuelLevelCm,
+                        DeliveryType = CurrentCard.DeliveryType,
+                        Records = recordsCopy
+                    };
+                    _dataService.SaveCardAsync(cardCopy, year, monthIdx);
+                }
+                catch (Exception) { }
             }
         }
 
@@ -1009,6 +1038,32 @@ namespace AVTOKarta.ViewModels
 
             try
             {
+                if (CurrentCard != null)
+                {
+                    CurrentCard.Records = new List<DailyRecord>(Records);
+                    if (SelectedVehicle != null)
+                        CalculationService.RecalculateAllRecords(CurrentCard, SelectedVehicle.FuelNorms);
+
+                    int monthIdx = DateTimeHelper.GetMonthIndex(CurrentCard.Month);
+                    _dataService.BackupCard(CurrentCard.VehicleLicensePlate, CurrentCard.Year, monthIdx);
+
+                    var cardCopy = new MonthlyCard
+                    {
+                        VehicleLicensePlate = CurrentCard.VehicleLicensePlate,
+                        Month = CurrentCard.Month,
+                        Year = CurrentCard.Year,
+                        ChassisMileageOnFirst = CurrentCard.ChassisMileageOnFirst,
+                        EngineMileageOnFirst = CurrentCard.EngineMileageOnFirst,
+                        FuelRemainingOnFirst = CurrentCard.FuelRemainingOnFirst,
+                        FuelRefueledMonth = CurrentCard.FuelRefueledMonth,
+                        FuelRemainingOnLast = CurrentCard.FuelRemainingOnLast,
+                        FuelLevelCm = CurrentCard.FuelLevelCm,
+                        DeliveryType = CurrentCard.DeliveryType,
+                        Records = new List<DailyRecord>(Records)
+                    };
+                    _dataService.SaveCard(cardCopy, CurrentCard.Year, monthIdx);
+                }
+
                 var squadVehicles = _allVehicles.Where(v => v.SquadId == SelectedSquad.Id).ToList();
                 if (squadVehicles.Count == 0)
                 {
@@ -1065,8 +1120,8 @@ namespace AVTOKarta.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine("Export error: " + ex);
-                StatusMessage = "Ошибка выгрузки данных.";
-                MessageBox.Show("Ошибка при выгрузке данных.\nОбратитесь к администратору.",
+                StatusMessage = "Ошибка выгрузки данных: " + ex.Message;
+                MessageBox.Show("Ошибка при выгрузке данных:\n\n" + ex.Message,
                     "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -1162,7 +1217,8 @@ namespace AVTOKarta.ViewModels
             var record = new DailyRecord
             {
                 Id = Records.Count + 1,
-                Date = new DateTime(CurrentCard.Year, DateTimeHelper.GetMonthIndex(CurrentCard.Month) + 1, 1)
+                Date = new DateTime(CurrentCard.Year, DateTimeHelper.GetMonthIndex(CurrentCard.Month) + 1, 1),
+                TripSheetNumber = Records.Count + 1
             };
 
             var vm = new CardViewModel(record, SelectedVehicle.FuelNorms);

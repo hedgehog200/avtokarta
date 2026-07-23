@@ -12,7 +12,9 @@ namespace AVTOKarta.Models
         MotorOil,
         TransmissionOil,
         SpecialLiquid,
-        PlasticLubricant
+        PlasticLubricant,
+        Gasoline,
+        Diesel
     }
 
     public class OilEntry
@@ -43,6 +45,8 @@ namespace AVTOKarta.Models
                     case OilType.TransmissionOil: return "Трансмиссионное масло";
                     case OilType.SpecialLiquid: return "Спец. жидкость";
                     case OilType.PlasticLubricant: return "Пластичная смазка";
+                    case OilType.Gasoline: return "Бензин (АИ-92)";
+                    case OilType.Diesel: return "Диз. топливо (ДТ)";
                     default: return Type.ToString();
                 }
             }
@@ -79,6 +83,7 @@ namespace AVTOKarta.Models
         public double ActualConsumption { get; set; }
         public double NormConsumption { get; set; }
         public string Comments { get; set; }
+        public int TripSheetNumber { get; set; }
 
         public string SquadNumber { get; set; }
         public string DriverName { get; set; }

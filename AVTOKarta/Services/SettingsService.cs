@@ -5,7 +5,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.AccessControl;
 using System.Security.Cryptography;
+using System.Security.Principal;
 using System.Text;
 
 namespace AVTOKarta.Services
@@ -29,8 +31,28 @@ namespace AVTOKarta.Services
 
         private void EnsureDirectories()
         {
+            string parentDir = Path.GetDirectoryName(AppDataPath);
+            if (!Directory.Exists(parentDir))
+                Directory.CreateDirectory(parentDir);
+
+            FixAclIfNeeded(parentDir);
+
             if (!Directory.Exists(AppDataPath))
                 Directory.CreateDirectory(AppDataPath);
+
+            FixAclIfNeeded(AppDataPath);
+        }
+
+        private void FixAclIfNeeded(string dirPath)
+        {
+            try
+            {
+                var di = new DirectoryInfo(dirPath);
+                var acl = di.GetAccessControl();
+                acl.SetAccessRuleProtection(false, true);
+                di.SetAccessControl(acl);
+            }
+            catch { }
         }
 
         public string DataPath

@@ -47,6 +47,35 @@ namespace AVTOKarta.Services
             {
                 record.NormConsumption = CalculateNormConsumption(record, norms);
             }
+
+            double totalActual = CalculateActualConsumption(card, card.Records, norms);
+            if (card.FuelRefueledMonth > 0 && card.Records.Count > 0)
+            {
+                double totalNorm = card.Records.Sum(r => r.NormConsumption);
+                if (totalNorm > 0)
+                {
+                    foreach (var record in card.Records)
+                    {
+                        record.ActualConsumption = Math.Round(
+                            totalActual * (record.NormConsumption / totalNorm), 3);
+                    }
+                }
+                else
+                {
+                    double perRecord = Math.Round(totalActual / card.Records.Count, 3);
+                    foreach (var record in card.Records)
+                    {
+                        record.ActualConsumption = perRecord;
+                    }
+                }
+            }
+            else
+            {
+                foreach (var record in card.Records)
+                {
+                    record.ActualConsumption = record.NormConsumption;
+                }
+            }
         }
 
         public static double CalculateTotalNorm(List<DailyRecord> records)

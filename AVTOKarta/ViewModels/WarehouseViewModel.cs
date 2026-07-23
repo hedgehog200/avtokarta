@@ -32,9 +32,13 @@ namespace AVTOKarta.ViewModels
         private double _totalTransOil;
         private double _totalSpecLiquid;
         private double _totalPlasticLub;
+        private double _totalGasoline;
+        private double _totalDiesel;
 
         private static readonly List<OilTypeItem> _oilTypes = new List<OilTypeItem>
         {
+            new OilTypeItem { Type = OilType.Gasoline, Name = "Бензин (АИ-92)" },
+            new OilTypeItem { Type = OilType.Diesel, Name = "Диз. топливо (ДТ)" },
             new OilTypeItem { Type = OilType.MotorOil, Name = "Моторное масло" },
             new OilTypeItem { Type = OilType.TransmissionOil, Name = "Трансмиссионное масло" },
             new OilTypeItem { Type = OilType.SpecialLiquid, Name = "Спец. жидкость" },
@@ -128,6 +132,8 @@ namespace AVTOKarta.ViewModels
         public double TotalTransOil => _totalTransOil;
         public double TotalSpecLiquid => _totalSpecLiquid;
         public double TotalPlasticLub => _totalPlasticLub;
+        public double TotalGasoline => _totalGasoline;
+        public double TotalDiesel => _totalDiesel;
 
         public void Reload()
         {
@@ -154,6 +160,8 @@ namespace AVTOKarta.ViewModels
             _totalTransOil = 0;
             _totalSpecLiquid = 0;
             _totalPlasticLub = 0;
+            _totalGasoline = 0;
+            _totalDiesel = 0;
 
             foreach (var i in _items)
             {
@@ -163,6 +171,8 @@ namespace AVTOKarta.ViewModels
                     case OilType.TransmissionOil: _totalTransOil += i.Quantity; break;
                     case OilType.SpecialLiquid: _totalSpecLiquid += i.Quantity; break;
                     case OilType.PlasticLubricant: _totalPlasticLub += i.Quantity; break;
+                    case OilType.Gasoline: _totalGasoline += i.Quantity; break;
+                    case OilType.Diesel: _totalDiesel += i.Quantity; break;
                 }
             }
 
@@ -170,6 +180,8 @@ namespace AVTOKarta.ViewModels
             OnPropertyChanged("TotalTransOil");
             OnPropertyChanged("TotalSpecLiquid");
             OnPropertyChanged("TotalPlasticLub");
+            OnPropertyChanged("TotalGasoline");
+            OnPropertyChanged("TotalDiesel");
         }
 
         private void Save()

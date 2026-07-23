@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Windows;
 using Newtonsoft.Json.Linq;
 
 namespace AVTOKarta.Services
@@ -428,7 +429,35 @@ namespace AVTOKarta.Services
                     return;
                 }
 
-                Log("Найдено обновление: " + result.RemoteVersion + ", скачивание...");
+                Log("Найдено обновление: " + result.RemoteVersion);
+
+                string notes = string.IsNullOrEmpty(result.ReleaseNotes)
+                    ? "(нет описания)"
+                    : result.ReleaseNotes;
+
+                string message = "Доступно обновление " + result.RemoteVersion + " (текущая версия: " + result.CurrentVersion + ")\n\n"
+                    + "Что нового:\n"
+                    + notes
+                    + "\n\nСкачать и установить обновление?";
+
+                bool confirmed = false;
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    var answer = MessageBox.Show(
+                        message,
+                        "Обновление AVTOKarta",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Information);
+                    confirmed = answer == MessageBoxResult.Yes;
+                });
+
+                if (!confirmed)
+                {
+                    Log("Обновление отклонено пользователем");
+                    return;
+                }
+
+                Log("Скачивание обновления: " + result.RemoteVersion);
 
                 string tempDir = GetTempDir();
                 CleanupTemp(tempDir);

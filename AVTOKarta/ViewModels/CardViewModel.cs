@@ -34,6 +34,7 @@ namespace AVTOKarta.ViewModels
         private string _comments;
         private string _squadNumber;
         private string _driverName;
+        private int _tripSheetNumber;
         private double _motorOilLiters;
         private double _transmissionOilLiters;
         private double _specialLiquidLiters;
@@ -78,6 +79,7 @@ namespace AVTOKarta.ViewModels
             _comments = record.Comments;
             _squadNumber = record.SquadNumber;
             _driverName = record.DriverName;
+            _tripSheetNumber = record.TripSheetNumber;
             _motorOilLiters = record.MotorOilLiters;
             _transmissionOilLiters = record.TransmissionOilLiters;
             _specialLiquidLiters = record.SpecialLiquidLiters;
@@ -255,6 +257,12 @@ namespace AVTOKarta.ViewModels
         {
             get { return _driverName; }
             set { SetProperty(ref _driverName, value); }
+        }
+
+        public int TripSheetNumber
+        {
+            get { return _tripSheetNumber; }
+            set { SetProperty(ref _tripSheetNumber, value); }
         }
 
         public string DepartureTimeDisplay
@@ -464,6 +472,7 @@ namespace AVTOKarta.ViewModels
             EditingRecord.Comments = Comments;
             EditingRecord.SquadNumber = SquadNumber;
             EditingRecord.DriverName = DriverName;
+            EditingRecord.TripSheetNumber = TripSheetNumber;
             EditingRecord.MotorOilLiters = MotorOilLiters;
             EditingRecord.TransmissionOilLiters = TransmissionOilLiters;
             EditingRecord.SpecialLiquidLiters = SpecialLiquidLiters;

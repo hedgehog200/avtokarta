@@ -94,6 +94,18 @@
                             <ColumnDefinition Width="130"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="№ путевого листа:" Style="{StaticResource FieldLabel}"/>
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding TripSheetNumber, UpdateSourceTrigger=PropertyChanged}"
+                                 IsReadOnly="True" Margin="0" Padding="6,5"
+                                 Background="{StaticResource BackgroundBrush}"/>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="130"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="Наименование:" Style="{StaticResource FieldLabel}"/>
                         <ComboBox Grid.Column="1" ItemsSource="{Binding WorkDescriptions}"
                                   Text="{Binding WorkDescription, UpdateSourceTrigger=PropertyChanged}"

@@ -17,6 +17,7 @@ namespace AVTOKarta.Services
     public class DataTransferService
     {
         private readonly string _dataPath;
+        private readonly string _password;
         private readonly EncryptionService _localEncryption;
         private const string MetadataFile = "metadata.json";
         private const string SquadsFile = "squads.json";
@@ -28,6 +29,7 @@ namespace AVTOKarta.Services
         public DataTransferService(string password, string dataPath)
         {
             _dataPath = dataPath;
+            _password = password;
             _localEncryption = new EncryptionService(password);
         }
 
@@ -164,19 +166,33 @@ namespace AVTOKarta.Services
                     string squadsPath = Path.Combine(_dataPath, SquadsFile);
                     if (File.Exists(squadsPath))
                     {
-                        string json = ReadEncryptedFile(squadsPath);
-                        AddEntry(archive, SquadsFile, json);
-                        var squads = JsonConvert.DeserializeObject<List<Squad>>(json);
-                        if (squads != null) metadata.SquadCount = squads.Count;
+                        try
+                        {
+                            string json = ReadEncryptedFile(squadsPath);
+                            AddEntry(archive, SquadsFile, json);
+                            var squads = JsonConvert.DeserializeObject<List<Squad>>(json);
+                            if (squads != null) metadata.SquadCount = squads.Count;
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine("Export: skipped corrupted squads.json: " + ex.Message);
+                        }
                     }
 
                     string vehiclesPath = Path.Combine(_dataPath, VehiclesFile);
                     if (File.Exists(vehiclesPath))
                     {
-                        string json = ReadEncryptedFile(vehiclesPath);
-                        AddEntry(archive, VehiclesFile, json);
-                        var vehicles = JsonConvert.DeserializeObject<List<Vehicle>>(json);
-                        if (vehicles != null) metadata.VehicleCount = vehicles.Count;
+                        try
+                        {
+                            string json = ReadEncryptedFile(vehiclesPath);
+                            AddEntry(archive, VehiclesFile, json);
+                            var vehicles = JsonConvert.DeserializeObject<List<Vehicle>>(json);
+                            if (vehicles != null) metadata.VehicleCount = vehicles.Count;
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine("Export: skipped corrupted vehicles.json: " + ex.Message);
+                        }
                     }
 
                     string cardsPath = Path.Combine(_dataPath, CardsDir);
@@ -192,9 +208,16 @@ namespace AVTOKarta.Services
                                 {
                                     string month = Path.GetFileNameWithoutExtension(cardFile);
                                     string entryPath = string.Format("{0}/{1}/{2}.json", plateDir, year, month);
-                                    string json = ReadEncryptedFile(cardFile);
-                                    AddEntry(archive, CardsDir + "/" + entryPath, json);
-                                    metadata.CardCount++;
+                                    try
+                                    {
+                                        string json = ReadEncryptedFile(cardFile);
+                                        AddEntry(archive, CardsDir + "/" + entryPath, json);
+                                        metadata.CardCount++;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        System.Diagnostics.Debug.WriteLine("Export: skipped corrupted card: " + entryPath + ": " + ex.Message);
+                                    }
                                 }
                             }
                         }
@@ -258,7 +281,7 @@ namespace AVTOKarta.Services
         private string ReadEncryptedFile(string path)
         {
             byte[] encrypted = File.ReadAllBytes(path);
-            byte[] decrypted = _localEncryption.Decrypt(encrypted);
+            byte[] decrypted = EncryptionService.DecryptLegacyOrCurrent(_password, encrypted);
             return Encoding.UTF8.GetString(decrypted);
         }
 

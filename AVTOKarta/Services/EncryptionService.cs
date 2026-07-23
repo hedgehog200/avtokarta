@@ -278,7 +278,7 @@ namespace AVTOKarta.Services
             return result;
         }
 
-        private static byte[] DecryptLegacyOrCurrent(string password, byte[] encryptedData)
+        public static byte[] DecryptLegacyOrCurrent(string password, byte[] encryptedData)
         {
             if (encryptedData.Length >= HmacSize + SaltSize + 1)
             {

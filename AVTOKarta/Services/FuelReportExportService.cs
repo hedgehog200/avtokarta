@@ -56,6 +56,13 @@ namespace AVTOKarta.Services
             public double FalseAlarmFuel;
             public double MainActivityFuel;
 
+            public double EmergencyFuel;
+            public double FireCallsFuel;
+            public double IgnitionCallsFuel;
+            public double RescueDtpFuel;
+            public double HeatingDutyFuel;
+            public double LiteraryEventsFuel;
+
             public double YearToDateFuelConsumption;
             public FuelDeliveryType DeliveryType;
         }
@@ -114,21 +121,20 @@ namespace AVTOKarta.Services
                 var records = card.Records ?? new List<DailyRecord>();
                 bool isDiesel = IsDieselVehicle(vehicle);
 
-                double totalConsumption = records.Sum(r => r.ActualConsumption);
-                if (totalConsumption == 0 && card.FuelRefueledMonth > 0)
-                    totalConsumption = card.FuelRemainingOnFirst + card.FuelRefueledMonth - card.FuelRemainingOnLast;
+                double totalConsumption = card.FuelRemainingOnFirst + card.FuelRefueledMonth - card.FuelRemainingOnLast;
+                if (totalConsumption < 0) totalConsumption = 0;
 
                 double totalDistance = records.Sum(r => r.DistanceKm);
                 double reducedMileage = CalculationService.CalculateReductionMileage(records, vehicle.FuelNorms.ReductionCoefficient);
 
-                double totalMotorOil = records.Sum(r => r.MotorOilLiters);
-                double totalTransOil = records.Sum(r => r.TransmissionOilLiters);
-                double totalSpecLiquid = records.Sum(r => r.SpecialLiquidLiters);
-                double totalPlasticLub = records.Sum(r => r.PlasticLubricantKg);
+                double totalMotorOil = 0;
+                double totalTransOil = 0;
+                double totalSpecLiquid = 0;
+                double totalPlasticLub = 0;
 
                 foreach (var rec in records)
                 {
-                    if (rec.OilEntries != null)
+                    if (rec.OilEntries != null && rec.OilEntries.Count > 0)
                     {
                         foreach (var entry in rec.OilEntries)
                         {
@@ -148,6 +154,13 @@ namespace AVTOKarta.Services
                                     break;
                             }
                         }
+                    }
+                    else
+                    {
+                        totalMotorOil += rec.MotorOilLiters;
+                        totalTransOil += rec.TransmissionOilLiters;
+                        totalSpecLiquid += rec.SpecialLiquidLiters;
+                        totalPlasticLub += rec.PlasticLubricantKg;
                     }
                 }
 
@@ -174,31 +187,35 @@ namespace AVTOKarta.Services
 
                 foreach (var rec in records)
                 {
-                    var tripType = CalculationService.ClassifyTrip(rec.WorkDescription);
-                    double norm = rec.NormConsumption;
+                    double recFuel = rec.NormConsumption;
+                    int detail = ClassifyDetailedTrip(rec.WorkDescription);
 
-                    switch (tripType)
+                    switch (detail)
                     {
-                        case TripType.Fire:
-                            vd.FireFuel += norm;
-                            break;
-                        case TripType.FalseAlarm:
-                            vd.FalseAlarmFuel += norm;
-                            break;
-                        case TripType.Training:
-                            vd.TrainingPumpMin += rec.TimeWithPumpMinutes;
-                            vd.TrainingPumpFuel += rec.TimeWithPumpMinutes * vehicle.FuelNorms.ConsumptionPerMinPump;
-                            vd.TrainingNoPumpMin += rec.TimeWithoutPumpMinutes;
-                            vd.TrainingNoPumpFuel += rec.TimeWithoutPumpMinutes * vehicle.FuelNorms.ConsumptionPerMinIdle;
-                            vd.TrainingNoPumpFuel += rec.DistanceKm * vehicle.FuelNorms.ConsumptionPerKmWithoutPump;
-                            break;
-                        default:
-                            vd.MainWorkPumpMin += rec.TimeWithPumpMinutes;
-                            vd.MainWorkPumpFuel += rec.TimeWithPumpMinutes * vehicle.FuelNorms.ConsumptionPerMinPump;
-                            vd.MainWorkNoPumpMin += rec.TimeWithoutPumpMinutes;
-                            vd.MainWorkNoPumpFuel += rec.TimeWithoutPumpMinutes * vehicle.FuelNorms.ConsumptionPerMinIdle;
-                            vd.MainWorkNoPumpFuel += rec.DistanceKm * vehicle.FuelNorms.ConsumptionPerKmWithoutPump;
-                            break;
+                        case 1: vd.FireCallsFuel += recFuel; break;
+                        case 2: vd.FalseAlarmFuel += recFuel; break;
+                        case 4: vd.RescueDtpFuel += recFuel; break;
+                        case 5: vd.EmergencyFuel += recFuel; break;
+                        case 6: vd.HeatingDutyFuel += recFuel; break;
+                        case 7: vd.LiteraryEventsFuel += recFuel; break;
+                        case 8: vd.IgnitionCallsFuel += recFuel; break;
+                    }
+
+                    if (detail == 3)
+                    {
+                        vd.TrainingPumpMin += rec.TimeWithPumpMinutes;
+                        vd.TrainingPumpFuel += rec.TimeWithPumpMinutes * vehicle.FuelNorms.ConsumptionPerMinPump;
+                        vd.TrainingNoPumpMin += rec.TimeWithoutPumpMinutes;
+                        vd.TrainingNoPumpFuel += rec.TimeWithoutPumpMinutes * vehicle.FuelNorms.ConsumptionPerMinIdle;
+                        vd.TrainingNoPumpFuel += rec.DistanceKm * vehicle.FuelNorms.ConsumptionPerKmWithoutPump;
+                    }
+                    else
+                    {
+                        vd.MainWorkPumpMin += rec.TimeWithPumpMinutes;
+                        vd.MainWorkPumpFuel += rec.TimeWithPumpMinutes * vehicle.FuelNorms.ConsumptionPerMinPump;
+                        vd.MainWorkNoPumpMin += rec.TimeWithoutPumpMinutes;
+                        vd.MainWorkNoPumpFuel += rec.TimeWithoutPumpMinutes * vehicle.FuelNorms.ConsumptionPerMinIdle;
+                        vd.MainWorkNoPumpFuel += rec.DistanceKm * vehicle.FuelNorms.ConsumptionPerKmWithoutPump;
                     }
 
                     if (rec.ShiftChangeMinutes > 0 || rec.MiscWorkMinutes > 0)
@@ -209,8 +226,11 @@ namespace AVTOKarta.Services
                     }
                 }
 
-                vd.MainActivityFuel = Math.Round(vd.TotalFuelConsumption - vd.FireFuel - vd.FalseAlarmFuel
-                                      - vd.TrainingPumpFuel - vd.TrainingNoPumpFuel - vd.EtoFuel, 3);
+                vd.FireFuel = vd.FireCallsFuel + vd.IgnitionCallsFuel;
+
+                vd.MainActivityFuel = Math.Round(vd.TotalFuelConsumption - vd.FireCallsFuel - vd.IgnitionCallsFuel
+                    - vd.FalseAlarmFuel - vd.EmergencyFuel - vd.RescueDtpFuel - vd.HeatingDutyFuel
+                    - vd.TrainingPumpFuel - vd.TrainingNoPumpFuel - vd.LiteraryEventsFuel - vd.EtoFuel, 3);
                 if (vd.MainActivityFuel < 0) vd.MainActivityFuel = 0;
 
                 vd.YearToDateFuelConsumption = CalculateYearToDateConsumption(vehicle);
@@ -228,9 +248,8 @@ namespace AVTOKarta.Services
                 var card = _dataService.LoadCard(vehicle.LicensePlate, _year, m);
                 if (card == null || card.Records == null) continue;
 
-                double monthConsumption = card.Records.Sum(r => r.ActualConsumption);
-                if (monthConsumption == 0 && card.FuelRefueledMonth > 0)
-                    monthConsumption = card.FuelRemainingOnFirst + card.FuelRefueledMonth - card.FuelRemainingOnLast;
+                double monthConsumption = card.FuelRemainingOnFirst + card.FuelRefueledMonth - card.FuelRemainingOnLast;
+                if (monthConsumption < 0) monthConsumption = 0;
 
                 total += monthConsumption;
             }
@@ -254,11 +273,46 @@ namespace AVTOKarta.Services
             return true;
         }
 
+        private static int ClassifyDetailedTrip(string workDescription)
+        {
+            if (string.IsNullOrWhiteSpace(workDescription))
+                return 0;
+
+            string lower = workDescription.ToLower(System.Globalization.CultureInfo.CurrentCulture);
+
+            if (lower.Contains("пожар") || lower.Contains("тушен"))
+                return 1;
+            if (lower.Contains("ложн"))
+                return 2;
+            if (lower.Contains("учен") || lower.Contains("учеб") || lower.Contains("отработ") || lower.Contains("норматив")
+                || lower.Contains("испытан") || lower.Contains("рукав"))
+                return 3;
+            if (lower.Contains("дтп") || lower.Contains("авария") || lower.Contains("происшестви") || lower.Contains("спасательн"))
+                return 4;
+            if (lower.Contains("чрезвычайн") || lower.Contains("ликвидация") && lower.Contains("чс"))
+                return 5;
+            if (lower.Contains("обогрев") || lower.Contains("трасс") || lower.Contains("дежурств"))
+                return 6;
+            if (lower.Contains("мероприяти") || lower.Contains("литерн") || lower.Contains("праздн"))
+                return 7;
+            if (lower.Contains("горен") || lower.Contains("задымлен") || lower.Contains("возгоран"))
+                return 8;
+
+            return 0;
+        }
+
         private string GetSquadFullName()
         {
             string num = _squad != null ? _squad.Number : "";
+            string crew = _squad != null ? _squad.CrewNumber : "";
             string name = _squad != null ? _squad.Name : "";
-            return (num + " " + name).Trim();
+            string result = "";
+            if (!string.IsNullOrWhiteSpace(num)) result += num;
+            if (!string.IsNullOrWhiteSpace(crew))
+                result += (result.Length > 0 ? ", " : "") + "отр. " + crew;
+            if (!string.IsNullOrWhiteSpace(name))
+                result += (result.Length > 0 ? " " : "") + name;
+            return result.Trim();
         }
 
         private string GetRegion()
@@ -645,6 +699,11 @@ namespace AVTOKarta.Services
             double dieselRefuelLocal = dieselData.Where(v => v.DeliveryType == FuelDeliveryType.LocalPurchase).Sum(v => v.Refueled);
             double dieselRefuelOther = dieselData.Where(v => v.DeliveryType == FuelDeliveryType.Other).Sum(v => v.Refueled);
 
+            double whGasoline = warehouseItems.Where(w => w.Type == OilType.Gasoline).Sum(w => w.Quantity);
+            double whDiesel = warehouseItems.Where(w => w.Type == OilType.Diesel).Sum(w => w.Quantity);
+            gasRefuelCentralized += whGasoline;
+            dieselRefuelCentralized += whDiesel;
+
             double gasTankRatio = _squad.FuelTankRatioGasoline;
             double dieselTankRatio = _squad.FuelTankRatioDiesel;
 
@@ -652,6 +711,9 @@ namespace AVTOKarta.Services
                 .Where(w => w.Type == OilType.MotorOil || w.Type == OilType.TransmissionOil
                     || w.Type == OilType.SpecialLiquid || w.Type == OilType.PlasticLubricant)
                 .Sum(w => w.Quantity);
+
+            double whFuelGasoline = warehouseItems.Where(w => w.Type == OilType.Gasoline).Sum(w => w.Quantity);
+            double whFuelDiesel = warehouseItems.Where(w => w.Type == OilType.Diesel).Sum(w => w.Quantity);
 
             int row = 14;
 
@@ -747,13 +809,30 @@ namespace AVTOKarta.Services
             row += 2;
 
             // МиС Всего
+            var allMotorBrands = new List<string>();
+            var allTransBrands = new List<string>();
+            var allSpecBrands = new List<string>();
+            var allPlasticBrands = new List<string>();
+            CollectBrandsFromVehicles(allData, allMotorBrands, allTransBrands, allSpecBrands, allPlasticBrands);
+            CollectBrandsFromWarehouse(warehouseItems, allMotorBrands, allTransBrands, allSpecBrands, allPlasticBrands);
+
+            double whSpecLiquid = warehouseItems.Where(w => w.Type == OilType.SpecialLiquid).Sum(w => w.Quantity);
+            var whSpecByBrand = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            foreach (var wh in warehouseItems.Where(w => w.Type == OilType.SpecialLiquid && !string.IsNullOrWhiteSpace(w.Brand)))
+            {
+                if (whSpecByBrand.ContainsKey(wh.Brand))
+                    whSpecByBrand[wh.Brand] += wh.Quantity;
+                else
+                    whSpecByBrand[wh.Brand] = wh.Quantity;
+            }
+
             double oilStart = allData.Sum(v => v.TotalMotorOil + v.TotalTransOil);
             double oilConsumed = allData.Sum(v => v.TotalMotorOil);
 
             SetCell(ws, row, 1, "МиС Всего", wrap: true);
             SetCell(ws, row, 2, "л.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
             SetCellNum(ws, row, 3, oilStart, fontSize: 10);
-            SetFormula(ws, row, 12, string.Format("=SUM(M{0}:M{1})", row + 1, row + 16), fontSize: 10);
+            SetFormula(ws, row, 12, string.Format("=SUM(M{0}:M{1})", row + 1, row + allMotorBrands.Count + allTransBrands.Count + allSpecBrands.Count + 4), fontSize: 10);
             SetCellNum(ws, row, 13, oilConsumed, fontSize: 10);
             SetFormula(ws, row, 17, string.Format("=C{0}-M{0}", row), fontSize: 10);
             SetFormula(ws, row, 18, string.Format("=Q{0}", row), fontSize: 10);
@@ -761,65 +840,63 @@ namespace AVTOKarta.Services
             int misRow = row;
             row++;
 
-            // масла by type — use brands from VehicleData where available
-            var motorBrands = allData
-                .Where(v => !string.IsNullOrEmpty(v.Vehicle.FuelNorms.MotorOilBrand))
-                .Select(v => v.Vehicle.FuelNorms.MotorOilBrand)
-                .Distinct().ToList();
-            if (motorBrands.Count == 0) motorBrands.Add("М10ДМ");
-
-            foreach (var brand in motorBrands)
+            foreach (var brand in allMotorBrands)
             {
+                double consumed = CalculateBrandConsumption(allData, OilType.MotorOil, brand);
                 SetCell(ws, row, 1, brand, wrap: true);
                 SetCell(ws, row, 2, "л.", hAlign: XLAlignmentHorizontalValues.Center);
+                if (consumed > 0)
+                {
+                    SetCellNum(ws, row, 13, consumed, fontSize: 10);
+                }
                 row++;
             }
 
-            var transBrands = allData
-                .Where(v => !string.IsNullOrEmpty(v.Vehicle.FuelNorms.TransmissionOilBrand))
-                .Select(v => v.Vehicle.FuelNorms.TransmissionOilBrand)
-                .Distinct().ToList();
-            if (transBrands.Count == 0) transBrands.Add("ТАД-17и");
-
-            foreach (var brand in transBrands)
+            foreach (var brand in allTransBrands)
             {
+                double consumed = CalculateBrandConsumption(allData, OilType.TransmissionOil, brand);
                 SetCell(ws, row, 1, brand, wrap: true);
                 SetCell(ws, row, 2, "л.", hAlign: XLAlignmentHorizontalValues.Center);
+                if (consumed > 0)
+                {
+                    SetCellNum(ws, row, 13, consumed, fontSize: 10);
+                }
                 row++;
             }
 
             // специальные масла и жидкости
+            double specConsumed = allData.Sum(v => v.TotalSpecLiquid);
             SetCell(ws, row, 1, "специальные масла и жидкости", wrap: true);
-            double specStart = allData.Sum(v => v.TotalSpecLiquid);
-            SetCellNum(ws, row, 3, specStart, fontSize: 10);
-            SetCellNum(ws, row, 12, specStart, fontSize: 10);
-            SetCellNum(ws, row, 13, specStart, fontSize: 10);
-            SetFormula(ws, row, 17, string.Format("=C{0}-M{0}", row), fontSize: 10);
-            SetFormula(ws, row, 18, string.Format("=Q{0}", row), fontSize: 10);
-            SetFormula(ws, row, 20, string.Format("=Q{0}", row), fontSize: 10);
+            SetCell(ws, row, 2, "л.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+            SetCellNum(ws, row, 3, 0, fontSize: 10);
+            SetCellNum(ws, row, 5, whSpecLiquid, fontSize: 10);
+            SetFormula(ws, row, 4, string.Format("=SUM(E{0}:J{0})", row), fontSize: 10);
+            SetCellNum(ws, row, 12, specConsumed, fontSize: 10);
+            SetCellNum(ws, row, 13, specConsumed, fontSize: 10);
+            SetFormula(ws, row, 17, string.Format("=C{0}+D{0}-M{0}", row), fontSize: 10);
+            SetCellNum(ws, row, 20, 0, fontSize: 10);
             row++;
-
-            var specBrands = allData
-                .Where(v => !string.IsNullOrEmpty(v.Vehicle.FuelNorms.SpecialLiquidBrand))
-                .Select(v => v.Vehicle.FuelNorms.SpecialLiquidBrand)
-                .Distinct().ToList();
-            if (specBrands.Count == 0) specBrands.Add("Тосол");
 
             // РАЗДОТ
             SetCell(ws, row, 1, "РАЗДОТ", wrap: true);
             SetCell(ws, row, 2, "кг.", hAlign: XLAlignmentHorizontalValues.Center);
             row++;
 
-            foreach (var brand in specBrands)
+            foreach (var brand in allSpecBrands)
             {
+                double consumed = CalculateBrandConsumption(allData, OilType.SpecialLiquid, brand);
+                double brandWh = 0;
+                whSpecByBrand.TryGetValue(brand, out brandWh);
                 SetCell(ws, row, 1, brand, wrap: true);
                 SetCell(ws, row, 2, "кг.", hAlign: XLAlignmentHorizontalValues.Center);
-                if (brand == "Тосол")
+                if (consumed > 0 || brandWh > 0)
                 {
-                    SetCellNum(ws, row, 3, specStart, fontSize: 10);
-                    SetCellNum(ws, row, 12, specStart, fontSize: 10);
-                    SetCellNum(ws, row, 13, specStart, fontSize: 10);
-                    SetFormula(ws, row, 17, string.Format("=C{0}-M{0}", row), fontSize: 10);
+                    SetCellNum(ws, row, 3, 0, fontSize: 10);
+                    SetCellNum(ws, row, 5, brandWh, fontSize: 10);
+                    SetFormula(ws, row, 4, string.Format("=SUM(E{0}:J{0})", row), fontSize: 10);
+                    SetCellNum(ws, row, 12, consumed, fontSize: 10);
+                    SetCellNum(ws, row, 13, consumed, fontSize: 10);
+                    SetFormula(ws, row, 17, string.Format("=C{0}+D{0}-M{0}", row), fontSize: 10);
                     SetFormula(ws, row, 18, string.Format("=Q{0}", row), fontSize: 10);
                     SetFormula(ws, row, 20, string.Format("=Q{0}", row), fontSize: 10);
                 }
@@ -831,19 +908,15 @@ namespace AVTOKarta.Services
             row++;
 
             double plasticTotal = allData.Sum(v => v.TotalPlasticLub);
-            var plasticBrands = allData
-                .Where(v => !string.IsNullOrEmpty(v.Vehicle.FuelNorms.PlasticLubricantBrand))
-                .Select(v => v.Vehicle.FuelNorms.PlasticLubricantBrand)
-                .Distinct().ToList();
-            if (plasticBrands.Count == 0) plasticBrands.Add("Литол-24");
 
-            foreach (var brand in plasticBrands)
+            foreach (var brand in allPlasticBrands)
             {
+                double consumed = CalculateBrandConsumption(allData, OilType.PlasticLubricant, brand);
                 SetCell(ws, row, 1, brand, wrap: true);
                 SetCell(ws, row, 2, "кг.", hAlign: XLAlignmentHorizontalValues.Center);
-                if (brand == "Литол-24")
+                if (consumed > 0)
                 {
-                    SetCellNum(ws, row, 17, plasticTotal, fontSize: 10);
+                    SetCellNum(ws, row, 17, consumed, fontSize: 10);
                 }
                 row++;
             }
@@ -1071,8 +1144,15 @@ namespace AVTOKarta.Services
 
                 SetCellNum(ws, row, 5, vd.TotalFuelConsumption, fontSize: 10, vAlign: XLAlignmentVerticalValues.Center);
                 SetCellNum(ws, row, 6, vd.MainActivityFuel, fontSize: 10);
+                SetCellNum(ws, row, 7, vd.EmergencyFuel, fontSize: 10);
+                SetCellNum(ws, row, 8, vd.FireCallsFuel, fontSize: 10);
+                SetCellNum(ws, row, 9, vd.IgnitionCallsFuel, fontSize: 10);
+                SetCellNum(ws, row, 10, vd.FalseAlarmFuel, fontSize: 10);
                 SetCellNum(ws, row, 11, vd.EtoFuel, fontSize: 10);
+                SetCellNum(ws, row, 12, vd.RescueDtpFuel, fontSize: 10);
+                SetCellNum(ws, row, 13, vd.HeatingDutyFuel, fontSize: 10);
                 SetCellNum(ws, row, 14, vd.TrainingPumpFuel + vd.TrainingNoPumpFuel, fontSize: 10);
+                SetCellNum(ws, row, 15, vd.LiteraryEventsFuel, fontSize: 10);
                 SetCellNum(ws, row, 16, vd.ReducedMileage, fontSize: 10, format: "0");
                 SetCellNum(ws, row, 17, vd.Refueled, fontSize: 10);
                 row++;
@@ -1196,17 +1276,13 @@ namespace AVTOKarta.Services
 
             // Diesel group
             int row = 12;
-            ws.Range(row, 1, row, 23).Merge();
-            SetCell(ws, row, 1, "Д/Т", true, 11, hAlign: XLAlignmentHorizontalValues.Center);
-            row++;
-
             int num = 1;
             var dieselData = allData.Where(v => v.IsDiesel).ToList();
             int dieselStartRow = row;
             foreach (var vd in dieselData)
             {
                 SetCell(ws, row, 1, num.ToString(), fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-                SetCell(ws, row, 2, vd.Vehicle.Type ?? "", true, 9, hAlign: XLAlignmentHorizontalValues.Left, wrap: true);
+                SetCell(ws, row, 2, (vd.Vehicle.Make ?? "") + " " + (vd.Vehicle.Type ?? ""), true, 9, hAlign: XLAlignmentHorizontalValues.Left, wrap: true);
                 SetCell(ws, row, 3, vd.Vehicle.LicensePlate ?? "", true, 9, hAlign: XLAlignmentHorizontalValues.Center);
                 SetCellNum(ws, row, 4, vd.StartFuel, format: "0.000");
                 SetCellNum(ws, row, 5, vd.Refueled);
@@ -1230,8 +1306,8 @@ namespace AVTOKarta.Services
                 SetFormula(ws, row, 7, string.Format("=I{0}+K{0}+M{0}+O{0}+Q{0}", r));
                 SetFormula(ws, row, 20, string.Format("=S{0}-R{0}", r), format: "0");
                 SetCellNum(ws, row, 21, vd.ReducedMileage, format: "0");
-                SetFormula(ws, row, 22, string.Format("=G{0}", r));
-                SetFormula(ws, row, 23, string.Format("=D{0}+E{0}-V{0}", r), format: "0.000");
+                SetCellNum(ws, row, 22, vd.TotalFuelConsumption);
+                SetCellNum(ws, row, 23, vd.EndFuel, format: "0.000");
 
                 row++;
                 num++;
@@ -1241,6 +1317,7 @@ namespace AVTOKarta.Services
             int dieselEndRow = row - 1;
             if (dieselData.Count > 0)
             {
+                SetCell(ws, row, 1, "ИТОГО:", fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center);
                 string ds = dieselStartRow.ToString();
                 string de = dieselEndRow.ToString();
                 SetFormula(ws, row, 4, string.Format("=SUM(D{0}:D{1})", ds, de), true);
@@ -1262,23 +1339,19 @@ namespace AVTOKarta.Services
                 SetFormula(ws, row, 22, string.Format("=SUM(V{0}:V{1})", ds, de), true);
                 SetFormula(ws, row, 23, string.Format("=SUM(W{0}:W{1})", ds, de), true);
 
-                var dRange = ws.Range(12, 1, row, 23);
+                var dRange = ws.Range(dieselStartRow, 1, row, 23);
                 dRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
                 dRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
                 row++;
             }
 
             // Gasoline group
-            ws.Range(row, 1, row, 23).Merge();
-            SetCell(ws, row, 1, "АИ ", true, 11, hAlign: XLAlignmentHorizontalValues.Center);
-            row++;
-
             var gasData = allData.Where(v => !v.IsDiesel).ToList();
             int gasStartRow = row;
             foreach (var vd in gasData)
             {
                 SetCell(ws, row, 1, num.ToString(), fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center);
-                SetCell(ws, row, 2, vd.Vehicle.Make ?? "", hAlign: XLAlignmentHorizontalValues.Left);
+                SetCell(ws, row, 2, (vd.Vehicle.Make ?? "") + " " + (vd.Vehicle.Type ?? ""), hAlign: XLAlignmentHorizontalValues.Left);
                 SetCell(ws, row, 3, vd.Vehicle.LicensePlate ?? "", hAlign: XLAlignmentHorizontalValues.Center);
                 SetCellNum(ws, row, 4, vd.StartFuel, format: "0.00");
                 SetCellNum(ws, row, 5, vd.Refueled, format: "0");
@@ -1302,8 +1375,8 @@ namespace AVTOKarta.Services
                 SetFormula(ws, row, 7, string.Format("=I{0}+K{0}+M{0}+O{0}+Q{0}", r));
                 SetFormula(ws, row, 20, string.Format("=S{0}-R{0}", r), fontSize: 11, format: "0");
                 SetCellNum(ws, row, 21, vd.ReducedMileage, format: "0");
-                SetFormula(ws, row, 22, string.Format("=G{0}", r));
-                SetFormula(ws, row, 23, string.Format("=D{0}+E{0}-V{0}", r), format: "0.00");
+                SetCellNum(ws, row, 22, vd.TotalFuelConsumption);
+                SetCellNum(ws, row, 23, vd.EndFuel, format: "0.00");
 
                 row++;
                 num++;
@@ -1334,7 +1407,7 @@ namespace AVTOKarta.Services
                 SetFormula(ws, row, 22, string.Format("=SUM(V{0}:V{1})", gs, ge), true);
                 SetFormula(ws, row, 23, string.Format("=SUM(W{0}:W{1})", gs, ge), true);
 
-                var gRange = ws.Range(gasStartRow - 1, 1, row, 23);
+                var gRange = ws.Range(gasStartRow, 1, row, 23);
                 gRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
                 gRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
                 row++;
@@ -1362,17 +1435,28 @@ namespace AVTOKarta.Services
         {
             var ws = wb.Worksheets.Add("4 движение масел.смазок");
 
-            double whMotorOil = warehouseItems.Where(w => w.Type == OilType.MotorOil).Sum(w => w.Quantity);
-            double whTransOil = warehouseItems.Where(w => w.Type == OilType.TransmissionOil).Sum(w => w.Quantity);
-            double whSpecLiquid = warehouseItems.Where(w => w.Type == OilType.SpecialLiquid).Sum(w => w.Quantity);
-            double whPlasticLub = warehouseItems.Where(w => w.Type == OilType.PlasticLubricant).Sum(w => w.Quantity);
+            var motorBrands = new List<string>();
+            var transBrands = new List<string>();
+            var specBrands = new List<string>();
+            var plasticBrands = new List<string>();
 
-            double totalMotorOil = allData.Sum(d => d.TotalMotorOil);
-            double totalTransOil = allData.Sum(d => d.TotalTransOil);
-            double totalSpecLiquid = allData.Sum(d => d.TotalSpecLiquid);
-            double totalPlasticLub = allData.Sum(d => d.TotalPlasticLub);
+            CollectBrandsFromVehicles(allData, motorBrands, transBrands, specBrands, plasticBrands);
+            CollectBrandsFromWarehouse(warehouseItems, motorBrands, transBrands, specBrands, plasticBrands);
 
-            int totalCols = 23;
+            int motorCount = motorBrands.Count;
+            int transCount = transBrands.Count;
+            int specCount = specBrands.Count;
+            int plasticCount = plasticBrands.Count;
+
+            int motorStartCol = 5;
+            int motorEndCol = motorStartCol + motorCount;
+            int transStartCol = motorEndCol + 1;
+            int transEndCol = transStartCol + transCount;
+            int specStartCol = transEndCol + 1;
+            int specEndCol = specStartCol + specCount;
+            int plasticStartCol = specEndCol + 1;
+            int plasticEndCol = plasticStartCol + plasticCount;
+            int totalCols = plasticEndCol;
 
             ws.Range(1, 1, 1, totalCols).Merge();
             SetCell(ws, 1, 1, "6", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
@@ -1391,196 +1475,290 @@ namespace AVTOKarta.Services
             ws.Row(9).Height = 13.8;
             ws.Row(10).Height = 26.3;
 
+            // === Row 7-9, Cols 1-4: Merged vertically ===
             ws.Range(7, 1, 9, 1).Merge();
             SetCell(ws, 7, 1, "№ п/п", fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+
             ws.Range(7, 2, 9, 2).Merge();
             SetCell(ws, 7, 2, "Наименование и марки автомобиля (спец.агрегата)", fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+
             ws.Range(7, 3, 9, 3).Merge();
             SetCell(ws, 7, 3, "Гос.номер автомобиля", fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+
             ws.Range(7, 4, 9, 4).Merge();
-            SetCell(ws, 7, 4, "Расход топлива за отчётный период", fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+            SetCell(ws, 7, 4, "Расход топлива", fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
 
-            // Моторное масло (cols 5-8)
-            ws.Range(7, 5, 7, 8).Merge();
-            SetCell(ws, 7, 5, "Моторное масло", fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+            // === Row 7: Моторное масло ===
+            ws.Range(7, motorStartCol, 7, motorEndCol).Merge();
+            SetCell(ws, 7, motorStartCol, "Расход Моторного масла за отчётный период", fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
 
-            ws.Range(8, 5, 9, 5).Merge();
-            SetCell(ws, 8, 5, "Норма л/100л (23-Р)", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+            ws.Range(8, motorStartCol, 9, motorStartCol).Merge();
+            SetCell(ws, 8, motorStartCol, "Норма расхода Моторного масла в литрах на 100 л расхода топлива (23-Р минтранс раздел III.)", fontSize: 9, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
 
-            ws.Range(8, 6, 9, 6).Merge();
-            SetCell(ws, 8, 6, "Расход, л", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            ws.Range(8, 7, 9, 7).Merge();
-            SetCell(ws, 8, 7, "Приход, л", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            ws.Range(8, 8, 9, 8).Merge();
-            SetCell(ws, 8, 8, "Остаток, л", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            // Трансмиссионные и гидравлические (cols 9-12)
-            ws.Range(7, 9, 7, 12).Merge();
-            SetCell(ws, 7, 9, "Трансмиссионные и гидравлические масла", fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            ws.Range(8, 9, 9, 9).Merge();
-            SetCell(ws, 8, 9, "Норма л/100л (23-Р)", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            ws.Range(8, 10, 9, 10).Merge();
-            SetCell(ws, 8, 10, "Расход, л", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            ws.Range(8, 11, 9, 11).Merge();
-            SetCell(ws, 8, 11, "Приход, л", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            ws.Range(8, 12, 9, 12).Merge();
-            SetCell(ws, 8, 12, "Остаток, л", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            // Специальные масла и жидкости (cols 13-17)
-            ws.Range(7, 13, 7, 17).Merge();
-            SetCell(ws, 7, 13, "Специальные масла и жидкости", fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            ws.Range(8, 13, 9, 13).Merge();
-            SetCell(ws, 8, 13, "Норма л/100л (23-Р)", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            ws.Range(8, 14, 9, 14).Merge();
-            SetCell(ws, 8, 14, "Расход, л", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            ws.Range(8, 15, 9, 15).Merge();
-            SetCell(ws, 8, 15, "Приход, л", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            ws.Range(8, 16, 9, 16).Merge();
-            SetCell(ws, 8, 16, "Остаток, л", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            // Extra col for spec (merged with previous)
-            ws.Range(8, 17, 9, 17).Merge();
-            SetCell(ws, 8, 17, "Примечание", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            // Пластичные смазки (cols 18-23)
-            ws.Range(7, 18, 7, 23).Merge();
-            SetCell(ws, 7, 18, "Пластичные смазки", fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            ws.Range(8, 18, 9, 18).Merge();
-            SetCell(ws, 8, 18, "Норма кг/100л (23-Р)", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            ws.Range(8, 19, 9, 19).Merge();
-            SetCell(ws, 8, 19, "Марка", fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            ws.Range(8, 20, 9, 20).Merge();
-            SetCell(ws, 8, 20, "Расход, кг", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            ws.Range(8, 21, 9, 21).Merge();
-            SetCell(ws, 8, 21, "Приход, кг", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            ws.Range(8, 22, 9, 22).Merge();
-            SetCell(ws, 8, 22, "Остаток, кг", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            ws.Range(8, 23, 9, 23).Merge();
-            SetCell(ws, 8, 23, "Примечание", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
-
-            int numHeader = 1;
-            for (int i = 1; i <= totalCols; i++)
+            if (motorCount > 0)
             {
-                if (i == 5 || i == 6 || i == 7 || i == 8 ||
-                    i == 9 || i == 10 || i == 11 || i == 12 ||
-                    i == 13 || i == 14 || i == 15 || i == 16 || i == 17 ||
-                    i == 18 || i == 19 || i == 20 || i == 21 || i == 22 || i == 23)
-                    continue;
-                SetCell(ws, 10, i, numHeader.ToString(), fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center);
-                numHeader++;
+                ws.Range(8, motorStartCol + 1, 8, motorEndCol).Merge();
+                SetCell(ws, 8, motorStartCol + 1, "марка масла", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+
+                for (int i = 0; i < motorCount; i++)
+                    SetCell(ws, 9, motorStartCol + 1 + i, motorBrands[i], fontSize: 9, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
             }
+
+            // === Row 7: Трансмиссионные и гидравлические масла ===
+            ws.Range(7, transStartCol, 7, transEndCol).Merge();
+            SetCell(ws, 7, transStartCol, "Расход Трансмиссионные и гидравлические масла за отчётный период", fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+
+            ws.Range(8, transStartCol, 9, transStartCol).Merge();
+            SetCell(ws, 8, transStartCol, "Норма расхода Трансмиссионные и гидравлические масла в литрах на 100 л расхода топлива (23-Р минтранс раздел III)", fontSize: 9, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+
+            if (transCount > 0)
+            {
+                ws.Range(8, transStartCol + 1, 8, transEndCol).Merge();
+                SetCell(ws, 8, transStartCol + 1, "марка масла", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+
+                for (int i = 0; i < transCount; i++)
+                    SetCell(ws, 9, transStartCol + 1 + i, transBrands[i], fontSize: 9, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+            }
+
+            // === Row 7: Специальные масла и жидкости ===
+            ws.Range(7, specStartCol, 7, specEndCol).Merge();
+            SetCell(ws, 7, specStartCol, "Расход Специальные масла и жидкости за отчётный период", fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+
+            ws.Range(8, specStartCol, 9, specStartCol).Merge();
+            SetCell(ws, 8, specStartCol, "Норма расхода Специальные масла и жидкости в литрах на 100 л расхода топлива (23-Р минтранс раздел III.)", fontSize: 9, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+
+            if (specCount > 0)
+            {
+                ws.Range(8, specStartCol + 1, 8, specEndCol).Merge();
+                SetCell(ws, 8, specStartCol + 1, "марка масла", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+
+                for (int i = 0; i < specCount; i++)
+                    SetCell(ws, 9, specStartCol + 1 + i, specBrands[i], fontSize: 9, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+            }
+
+            // === Row 7: Пластичные смазки ===
+            ws.Range(7, plasticStartCol, 7, plasticEndCol).Merge();
+            SetCell(ws, 7, plasticStartCol, "Расход Пластичные смазки за отчётный период", fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+
+            ws.Range(8, plasticStartCol, 9, plasticStartCol).Merge();
+            SetCell(ws, 8, plasticStartCol, "Норма расхода Пластичные смазки в килограммах на 100 л расхода топлива (23-Р минтранс раздел III.)", fontSize: 9, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+
+            if (plasticCount > 0)
+            {
+                ws.Range(8, plasticStartCol + 1, 8, plasticEndCol).Merge();
+                SetCell(ws, 8, plasticStartCol + 1, "марка масла", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+
+                for (int i = 0; i < plasticCount; i++)
+                    SetCell(ws, 9, plasticStartCol + 1 + i, plasticBrands[i], fontSize: 9, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+            }
+
+            // === Row 10: Column numbers ===
+            for (int c = 1; c <= totalCols; c++)
+                SetCell(ws, 10, c, c.ToString(), fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center);
 
             var hdrRange = ws.Range(7, 1, 10, totalCols);
             hdrRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
             hdrRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
 
-            int row = 11;
+            // === Data rows ===
+            int dataRow = 11;
             int num = 1;
-            int dataStartRow = row;
+            int dataStartRow = dataRow;
+
             foreach (var vd in allData)
             {
-                SetCell(ws, row, 1, num.ToString(), fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center);
-                SetCell(ws, row, 2, vd.IsDiesel ? (vd.Vehicle.Type ?? "") : (vd.Vehicle.Make ?? ""), true, 9, hAlign: XLAlignmentHorizontalValues.Left, wrap: true);
-                SetCell(ws, row, 3, vd.Vehicle.LicensePlate ?? "", true, 9, hAlign: XLAlignmentHorizontalValues.Center);
+                SetCell(ws, dataRow, 1, num.ToString(), fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center);
+                SetCell(ws, dataRow, 2, (vd.Vehicle.Make ?? "") + " " + (vd.Vehicle.Type ?? ""), true, 9, hAlign: XLAlignmentHorizontalValues.Left, wrap: true);
+                SetCell(ws, dataRow, 3, vd.Vehicle.LicensePlate ?? "", true, 9, hAlign: XLAlignmentHorizontalValues.Center);
+                SetCellNum(ws, dataRow, 4, vd.TotalFuelConsumption, fontSize: 12);
 
-                SetCellNum(ws, row, 4, vd.TotalFuelConsumption, fontSize: 12);
+                string motorBrand = (vd.Vehicle.FuelNorms.MotorOilBrand ?? "").Trim();
+                string transBrand = (vd.Vehicle.FuelNorms.TransmissionOilBrand ?? "").Trim();
+                string specBrand = (vd.Vehicle.FuelNorms.SpecialLiquidBrand ?? "").Trim();
+                string plasticBrand = (vd.Vehicle.FuelNorms.PlasticLubricantBrand ?? "").Trim();
 
-                double motorNorm = vd.Vehicle.FuelNorms.MotorOilNormPer100L;
-                double transNorm = vd.Vehicle.FuelNorms.TransmissionOilNormPer100L;
-                double specNorm = vd.Vehicle.FuelNorms.SpecialLiquidNormPer100L;
-                double plasticNorm = vd.Vehicle.FuelNorms.PlasticLubricantNormPer100L;
+                // Motor oil norm + brand columns
+                SetCellNum(ws, dataRow, motorStartCol, vd.Vehicle.FuelNorms.MotorOilNormPer100L, fontSize: 11, format: "#,##0.00");
+                int motorIdx = FindBrandIndex(motorBrands, motorBrand);
+                for (int i = 0; i < motorCount; i++)
+                {
+                    if (i == motorIdx)
+                        SetFormula(ws, dataRow, motorStartCol + 1 + i, string.Format("=D{0}/100*{1}{0}", dataRow, ColumnLetter(motorStartCol)), fontSize: 11);
+                    else
+                        SetCellNum(ws, dataRow, motorStartCol + 1 + i, 0, fontSize: 11);
+                }
 
-                // Моторное масло
-                SetCellNum(ws, row, 5, motorNorm, fontSize: 12, format: "#,##0.00");
-                if (vd.TotalMotorOil > 0)
-                    SetCellNum(ws, row, 6, vd.TotalMotorOil, fontSize: 12);
-                else
-                    SetFormula(ws, row, 6, string.Format("=D{0}*E{0}/100", row), fontSize: 12);
+                // Transmission oil norm + brand columns
+                SetCellNum(ws, dataRow, transStartCol, vd.Vehicle.FuelNorms.TransmissionOilNormPer100L, fontSize: 11, format: "#,##0.00");
+                int transIdx = FindBrandIndex(transBrands, transBrand);
+                for (int i = 0; i < transCount; i++)
+                {
+                    if (i == transIdx)
+                        SetFormula(ws, dataRow, transStartCol + 1 + i, string.Format("=D{0}/100*{1}{0}", dataRow, ColumnLetter(transStartCol)), fontSize: 11);
+                    else
+                        SetCellNum(ws, dataRow, transStartCol + 1 + i, 0, fontSize: 11);
+                }
 
-                // Трансмиссионные
-                SetCellNum(ws, row, 9, transNorm, fontSize: 11, format: "#,##0.00");
-                if (vd.TotalTransOil > 0)
-                    SetCellNum(ws, row, 10, vd.TotalTransOil, fontSize: 11);
-                else
-                    SetFormula(ws, row, 10, string.Format("=D{0}*I{0}/100", row), fontSize: 11);
+                // Special liquid norm + brand columns
+                SetCellNum(ws, dataRow, specStartCol, vd.Vehicle.FuelNorms.SpecialLiquidNormPer100L, fontSize: 11, format: "#,##0.00");
+                int specIdx = FindBrandIndex(specBrands, specBrand);
+                for (int i = 0; i < specCount; i++)
+                {
+                    if (i == specIdx)
+                        SetFormula(ws, dataRow, specStartCol + 1 + i, string.Format("=D{0}/100*{1}{0}", dataRow, ColumnLetter(specStartCol)), fontSize: 11);
+                    else
+                        SetCellNum(ws, dataRow, specStartCol + 1 + i, 0, fontSize: 11);
+                }
 
-                // Спец. жидкости
-                SetCellNum(ws, row, 13, specNorm, fontSize: 12, format: "#,##0.00");
-                if (vd.TotalSpecLiquid > 0)
-                    SetCellNum(ws, row, 14, vd.TotalSpecLiquid, fontSize: 12);
-                else
-                    SetFormula(ws, row, 14, string.Format("=D{0}*M{0}/100", row), fontSize: 12);
+                // Plastic lubricant norm + brand columns
+                SetCellNum(ws, dataRow, plasticStartCol, vd.Vehicle.FuelNorms.PlasticLubricantNormPer100L, fontSize: 11, format: "#,##0.00");
+                int plasticIdx = FindBrandIndex(plasticBrands, plasticBrand);
+                for (int i = 0; i < plasticCount; i++)
+                {
+                    if (i == plasticIdx)
+                        SetFormula(ws, dataRow, plasticStartCol + 1 + i, string.Format("=D{0}/100*{1}{0}", dataRow, ColumnLetter(plasticStartCol)), fontSize: 11);
+                    else
+                        SetCellNum(ws, dataRow, plasticStartCol + 1 + i, 0, fontSize: 11);
+                }
 
-                // Пластичные смазки
-                SetCellNum(ws, row, 18, plasticNorm, fontSize: 11, format: "#,##0.00");
-                SetCell(ws, row, 19, vd.Vehicle.FuelNorms.PlasticLubricantBrand ?? "", fontSize: 9, hAlign: XLAlignmentHorizontalValues.Center);
-                if (vd.TotalPlasticLub > 0)
-                    SetCellNum(ws, row, 20, vd.TotalPlasticLub, fontSize: 11);
-                else
-                    SetCellNum(ws, row, 20, vd.TotalFuelConsumption * plasticNorm / 100, fontSize: 11);
-
-                row++;
+                dataRow++;
                 num++;
             }
 
-            int dataEndRow = row - 1;
-            SetCell(ws, row, 1, "ИТОГО:");
-            string ds2 = dataStartRow.ToString();
-            string de2 = dataEndRow.ToString();
-            SetFormula(ws, row, 4, string.Format("=SUM(D{0}:D{1})", ds2, de2), true, 11);
-            // Motor oil totals
-            SetFormula(ws, row, 6, string.Format("=SUM(F{0}:F{1})", ds2, de2), true, 11);
-            SetCellNum(ws, row, 7, whMotorOil, true, 11);
-            SetFormula(ws, row, 8, string.Format("=G{0}-F{0}", row), true, 11);
-            // Trans oil totals
-            SetFormula(ws, row, 10, string.Format("=SUM(J{0}:J{1})", ds2, de2), true, 11);
-            SetCellNum(ws, row, 11, whTransOil, true, 11);
-            SetFormula(ws, row, 12, string.Format("=K{0}-J{0}", row), true, 11);
-            // Spec liquid totals
-            SetFormula(ws, row, 14, string.Format("=SUM(N{0}:N{1})", ds2, de2), true, 11);
-            SetCellNum(ws, row, 15, whSpecLiquid, true, 11);
-            SetFormula(ws, row, 16, string.Format("=O{0}-N{0}", row), true, 11);
-            // Plastic lube totals
-            SetFormula(ws, row, 20, string.Format("=SUM(T{0}:T{1})", ds2, de2), true, 11);
-            SetCellNum(ws, row, 21, whPlasticLub, true, 11);
-            SetFormula(ws, row, 22, string.Format("=U{0}-T{0}", row), true, 11);
-            row++;
+            // === ИТОГО row ===
+            int dataEndRow = dataRow - 1;
+            string ds = dataStartRow.ToString();
+            string de = dataEndRow.ToString();
+            SetCell(ws, dataRow, 1, "ИТОГО:", fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center);
+
+            SetFormula(ws, dataRow, 4, string.Format("=SUM(D{0}:D{1})", ds, de), true, 11);
+
+            SumBrandColumns(ws, dataRow, motorStartCol, motorEndCol, ds, de);
+            SumBrandColumns(ws, dataRow, transStartCol, transEndCol, ds, de);
+            SumBrandColumns(ws, dataRow, specStartCol, specEndCol, ds, de);
+            SumBrandColumns(ws, dataRow, plasticStartCol, plasticEndCol, ds, de);
+
+            dataRow++;
 
             if (allData.Count > 0)
             {
-                var dataRange = ws.Range(dataStartRow, 1, row - 1, totalCols);
+                var dataRange = ws.Range(dataStartRow, 1, dataRow - 1, totalCols);
                 dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
                 dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
             }
 
-            row++;
-            WriteSignatureBlock(ws, row);
+            dataRow++;
+            WriteSignatureBlock(ws, dataRow);
 
             ws.Column(1).Width = 3.33;
             ws.Column(2).Width = 20;
             ws.Column(3).Width = 10;
             ws.Column(4).Width = 8;
-            for (int c = 5; c <= 8; c++) ws.Column(c).Width = 8;
-            for (int c = 9; c <= 12; c++) ws.Column(c).Width = 8;
-            for (int c = 13; c <= 17; c++) ws.Column(c).Width = 8;
-            for (int c = 18; c <= 23; c++) ws.Column(c).Width = 8;
+            for (int c = 5; c <= totalCols; c++) ws.Column(c).Width = 8;
+
             SetPageSetup(ws);
+        }
+
+        private static void CollectBrandsFromVehicles(List<VehicleData> allData,
+            List<string> motorBrands, List<string> transBrands,
+            List<string> specBrands, List<string> plasticBrands)
+        {
+            foreach (var vd in allData)
+            {
+                AddBrandIfNew(motorBrands, (vd.Vehicle.FuelNorms.MotorOilBrand ?? "").Trim());
+                AddBrandIfNew(transBrands, (vd.Vehicle.FuelNorms.TransmissionOilBrand ?? "").Trim());
+                AddBrandIfNew(specBrands, (vd.Vehicle.FuelNorms.SpecialLiquidBrand ?? "").Trim());
+                AddBrandIfNew(plasticBrands, (vd.Vehicle.FuelNorms.PlasticLubricantBrand ?? "").Trim());
+            }
+        }
+
+        private static void CollectBrandsFromWarehouse(List<WarehouseItem> warehouseItems,
+            List<string> motorBrands, List<string> transBrands,
+            List<string> specBrands, List<string> plasticBrands)
+        {
+            foreach (var wh in warehouseItems)
+            {
+                if (string.IsNullOrWhiteSpace(wh.Brand)) continue;
+                switch (wh.Type)
+                {
+                    case OilType.MotorOil: AddBrandIfNew(motorBrands, wh.Brand.Trim()); break;
+                    case OilType.TransmissionOil: AddBrandIfNew(transBrands, wh.Brand.Trim()); break;
+                    case OilType.SpecialLiquid: AddBrandIfNew(specBrands, wh.Brand.Trim()); break;
+                    case OilType.PlasticLubricant: AddBrandIfNew(plasticBrands, wh.Brand.Trim()); break;
+                }
+            }
+        }
+
+        private static void AddBrandIfNew(List<string> list, string brand)
+        {
+            if (string.IsNullOrWhiteSpace(brand)) return;
+            if (!list.Any(b => string.Equals(b, brand, StringComparison.OrdinalIgnoreCase)))
+                list.Add(brand);
+        }
+
+        private static int FindBrandIndex(List<string> brands, string brand)
+        {
+            if (string.IsNullOrWhiteSpace(brand)) return -1;
+            return brands.FindIndex(b => string.Equals(b, brand, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static string ColumnLetter(int col)
+        {
+            if (col <= 26) return ((char)('A' + col - 1)).ToString();
+            return ((char)('A' + (col - 1) / 26 - 1)).ToString() + ((char)('A' + (col - 1) % 26)).ToString();
+        }
+
+        private void SumBrandColumns(IXLWorksheet ws, int sumRow, int startCol, int endCol, string ds, string de)
+        {
+            for (int c = startCol + 1; c <= endCol; c++)
+            {
+                string letter = ColumnLetter(c);
+                SetFormula(ws, sumRow, c, string.Format("=SUM({0}{1}:{0}{2})", letter, ds, de), true, 11);
+            }
+        }
+
+        private static double CalculateBrandConsumption(List<VehicleData> allData, OilType oilType, string brand)
+        {
+            double total = 0;
+            foreach (var vd in allData)
+            {
+                foreach (var rec in vd.Records)
+                {
+                    if (rec.OilEntries != null && rec.OilEntries.Count > 0)
+                    {
+                        foreach (var entry in rec.OilEntries)
+                        {
+                            if (entry.Type == oilType && string.Equals(entry.Name ?? "", brand, StringComparison.OrdinalIgnoreCase))
+                                total += entry.Quantity;
+                        }
+                    }
+                    else
+                    {
+                        double val = 0;
+                        switch (oilType)
+                        {
+                            case OilType.MotorOil: val = rec.MotorOilLiters; break;
+                            case OilType.TransmissionOil: val = rec.TransmissionOilLiters; break;
+                            case OilType.SpecialLiquid: val = rec.SpecialLiquidLiters; break;
+                            case OilType.PlasticLubricant: val = rec.PlasticLubricantKg; break;
+                        }
+                        if (val > 0)
+                        {
+                            string vehicleBrand = "";
+                            switch (oilType)
+                            {
+                                case OilType.MotorOil: vehicleBrand = (vd.Vehicle.FuelNorms.MotorOilBrand ?? "").Trim(); break;
+                                case OilType.TransmissionOil: vehicleBrand = (vd.Vehicle.FuelNorms.TransmissionOilBrand ?? "").Trim(); break;
+                                case OilType.SpecialLiquid: vehicleBrand = (vd.Vehicle.FuelNorms.SpecialLiquidBrand ?? "").Trim(); break;
+                                case OilType.PlasticLubricant: vehicleBrand = (vd.Vehicle.FuelNorms.PlasticLubricantBrand ?? "").Trim(); break;
+                            }
+                            if (string.Equals(vehicleBrand, brand, StringComparison.OrdinalIgnoreCase))
+                                total += val;
+                        }
+                    }
+                }
+            }
+            return total;
         }
 
         // ====================== SHEET 7: Empty Sheet (Лист1) ======================

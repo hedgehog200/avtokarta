@@ -75,17 +75,18 @@ namespace AVTOKarta.Services
             ws.Column(17).Width = 7.11;
             ws.Column(18).Width = 8.11;
             ws.Column(19).Width = 8.11;
+            ws.Column(20).Width = 7.0;
         }
 
         private void ApplyTableBorders(IXLWorksheet ws)
         {
-            // 84 rows x 19 cols: rows 14-97, cols 1-19
-            var dataRange = ws.Range(14, 1, 97, 19);
+            // 84 rows x 20 cols: rows 14-97, cols 1-20
+            var dataRange = ws.Range(14, 1, 97, 20);
             dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
             dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
 
             // Summary rows 99-111
-            var summaryRange = ws.Range(99, 1, 111, 19);
+            var summaryRange = ws.Range(99, 1, 111, 20);
             summaryRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
             summaryRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
         }
@@ -316,6 +317,9 @@ namespace AVTOKarta.Services
             ws.Range(15, 19, 16, 19).Merge();
             SetCell(ws, 15, 19, "Водитель", fontSize: 10, wrap: true);
 
+            ws.Range(14, 20, 16, 20).Merge();
+            SetCell(ws, 14, 20, "№ пут. листа", fontSize: 10, wrap: true);
+
             // Row 16 sub-sub-headers
             SetCell(ws, 16, 10, "мин", fontSize: 10);
             SetCell(ws, 16, 11, "мин", fontSize: 10);
@@ -323,7 +327,7 @@ namespace AVTOKarta.Services
             SetCell(ws, 16, 14, "мин.", fontSize: 10);
 
             // Row 17: Column numbers
-            for (int i = 1; i <= 19; i++)
+            for (int i = 1; i <= 20; i++)
             {
                 SetCell(ws, 17, i, i.ToString(), fontSize: 10, fontName: "Arial Cyr",
                     hAlign: XLAlignmentHorizontalValues.Center);
@@ -342,7 +346,7 @@ namespace AVTOKarta.Services
                 ws.Row(row).Height = 24;
 
                 SetCell(ws, row, 1, rec.Date.ToString("d.M.yyyy"), fontSize: 12);
-                SetCell(ws, row, 2, rec.WorkDescription, fontSize: 12);
+                SetCell(ws, row, 2, rec.Comments ?? rec.WorkDescription ?? "", fontSize: 12);
 
                 // Departure time
                 ws.Range(row, 3, row, 4).Merge();
@@ -393,6 +397,9 @@ namespace AVTOKarta.Services
                 // Signatures
                 SetCell(ws, row, 18, rec.SquadNumber ?? "", fontSize: 12);
                 SetCell(ws, row, 19, rec.DriverName ?? "", fontSize: 12);
+
+                // Trip sheet number
+                SetCell(ws, row, 20, rec.TripSheetNumber > 0 ? rec.TripSheetNumber.ToString() : "", fontSize: 12, hAlign: XLAlignmentHorizontalValues.Center);
             }
 
             for (int r = startRow + sorted.Count; r <= 97; r++)

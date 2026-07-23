@@ -5,8 +5,6 @@
 using System;
 using System.Globalization;
 using System.IO;
-using System.Security.AccessControl;
-using System.Security.Principal;
 using System.Threading;
 using System.Windows;
 
@@ -23,16 +21,6 @@ namespace AVTOKarta
                 if (!Directory.Exists(dir))
                     Directory.CreateDirectory(dir);
 
-                var di = new DirectoryInfo(dir);
-                var acl = di.GetAccessControl();
-                acl.SetAccessRuleProtection(true, false);
-                var rule = new FileSystemAccessRule(
-                    WindowsIdentity.GetCurrent().Name,
-                    FileSystemRights.FullControl,
-                    AccessControlType.Allow);
-                acl.AddAccessRule(rule);
-                di.SetAccessControl(acl);
-
                 File.AppendAllText(Path.Combine(dir, "crash.log"),
                     DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " " + msg + Environment.NewLine);
             }
@@ -46,7 +34,10 @@ namespace AVTOKarta
             DispatcherUnhandledException += (s, args) =>
             {
                 Log("DispatcherUnhandledException: " + args.Exception);
-                MessageBox.Show("Произошла непредвиденная ошибка. Обратитесь к администратору.\n\nДетали: " + args.Exception.Message,
+                string details = args.Exception.ToString();
+                if (args.Exception.InnerException != null)
+                    details += "\n\nВнутреннее исключение:\n" + args.Exception.InnerException;
+                MessageBox.Show("Произошла непредвиденная ошибка. Обратитесь к администратору.\n\n" + details,
                     "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 args.Handled = true;
             };
@@ -69,7 +60,7 @@ namespace AVTOKarta
             catch (Exception ex)
             {
                 Log("StartupException: " + ex);
-                MessageBox.Show("Ошибка запуска приложения. Обратитесь к администратору.\n\nДетали: " + ex.Message,
+                MessageBox.Show("Ошибка запуска приложения. Обратитесь к администратору.\n\n" + ex.ToString(),
                     "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 

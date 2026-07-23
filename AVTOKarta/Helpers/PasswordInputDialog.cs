@@ -23,7 +23,7 @@ namespace AVTOKarta.Helpers
             var window = new Window
             {
                 Title = title,
-                Width = 500,
+                Width = 600,
                 Height = 280,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 ResizeMode = ResizeMode.NoResize,
