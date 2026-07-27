@@ -8,6 +8,12 @@ using AVTOKarta.Models;
 
 namespace AVTOKarta.ViewModels
 {
+    public class EngineTypeItem
+    {
+        public EngineType Type { get; set; }
+        public string Name { get; set; }
+    }
+
     public class VehicleViewModel : BaseViewModel
     {
         private string _licensePlate;
@@ -26,6 +32,7 @@ namespace AVTOKarta.ViewModels
         private double _reductionCoefficient;
 
         private string _selectedSquadId;
+        private EngineTypeItem _selectedEngineItem;
 
         public RelayCommand ConfirmCommand { get; }
         public RelayCommand CancelCommand { get; }
@@ -33,6 +40,12 @@ namespace AVTOKarta.ViewModels
         public Vehicle EditingVehicle { get; }
         public bool? DialogResult { get; private set; }
         public List<Squad> AvailableSquads { get; }
+
+        public List<EngineTypeItem> EngineTypes { get; } = new List<EngineTypeItem>
+        {
+            new EngineTypeItem { Type = EngineType.Gasoline, Name = "Бензин" },
+            new EngineTypeItem { Type = EngineType.Diesel, Name = "Дизель" }
+        };
 
         public VehicleViewModel(Vehicle vehicle, List<Squad> squads)
         {
@@ -45,6 +58,7 @@ namespace AVTOKarta.ViewModels
             _cardNumber = vehicle.CardNumber;
             _initialChassisMileage = vehicle.InitialChassisMileage;
             _initialEngineMileage = vehicle.InitialEngineMileage;
+            _selectedEngineItem = EngineTypes.Find(e => e.Type == vehicle.Engine);
 
             _normPerKmWithoutPump = vehicle.FuelNorms.ConsumptionPerKmWithoutPump;
             _normPerKmWithPump = vehicle.FuelNorms.ConsumptionPerKmWithPump;
@@ -144,6 +158,12 @@ namespace AVTOKarta.ViewModels
             set { SetProperty(ref _selectedSquadId, value); }
         }
 
+        public EngineTypeItem SelectedEngineItem
+        {
+            get { return _selectedEngineItem; }
+            set { SetProperty(ref _selectedEngineItem, value); }
+        }
+
         private void Confirm()
         {
             EditingVehicle.LicensePlate = LicensePlate ?? string.Empty;
@@ -153,6 +173,7 @@ namespace AVTOKarta.ViewModels
             EditingVehicle.InitialChassisMileage = InitialChassisMileage;
             EditingVehicle.InitialEngineMileage = InitialEngineMileage;
             EditingVehicle.SquadId = SelectedSquadId ?? string.Empty;
+            EditingVehicle.Engine = SelectedEngineItem != null ? SelectedEngineItem.Type : EngineType.Diesel;
 
             EditingVehicle.FuelNorms.ConsumptionPerKmWithoutPump = NormPerKmWithoutPump;
             EditingVehicle.FuelNorms.ConsumptionPerKmWithPump = NormPerKmWithPump;

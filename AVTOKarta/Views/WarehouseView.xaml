@@ -2,170 +2,513 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:hc="https://handyorg.github.io/handycontrol"
+             xmlns:converters="clr-namespace:AVTOKarta.Converters"
              xml:lang="ru-RU">
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
+
+        <Style x:Key="FormLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,0,0"/>
+        </Style>
+
+        <Style x:Key="FormControlTextBox" TargetType="TextBox">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="10,7"/>
+            <Setter Property="MinHeight" Value="32"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource DividerBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"
+                                          Background="Transparent"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                                <Setter TargetName="Bd" Property="BorderThickness" Value="1.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FormControlComboBox" TargetType="ComboBox">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="10,7"/>
+            <Setter Property="MinHeight" Value="32"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource DividerBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="border" Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="8" Padding="0">
+                                <Grid>
+                                    <ContentPresenter x:Name="content" Content="{TemplateBinding SelectionBoxItem}"
+                                                      ContentTemplate="{Binding ItemTemplate, RelativeSource={RelativeSource TemplatedParent}}"
+                                                      Margin="10,7"
+                                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                      HorizontalAlignment="Left"/>
+                                </Grid>
+                            </Border>
+                            <ToggleButton x:Name="toggleButton" Grid.Column="1"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          Focusable="False" ClickMode="Press" Background="Transparent"
+                                          BorderThickness="0" Cursor="Hand">
+                                <Grid>
+                                    <Path x:Name="arrow" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                          Margin="0,0,12,0" Data="M0,0 L5,5 L10,0"
+                                          Stroke="{StaticResource TextSecondaryBrush}" StrokeThickness="1.5"
+                                          Stretch="Uniform" Width="10" Height="6"/>
+                                </Grid>
+                            </ToggleButton>
+                            <Popup x:Name="popup" IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   Placement="Bottom" AllowsTransparency="True"
+                                   Focusable="False" PopupAnimation="Slide">
+                                <Border Background="White" CornerRadius="10"
+                                        BorderThickness="1" BorderBrush="{StaticResource PopupBorderBrush}"
+                                        Margin="0,4,0,0" MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="16" ShadowDepth="6" Opacity="0.12" Color="#000000" Direction="270"/>
+                                    </Border.Effect>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="4">
+                                        <StackPanel>
+                                            <ItemsPresenter/>
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsDropDownOpen" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                                <Setter TargetName="border" Property="BorderThickness" Value="1.5"/>
+                                <Setter TargetName="arrow" Property="Stroke" Value="{StaticResource PrimaryBrush}"/>
+                                <Setter TargetName="arrow" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <RotateTransform Angle="180"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SegmentRadioButton" TargetType="RadioButton">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="GroupName" Value="OpMode"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="border" Padding="20,9" CornerRadius="8"
+                                Background="{StaticResource SurfaceBrush}"
+                                BorderBrush="{StaticResource DividerBrush}"
+                                BorderThickness="1" Cursor="Hand" Margin="0,0,6,0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryBrush}"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <ColorAnimation Storyboard.TargetName="border"
+                                                            Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                            To="#EEEEEE" Duration="0:0:0.15"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <ColorAnimation Storyboard.TargetName="border"
+                                                            Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                            To="#F3F4F6" Duration="0:0:0.2"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FieldCard" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource DividerBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.06" Color="#000000" Direction="270"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SummaryPill" TargetType="Border">
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="MinWidth" Value="130"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="8" ShadowDepth="1" Opacity="0.05" Color="#000000" Direction="270"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <DockPanel>
-        <Border DockPanel.Dock="Top" Style="{StaticResource CardBorderShadow}" Margin="16,12,16,8" Padding="16">
+        <!-- ============ HEADER ============ -->
+        <Border DockPanel.Dock="Top" Style="{StaticResource CardBorderShadow}" Margin="16,12,16,10" Padding="20,16">
             <Grid>
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <StackPanel>
-                    <TextBlock Text="Склад ГСМ (топливо, масла, смазки, спец. жидкости)" FontSize="18" FontWeight="Bold"
-                               Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                    <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0">
-                        <Run Text="Полный учёт прихода, расхода и остатков"/>
-                    </TextBlock>
+                <Border Grid.Column="0" Width="42" Height="42" CornerRadius="12"
+                        Background="{StaticResource PrimaryLightBrush}" Margin="0,0,14,0"
+                        VerticalAlignment="Center">
+                    <TextBlock Text="&#x26C7;" FontSize="20" Foreground="{StaticResource PrimaryBrush}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="Склад ГСМ" FontSize="18" FontWeight="Bold"
+                               Foreground="{StaticResource TextPrimaryBrush}"/>
+                    <TextBlock Text="Полный учёт прихода, расхода и остатков топлива, масел, смазок и спец. жидкостей"
+                               FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,3,0,0"/>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- ADD NEW ITEM FORM -->
-        <Border DockPanel.Dock="Top" Style="{StaticResource CardBorderShadow}" Margin="16,0,16,8" Padding="16">
+        <!-- ============ SUMMARY ============ -->
+        <Border DockPanel.Dock="Top" Style="{StaticResource FieldCard}" Margin="16,0,16,10" Padding="20,16">
             <StackPanel>
-                <TextBlock Text="Новое поступление" FontSize="14" FontWeight="SemiBold"
+                <TextBlock Text="Остатки на складе" FontSize="13" FontWeight="SemiBold"
                            Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10"/>
-                <Grid>
+                <WrapPanel Orientation="Horizontal">
+                    <Border Style="{StaticResource SummaryPill}" Background="#E8F5E9">
+                        <StackPanel>
+                            <TextBlock Text="Диз. топливо" FontSize="11" Foreground="#6B7280"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                <TextBlock Text="{Binding WarehouseVm.TotalDiesel, StringFormat=F2}"
+                                           FontSize="18" FontWeight="Bold" Foreground="#2E7D32"/>
+                                <TextBlock Text=" л" FontSize="12" Foreground="#6B7280"
+                                           VerticalAlignment="Bottom" Margin="3,0,0,2"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SummaryPill}" Background="#FFF3E0">
+                        <StackPanel>
+                            <TextBlock Text="Бензин" FontSize="11" Foreground="#6B7280"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                <TextBlock Text="{Binding WarehouseVm.TotalGasoline, StringFormat=F2}"
+                                           FontSize="18" FontWeight="Bold" Foreground="#E65100"/>
+                                <TextBlock Text=" л" FontSize="12" Foreground="#6B7280"
+                                           VerticalAlignment="Bottom" Margin="3,0,0,2"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SummaryPill}" Background="#FFEBEE">
+                        <StackPanel>
+                            <TextBlock Text="Моторное масло" FontSize="11" Foreground="#6B7280"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                <TextBlock Text="{Binding WarehouseVm.TotalMotorOil, StringFormat=F2}"
+                                           FontSize="18" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                                <TextBlock Text=" л" FontSize="12" Foreground="#6B7280"
+                                           VerticalAlignment="Bottom" Margin="3,0,0,2"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SummaryPill}" Background="#E3F2FD">
+                        <StackPanel>
+                            <TextBlock Text="Трансм. масло" FontSize="11" Foreground="#6B7280"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                <TextBlock Text="{Binding WarehouseVm.TotalTransOil, StringFormat=F2}"
+                                           FontSize="18" FontWeight="Bold" Foreground="#1565C0"/>
+                                <TextBlock Text=" л" FontSize="12" Foreground="#6B7280"
+                                           VerticalAlignment="Bottom" Margin="3,0,0,2"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SummaryPill}" Background="#F3E5F5">
+                        <StackPanel>
+                            <TextBlock Text="Спец. жидкость" FontSize="11" Foreground="#6B7280"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                <TextBlock Text="{Binding WarehouseVm.TotalSpecLiquid, StringFormat=F2}"
+                                           FontSize="18" FontWeight="Bold" Foreground="#7B1FA2"/>
+                                <TextBlock Text=" л" FontSize="12" Foreground="#6B7280"
+                                           VerticalAlignment="Bottom" Margin="3,0,0,2"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SummaryPill}" Background="#ECEFF1">
+                        <StackPanel>
+                            <TextBlock Text="Пласт. смазка" FontSize="11" Foreground="#6B7280"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                <TextBlock Text="{Binding WarehouseVm.TotalPlasticLub, StringFormat=F2}"
+                                           FontSize="18" FontWeight="Bold" Foreground="#37474F"/>
+                                <TextBlock Text=" кг" FontSize="12" Foreground="#6B7280"
+                                           VerticalAlignment="Bottom" Margin="3,0,0,2"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </WrapPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- ============ ADD FORM ============ -->
+        <Border DockPanel.Dock="Top" Style="{StaticResource FieldCard}" Margin="16,0,16,10" Padding="20,16">
+            <StackPanel>
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="Новая операция" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                        <Border Grid.Column="0" Background="{StaticResource PrimaryLightBrush}"
+                                CornerRadius="6" Padding="8,3" Margin="10,0,0,0" VerticalAlignment="Center">
+                            <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="ПРИХОД"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding WarehouseVm.IsExpenseMode}" Value="True">
+                                                <Setter Property="Text" Value="РАСХОД"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Border>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <RadioButton Content="Приход" IsChecked="{Binding WarehouseVm.IsIncomeMode}"
+                                     Style="{StaticResource SegmentRadioButton}"/>
+                        <RadioButton Content="Расход" IsChecked="{Binding WarehouseVm.IsExpenseMode}"
+                                     Style="{StaticResource SegmentRadioButton}"/>
+                    </StackPanel>
+                </Grid>
+
+                <TextBlock Text="ОСНОВНЫЕ ДАННЫЕ" FontSize="10" FontWeight="Bold"
+                           Foreground="{StaticResource TextTertiaryBrush}" Margin="0,0,0,8"/>
+                <Grid Margin="0,0,0,12">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="20"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="12"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="12"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <Label Grid.Row="0" Grid.Column="0" Content="Дата:" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Дата" Style="{StaticResource FormLabel}" Margin="0,0,8,0"/>
                     <DatePicker Grid.Row="0" Grid.Column="1" SelectedDate="{Binding WarehouseVm.NewDate}"
-                                Language="ru-RU" Margin="2,4" Width="150" HorizontalAlignment="Left"/>
-                    <Label Grid.Row="0" Grid.Column="2" Content="Тип ГСМ:" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Row="0" Grid.Column="3" ItemsSource="{Binding WarehouseVm.OilTypes}"
+                                Language="ru-RU" HorizontalAlignment="Stretch" MinWidth="140"/>
+
+                    <TextBlock Grid.Row="0" Grid.Column="3" Text="Тип ГСМ" Style="{StaticResource FormLabel}" Margin="0,0,8,0"/>
+                    <ComboBox Grid.Row="0" Grid.Column="4" ItemsSource="{Binding WarehouseVm.OilTypes}"
                               SelectedValue="{Binding WarehouseVm.NewType}" SelectedValuePath="Type"
-                              DisplayMemberPath="Name" Margin="2,4" Width="200" HorizontalAlignment="Left"
+                              DisplayMemberPath="Name" HorizontalAlignment="Stretch"
                               ItemContainerStyle="{StaticResource ComboBoxItemStyle}"/>
 
-                    <Label Grid.Row="1" Grid.Column="0" Content="Наименование/марка:" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding WarehouseVm.NewBrand, UpdateSourceTrigger=PropertyChanged}"
-                             Margin="2,4" Width="200" HorizontalAlignment="Left"/>
-                    <Label Grid.Row="1" Grid.Column="2" Content="Количество:" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding WarehouseVm.NewQuantity, UpdateSourceTrigger=PropertyChanged}"
-                             Margin="2,4" Width="100" HorizontalAlignment="Left"/>
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Наименование / марка" Style="{StaticResource FormLabel}" Margin="0,0,8,0"/>
+                    <TextBox Grid.Row="2" Grid.Column="1"
+                             Text="{Binding WarehouseVm.NewBrand, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource FormControlTextBox}" HorizontalAlignment="Stretch"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="3" Text="Количество" Style="{StaticResource FormLabel}" Margin="0,0,8,0"/>
+                    <TextBox Grid.Row="2" Grid.Column="4"
+                             Text="{Binding WarehouseVm.NewQuantity, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource FormControlTextBox}" HorizontalAlignment="Stretch"/>
+
+                    <TextBlock Grid.Row="4" Grid.Column="3" Text="Примечание" Style="{StaticResource FormLabel}" Margin="0,0,8,0"/>
+                    <TextBox Grid.Row="4" Grid.Column="4"
+                             Text="{Binding WarehouseVm.NewNotes, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource FormControlTextBox}" HorizontalAlignment="Stretch"/>
                 </Grid>
-                <Grid Margin="0,4,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <Label Grid.Column="0" Content="№ накладной:" VerticalAlignment="Center"/>
-                    <TextBox Grid.Column="1" Text="{Binding WarehouseVm.NewDocumentNumber, UpdateSourceTrigger=PropertyChanged}"
-                             Margin="2,4" Width="150" HorizontalAlignment="Left"/>
-                    <Label Grid.Column="2" Content="Поставщик:" VerticalAlignment="Center"/>
-                    <TextBox Grid.Column="3" Text="{Binding WarehouseVm.NewSupplier, UpdateSourceTrigger=PropertyChanged}"
-                             Margin="2,4" Width="200" HorizontalAlignment="Left"/>
-                    <Button Grid.Column="4" Content="+ Добавить" Command="{Binding WarehouseVm.AddCommand}"
-                            Style="{StaticResource SuccessButton}" Padding="14,8" Margin="8,4,0,4"/>
-                </Grid>
+
+                <!-- Income fields -->
+                <Border Visibility="{Binding WarehouseVm.ShowIncomeFields, Converter={StaticResource BoolToVis}}"
+                        Background="{StaticResource SurfaceBrush}" CornerRadius="8" Padding="16,12" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="ДАННЫЕ ПОСТАВКИ" FontSize="10" FontWeight="Bold"
+                                   Foreground="{StaticResource TextTertiaryBrush}" Margin="0,0,0,8"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="20"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="№ накладной" Style="{StaticResource FormLabel}" Margin="0,0,8,0"/>
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding WarehouseVm.NewDocumentNumber, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource FormControlTextBox}" HorizontalAlignment="Stretch"/>
+                            <TextBlock Grid.Column="3" Text="Поставщик" Style="{StaticResource FormLabel}" Margin="0,0,8,0"/>
+                            <TextBox Grid.Column="4"
+                                     Text="{Binding WarehouseVm.NewSupplier, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource FormControlTextBox}" HorizontalAlignment="Stretch"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Expense fields -->
+                <Border Visibility="{Binding WarehouseVm.ShowExpenseFields, Converter={StaticResource BoolToVis}}"
+                        Background="{StaticResource SurfaceBrush}" CornerRadius="8" Padding="16,12" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="ДАННЫЕ СПИСАНИЯ" FontSize="10" FontWeight="Bold"
+                                   Foreground="{StaticResource TextTertiaryBrush}" Margin="0,0,0,8"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="20"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Автомобиль" Style="{StaticResource FormLabel}" Margin="0,0,8,0"/>
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding WarehouseVm.AvailableVehiclePlates}"
+                                      SelectedItem="{Binding WarehouseVm.SelectedVehiclePlate}"
+                                      IsEditable="False" HorizontalAlignment="Stretch"
+                                      ItemContainerStyle="{StaticResource ComboBoxItemStyle}"/>
+                            <TextBlock Grid.Column="3" Text="Примечание" Style="{StaticResource FormLabel}" Margin="0,0,8,0"/>
+                            <TextBox Grid.Column="4"
+                                     Text="{Binding WarehouseVm.NewNotes, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource FormControlTextBox}" HorizontalAlignment="Stretch"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+                    <Button Content="+ Добавить запись" Command="{Binding WarehouseVm.AddCommand}"
+                            Style="{StaticResource SuccessButton}" Padding="18,9" FontSize="13"/>
+                </StackPanel>
             </StackPanel>
         </Border>
 
-        <!-- TOTALS -->
-        <Border DockPanel.Dock="Top" Style="{StaticResource InfoBanner}" Margin="16,0,16,8" Padding="16,10">
-            <StackPanel Orientation="Horizontal">
-                <Border Background="{StaticResource PillSuccessBrush}" CornerRadius="10" Padding="10,4" Margin="0,0,10,0">
+        <!-- ============ DATA TABLE HEADER ============ -->
+        <Border DockPanel.Dock="Top" Margin="16,0,16,6" Padding="4,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0" HorizontalAlignment="Left"
+                        Style="{StaticResource GhostButton}" Padding="12,8" Cursor="Hand"
+                        Command="{Binding WarehouseVm.ToggleJournalCommand}">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Диз. топливо: " Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
-                        <TextBlock Text="{Binding WarehouseVm.TotalDiesel, StringFormat=F2}" FontWeight="Bold" FontSize="12"
-                                   Foreground="{StaticResource SuccessBrush}"/>
-                        <TextBlock Text=" л" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
+                        <TextBlock Text="{Binding WarehouseVm.JournalArrow}" FontSize="11"
+                                   Foreground="{StaticResource PrimaryBrush}" VerticalAlignment="Center"
+                                   Margin="0,0,8,0" FontWeight="Bold"/>
+                        <TextBlock Text="Журнал операций" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                        <Border Background="{StaticResource PillPrimaryBrush}" CornerRadius="10"
+                                Padding="8,3" Margin="10,0,0,0" VerticalAlignment="Center">
+                            <TextBlock FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{StaticResource PrimaryBrush}"
+                                       Text="{Binding WarehouseVm.Items.Count, StringFormat='{}{0} записей'}"/>
+                        </Border>
                     </StackPanel>
-                </Border>
-                <Border Background="{StaticResource PillWarningBrush}" CornerRadius="10" Padding="10,4" Margin="0,0,10,0">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Бензин: " Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
-                        <TextBlock Text="{Binding WarehouseVm.TotalGasoline, StringFormat=F2}" FontWeight="Bold" FontSize="12"
-                                   Foreground="{StaticResource WarningBrush}"/>
-                        <TextBlock Text=" л" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
-                    </StackPanel>
-                </Border>
-                <Border Background="{StaticResource PillPrimaryBrush}" CornerRadius="10" Padding="10,4" Margin="0,0,10,0">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Моторное масло: " Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
-                        <TextBlock Text="{Binding WarehouseVm.TotalMotorOil, StringFormat=F2}" FontWeight="Bold" FontSize="12"
-                                   Foreground="{StaticResource PrimaryBrush}"/>
-                        <TextBlock Text=" л" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
-                    </StackPanel>
-                </Border>
-                <Border Background="{StaticResource PillPrimaryBrush}" CornerRadius="10" Padding="10,4" Margin="0,0,10,0">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Трансм. масло: " Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
-                        <TextBlock Text="{Binding WarehouseVm.TotalTransOil, StringFormat=F2}" FontWeight="Bold" FontSize="12"
-                                   Foreground="{StaticResource PrimaryBrush}"/>
-                        <TextBlock Text=" л" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
-                    </StackPanel>
-                </Border>
-                <Border Background="{StaticResource PillPrimaryBrush}" CornerRadius="10" Padding="10,4" Margin="0,0,10,0">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Спец. жидкость: " Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
-                        <TextBlock Text="{Binding WarehouseVm.TotalSpecLiquid, StringFormat=F2}" FontWeight="Bold" FontSize="12"
-                                   Foreground="{StaticResource PrimaryBrush}"/>
-                        <TextBlock Text=" л" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
-                    </StackPanel>
-                </Border>
-                <Border Background="{StaticResource PillPrimaryBrush}" CornerRadius="10" Padding="10,4">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Пласт. смазка: " Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
-                        <TextBlock Text="{Binding WarehouseVm.TotalPlasticLub, StringFormat=F2}" FontWeight="Bold" FontSize="12"
-                                   Foreground="{StaticResource PrimaryBrush}"/>
-                        <TextBlock Text=" кг" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
-                    </StackPanel>
-                </Border>
-            </StackPanel>
+                </Button>
+                <Button Grid.Column="1" Content="&#x2716; Удалить выбранное"
+                        Command="{Binding WarehouseVm.DeleteCommand}"
+                        Style="{StaticResource DangerButton}" Padding="14,7" FontSize="12"/>
+            </Grid>
         </Border>
 
-        <!-- DELETE BUTTON -->
-        <Border DockPanel.Dock="Bottom" Margin="16,0,16,12" Padding="8,0">
-            <StackPanel Orientation="Horizontal">
-                <Button Content="Удалить выбранное" Command="{Binding WarehouseVm.DeleteCommand}"
-                        Style="{StaticResource DangerButton}" Padding="12,7"/>
-            </StackPanel>
+        <!-- ============ DATA TABLE ============ -->
+        <Border Style="{StaticResource FieldCard}" Margin="16,0,16,12" Padding="0" ClipToBounds="True"
+                Visibility="{Binding WarehouseVm.IsJournalExpanded, Converter={StaticResource BoolToVis}}">
+            <DataGrid ItemsSource="{Binding WarehouseVm.Items}"
+                      SelectedItem="{Binding WarehouseVm.SelectedItem}"
+                      CanUserAddRows="False"
+                      FontSize="12" RowHeaderWidth="0"
+                      AutoGenerateColumns="False"
+                      EnableRowVirtualization="True"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      VirtualizingPanel.VirtualizationMode="Recycling"
+                      VirtualizingPanel.ScrollUnit="Pixel"
+                      ScrollViewer.CanContentScroll="True"
+                      CanUserResizeRows="True"
+                      BorderThickness="0"
+                      MaxHeight="400">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Операция" Binding="{Binding OperationDisplay}" Width="90" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Дата" Binding="{Binding Date, StringFormat=d.M.yyyy}" Width="95" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Тип ГСМ" Binding="{Binding TypeDisplay}" Width="145" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Наименование / марка" Binding="{Binding Brand}" Width="150" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Кол-во" Binding="{Binding Quantity, StringFormat=F2}" Width="75" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Ед." Binding="{Binding UnitDisplay}" Width="42" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Гос. знак" Binding="{Binding VehicleLicensePlate}" Width="95" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Примечание" Binding="{Binding Notes}" Width="180" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="№ док." Binding="{Binding DocumentNumber}" Width="85" IsReadOnly="True"/>
+                    <DataGridTemplateColumn Header="" Width="42" IsReadOnly="True">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="&#x2716;" Style="{StaticResource IconButton}"
+                                        Command="{Binding DataContext.WarehouseVm.RemoveCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}" FontSize="10" Padding="4"
+                                        Foreground="{StaticResource DangerBrush}"
+                                        ToolTip="Удалить запись"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
         </Border>
-
-        <!-- ITEMS TABLE -->
-        <DataGrid ItemsSource="{Binding WarehouseVm.Items}"
-                  SelectedItem="{Binding WarehouseVm.SelectedItem}"
-                  Margin="16,0,16,0" CanUserAddRows="False"
-                  FontSize="12" RowHeaderWidth="0"
-                  AutoGenerateColumns="False"
-                  EnableRowVirtualization="True"
-                  VirtualizingPanel.IsVirtualizing="True"
-                  VirtualizingPanel.VirtualizationMode="Recycling"
-                  VirtualizingPanel.ScrollUnit="Pixel"
-                  ScrollViewer.CanContentScroll="True"
-                  CanUserResizeRows="True">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Дата" Binding="{Binding Date, StringFormat=d.M.yyyy}" Width="90" IsReadOnly="True"/>
-                <DataGridTextColumn Header="Тип ГСМ" Binding="{Binding TypeDisplay}" Width="150" IsReadOnly="True"/>
-                <DataGridTextColumn Header="Наименование/марка" Binding="{Binding Brand}" Width="160" IsReadOnly="True"/>
-                <DataGridTextColumn Header="Кол-во" Binding="{Binding Quantity, StringFormat=F2}" Width="80" IsReadOnly="True"/>
-                <DataGridTextColumn Header="Ед. изм." Binding="{Binding UnitDisplay}" Width="60" IsReadOnly="True"/>
-                <DataGridTextColumn Header="№ накладной" Binding="{Binding DocumentNumber}" Width="100" IsReadOnly="True"/>
-                <DataGridTextColumn Header="Поставщик" Binding="{Binding Supplier}" Width="140" IsReadOnly="True"/>
-                <DataGridTemplateColumn Header="" Width="40" IsReadOnly="True">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Button Content="x" Style="{StaticResource IconButton}"
-                                    Command="{Binding DataContext.WarehouseVm.RemoveCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                    CommandParameter="{Binding}" FontSize="11" Padding="4"
-                                    Foreground="{StaticResource DangerBrush}"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-            </DataGrid.Columns>
-        </DataGrid>
     </DockPanel>
+    </ScrollViewer>
 </UserControl>

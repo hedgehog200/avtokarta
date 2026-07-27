@@ -122,6 +122,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="Views\DriverListView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
@@ -130,6 +134,7 @@
     </Compile>
     <Compile Include="Models\Squad.cs" />
     <Compile Include="Models\Vehicle.cs" />
+    <Compile Include="Models\Driver.cs" />
     <Compile Include="Models\FuelNorm.cs" />
     <Compile Include="Models\DailyRecord.cs" />
     <Compile Include="Models\MonthlyCard.cs" />
@@ -139,6 +144,7 @@
     <Compile Include="Helpers\RelayCommand.cs" />
     <Compile Include="Helpers\DateTimeHelper.cs" />
     <Compile Include="Helpers\PasswordInputDialog.cs" />
+    <Compile Include="Helpers\PhoneHelper.cs" />
     <Compile Include="Services\DataService.cs" />
     <Compile Include="Services\EncryptionService.cs" />
     <Compile Include="Services\CacheService.cs" />
@@ -157,6 +163,7 @@
     <Compile Include="ViewModels\UpdateViewModel.cs" />
     <Compile Include="ViewModels\SquadEditViewModel.cs" />
     <Compile Include="ViewModels\WarehouseViewModel.cs" />
+    <Compile Include="ViewModels\DriverListViewModel.cs" />
     <Compile Include="Views\ChangePasswordView.xaml.cs">
       <DependentUpon>ChangePasswordView.xaml</DependentUpon>
     </Compile>
@@ -186,6 +193,9 @@
     </Compile>
     <Compile Include="Views\WarehouseView.xaml.cs">
       <DependentUpon>WarehouseView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\DriverListView.xaml.cs">
+      <DependentUpon>DriverListView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Converters\BoolToVisibilityConverter.cs" />
     <Compile Include="Converters\NullOrEmptyToVisibilityConverter.cs" />

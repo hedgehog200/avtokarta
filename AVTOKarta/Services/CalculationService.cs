@@ -27,18 +27,21 @@ namespace AVTOKarta.Services
 
         public static double CalculateActualConsumption(MonthlyCard card, List<DailyRecord> allRecords, FuelNorm norms)
         {
-            if (card.FuelRefueledMonth == 0)
+            double totalNorm = 0;
+            foreach (var rec in allRecords)
             {
-                double totalNorm = 0;
-                foreach (var rec in allRecords)
-                {
-                    rec.NormConsumption = CalculateNormConsumption(rec, norms);
-                    totalNorm += rec.NormConsumption;
-                }
-                return Math.Round(totalNorm, 2);
+                rec.NormConsumption = CalculateNormConsumption(rec, norms);
+                totalNorm += rec.NormConsumption;
             }
+            return Math.Round(totalNorm, 2);
+        }
 
-            return Math.Round(card.FuelRemainingOnFirst + card.FuelRefueledMonth - card.FuelRemainingOnLast, 2);
+        public static double CalculateFuelRemainingOnLast(MonthlyCard card)
+        {
+            double totalActual = card.Records != null
+                ? card.Records.Sum(r => r.ActualConsumption)
+                : 0;
+            return Math.Round(card.FuelRemainingOnFirst + card.FuelRefueledMonth - totalActual, 3);
         }
 
         public static void RecalculateAllRecords(MonthlyCard card, FuelNorm norms)
@@ -46,36 +49,10 @@ namespace AVTOKarta.Services
             foreach (var record in card.Records)
             {
                 record.NormConsumption = CalculateNormConsumption(record, norms);
+                record.ActualConsumption = record.NormConsumption;
             }
 
-            double totalActual = CalculateActualConsumption(card, card.Records, norms);
-            if (card.FuelRefueledMonth > 0 && card.Records.Count > 0)
-            {
-                double totalNorm = card.Records.Sum(r => r.NormConsumption);
-                if (totalNorm > 0)
-                {
-                    foreach (var record in card.Records)
-                    {
-                        record.ActualConsumption = Math.Round(
-                            totalActual * (record.NormConsumption / totalNorm), 3);
-                    }
-                }
-                else
-                {
-                    double perRecord = Math.Round(totalActual / card.Records.Count, 3);
-                    foreach (var record in card.Records)
-                    {
-                        record.ActualConsumption = perRecord;
-                    }
-                }
-            }
-            else
-            {
-                foreach (var record in card.Records)
-                {
-                    record.ActualConsumption = record.NormConsumption;
-                }
-            }
+            card.FuelRemainingOnLast = CalculateFuelRemainingOnLast(card);
         }
 
         public static double CalculateTotalNorm(List<DailyRecord> records)
@@ -151,6 +128,25 @@ namespace AVTOKarta.Services
             {
                 var tripType = ClassifyTrip(record.WorkDescription);
                 result[tripType] += record.DistanceKm;
+            }
+
+            return result;
+        }
+
+        public static Dictionary<TripType, double> CalculateFuelByTripType(List<DailyRecord> records)
+        {
+            var result = new Dictionary<TripType, double>
+            {
+                [TripType.Training] = 0,
+                [TripType.Fire] = 0,
+                [TripType.FalseAlarm] = 0,
+                [TripType.Other] = 0
+            };
+
+            foreach (var record in records)
+            {
+                var tripType = ClassifyTrip(record.WorkDescription);
+                result[tripType] += record.NormConsumption;
             }
 
             return result;

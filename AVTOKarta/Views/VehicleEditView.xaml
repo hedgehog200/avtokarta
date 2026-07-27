@@ -37,6 +37,13 @@
                 <TextBlock Text="Тип автомобиля:" FontWeight="SemiBold" Margin="0,8,0,2"/>
                 <TextBox Text="{Binding Type, UpdateSourceTrigger=PropertyChanged}"/>
 
+                <TextBlock Text="Тип двигателя:" FontWeight="SemiBold" Margin="0,8,0,2"/>
+                <ComboBox ItemsSource="{Binding EngineTypes}"
+                          SelectedItem="{Binding SelectedEngineItem}"
+                          DisplayMemberPath="Name"
+                          Margin="4,4,4,8" Height="28"
+                          ItemContainerStyle="{StaticResource ComboBoxItemStyle}"/>
+
                 <TextBlock Text="Номер карточки:" FontWeight="SemiBold" Margin="0,8,0,2"/>
                 <TextBox Text="{Binding CardNumber, UpdateSourceTrigger=PropertyChanged}"/>
 
@@ -51,7 +58,7 @@
                                Foreground="{StaticResource PrimaryBrush}"/>
                 </Border>
 
-                <TextBlock Text="Норма на пробег без насоса (л/км):" FontWeight="SemiBold" Margin="0,8,0,2"/>
+                <TextBlock Text="Норма на пробег (л/км):" FontWeight="SemiBold" Margin="0,8,0,2"/>
                 <TextBox Text="{Binding NormPerKmWithoutPump, StringFormat=F2, TargetNullValue=0, FallbackValue=0}"/>
 
                 <TextBlock Text="Норма на пробег с насосом (л/км):" FontWeight="SemiBold" Margin="0,8,0,2"/>

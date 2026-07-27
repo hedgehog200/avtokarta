@@ -82,9 +82,12 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="ФИО водителя:" Style="{StaticResource FieldLabel}"/>
-                        <TextBox Grid.Column="1"
-                                 Text="{Binding DriverName, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0" Padding="6,5"/>
+                        <ComboBox Grid.Column="1"
+                                  ItemsSource="{Binding DriverNames}"
+                                  Text="{Binding DriverName, UpdateSourceTrigger=PropertyChanged}"
+                                  IsEditable="True" Margin="0" Padding="6,5"
+                                  MaxDropDownHeight="200"
+                                  ItemContainerStyle="{StaticResource ComboBoxItemStyle}"/>
                     </Grid>
 
                     <!-- Work description -->
@@ -97,8 +100,7 @@
                         <TextBlock Grid.Column="0" Text="№ путевого листа:" Style="{StaticResource FieldLabel}"/>
                         <TextBox Grid.Column="1"
                                  Text="{Binding TripSheetNumber, UpdateSourceTrigger=PropertyChanged}"
-                                 IsReadOnly="True" Margin="0" Padding="6,5"
-                                 Background="{StaticResource BackgroundBrush}"/>
+                                 Margin="0" Padding="6,5"/>
                     </Grid>
 
                     <Grid Margin="0,0,0,6">
@@ -211,7 +213,7 @@
                             <ColumnDefinition Width="130"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="Без насоса:" Style="{StaticResource FieldLabel}"/>
+                        <TextBlock Grid.Column="0" Text="На холостом ходу:" Style="{StaticResource FieldLabel}"/>
                         <TextBox Grid.Column="1"
                                  Text="{Binding TimeWithoutPumpMinutes, UpdateSourceTrigger=LostFocus, Converter={StaticResource DoubleStr}}"
                                  Margin="0" Padding="6,5"/>
@@ -264,82 +266,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Separator Background="{StaticResource DividerBrush}" Margin="0,6,0,12"/>
 
-                    <!-- Masla / Smazki -->
-                    <TextBlock Text="Масла и смазки" Style="{StaticResource SectionTitle}"/>
-
-                    <!-- Add new entry -->
-                    <Border Background="{StaticResource BackgroundBrush}" CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="130"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="8"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Тип:" Style="{StaticResource FieldLabel}"/>
-                            <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
-                                      ItemsSource="{Binding OilTypes}"
-                                      SelectedItem="{Binding NewOilType}"
-                                      DisplayMemberPath="Name"
-                                      Margin="0" Padding="6,4"/>
-
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Наименование:" Style="{StaticResource FieldLabel}"/>
-                            <TextBox Grid.Row="2" Grid.Column="1"
-                                     Text="{Binding NewOilName, UpdateSourceTrigger=PropertyChanged}"
-                                     Margin="0,0,8,0" Padding="6,4"
-                                     ToolTip="Марка/название масла или смазки"/>
-                            <Button Grid.Row="2" Grid.Column="2" Content="+" MinWidth="36"
-                                    Command="{Binding AddOilEntryCommand}"
-                                    Style="{StaticResource SuccessButton}"/>
-                        </Grid>
-                    </Border>
-
-                    <!-- Quantity row -->
-                    <Grid Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="130"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="Количество:" Style="{StaticResource FieldLabel}"/>
-                        <TextBox Grid.Column="1"
-                                 Text="{Binding NewOilQuantity, UpdateSourceTrigger=LostFocus, Converter={StaticResource DoubleStr}}"
-                                 Margin="0" Padding="6,5"/>
-                    </Grid>
-
-                    <!-- Entries list -->
-                    <ItemsControl ItemsSource="{Binding OilEntries}" Margin="0,0,0,12">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Background="White" BorderBrush="{StaticResource DividerBrush}"
-                                        BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,4">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="120"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="60"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="{Binding TypeDisplay}" FontWeight="SemiBold" FontSize="12"/>
-                                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="2" Text="{Binding Quantity, StringFormat=F2}" FontSize="12"
-                                                   VerticalAlignment="Center" HorizontalAlignment="Right"/>
-                                        <Button Grid.Column="3" Content="×" MinWidth="28" FontSize="14"
-                                                Command="{Binding DataContext.RemoveOilEntryCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                CommandParameter="{Binding}"
-                                                Style="{StaticResource GhostButton}" Foreground="{StaticResource DangerBrush}"
-                                                Margin="8,0,0,0"/>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
                 </StackPanel>
             </ScrollViewer>
         </DockPanel>

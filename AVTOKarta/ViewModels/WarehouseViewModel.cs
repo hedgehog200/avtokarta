@@ -23,10 +23,16 @@ namespace AVTOKarta.ViewModels
 
         private OilType _newType;
         private string _newBrand;
-        private double _newQuantity;
+        private string _newQuantity;
         private DateTime _newDate;
         private string _newDocumentNumber;
         private string _newSupplier;
+        private string _newNotes;
+
+        private bool _isExpenseMode;
+        private bool _isJournalExpanded;
+        private string _selectedVehiclePlate;
+        private List<string> _availableVehiclePlates;
 
         private double _totalMotorOil;
         private double _totalTransOil;
@@ -47,6 +53,7 @@ namespace AVTOKarta.ViewModels
 
         public RelayCommand AddCommand { get; }
         public RelayCommand DeleteCommand { get; }
+        public RelayCommand ToggleJournalCommand { get; }
         public RelayCommand<WarehouseItem> RemoveCommand { get; }
 
         public string SquadId => _squadId;
@@ -59,13 +66,19 @@ namespace AVTOKarta.ViewModels
             _items.CollectionChanged += OnItemsCollectionChanged;
             _newDate = DateTime.Today;
             _newBrand = string.Empty;
+            _newQuantity = string.Empty;
             _newDocumentNumber = string.Empty;
             _newSupplier = string.Empty;
+            _newNotes = string.Empty;
+            _availableVehiclePlates = new List<string>();
+            _isJournalExpanded = true;
 
             AddCommand = new RelayCommand(o => AddItem());
             DeleteCommand = new RelayCommand(o => DeleteItem(), o => SelectedItem != null);
+            ToggleJournalCommand = new RelayCommand(o => ToggleJournal());
             RemoveCommand = new RelayCommand<WarehouseItem>(o => RemoveItem(o));
 
+            LoadVehicles();
             LoadItems();
         }
 
@@ -102,7 +115,7 @@ namespace AVTOKarta.ViewModels
             set { SetProperty(ref _newBrand, value); }
         }
 
-        public double NewQuantity
+        public string NewQuantity
         {
             get { return _newQuantity; }
             set { SetProperty(ref _newQuantity, value); }
@@ -126,7 +139,61 @@ namespace AVTOKarta.ViewModels
             set { SetProperty(ref _newSupplier, value); }
         }
 
+        public string NewNotes
+        {
+            get { return _newNotes; }
+            set { SetProperty(ref _newNotes, value); }
+        }
+
+        public bool IsExpenseMode
+        {
+            get { return _isExpenseMode; }
+            set
+            {
+                SetProperty(ref _isExpenseMode, value);
+                OnPropertyChanged("IsIncomeMode");
+                OnPropertyChanged("ShowIncomeFields");
+                OnPropertyChanged("ShowExpenseFields");
+            }
+        }
+
+        public bool IsIncomeMode
+        {
+            get { return !_isExpenseMode; }
+            set { IsExpenseMode = !value; }
+        }
+
+        public bool ShowIncomeFields
+        {
+            get { return !_isExpenseMode; }
+        }
+
+        public bool ShowExpenseFields
+        {
+            get { return _isExpenseMode; }
+        }
+
+        public string SelectedVehiclePlate
+        {
+            get { return _selectedVehiclePlate; }
+            set { SetProperty(ref _selectedVehiclePlate, value); }
+        }
+
+        public List<string> AvailableVehiclePlates
+        {
+            get { return _availableVehiclePlates; }
+            set { SetProperty(ref _availableVehiclePlates, value); }
+        }
+
         public List<OilTypeItem> OilTypes => _oilTypes;
+
+        public bool IsJournalExpanded
+        {
+            get { return _isJournalExpanded; }
+            set { SetProperty(ref _isJournalExpanded, value); }
+        }
+
+        public string JournalArrow => _isJournalExpanded ? "\u25B2" : "\u25BC";
 
         public double TotalMotorOil => _totalMotorOil;
         public double TotalTransOil => _totalTransOil;
@@ -138,6 +205,19 @@ namespace AVTOKarta.ViewModels
         public void Reload()
         {
             LoadItems();
+        }
+
+        private void LoadVehicles()
+        {
+            if (_dataService == null) return;
+            var allVehicles = _dataService.LoadVehicles();
+            _availableVehiclePlates = allVehicles
+                .Where(v => v.SquadId == _squadId)
+                .Select(v => v.LicensePlate)
+                .Where(p => !string.IsNullOrEmpty(p))
+                .OrderBy(p => p)
+                .ToList();
+            OnPropertyChanged("AvailableVehiclePlates");
         }
 
         private void LoadItems()
@@ -165,14 +245,15 @@ namespace AVTOKarta.ViewModels
 
             foreach (var i in _items)
             {
+                double amount = i.OperationType == WarehouseOperationType.Income ? i.Quantity : -i.Quantity;
                 switch (i.Type)
                 {
-                    case OilType.MotorOil: _totalMotorOil += i.Quantity; break;
-                    case OilType.TransmissionOil: _totalTransOil += i.Quantity; break;
-                    case OilType.SpecialLiquid: _totalSpecLiquid += i.Quantity; break;
-                    case OilType.PlasticLubricant: _totalPlasticLub += i.Quantity; break;
-                    case OilType.Gasoline: _totalGasoline += i.Quantity; break;
-                    case OilType.Diesel: _totalDiesel += i.Quantity; break;
+                    case OilType.MotorOil: _totalMotorOil += amount; break;
+                    case OilType.TransmissionOil: _totalTransOil += amount; break;
+                    case OilType.SpecialLiquid: _totalSpecLiquid += amount; break;
+                    case OilType.PlasticLubricant: _totalPlasticLub += amount; break;
+                    case OilType.Gasoline: _totalGasoline += amount; break;
+                    case OilType.Diesel: _totalDiesel += amount; break;
                 }
             }
 
@@ -190,6 +271,12 @@ namespace AVTOKarta.ViewModels
             _dataService.SaveWarehouseItems(_squadId, _items.ToList());
         }
 
+        private void ToggleJournal()
+        {
+            IsJournalExpanded = !IsJournalExpanded;
+            OnPropertyChanged("JournalArrow");
+        }
+
         private void AddItem()
         {
             if (string.IsNullOrWhiteSpace(NewBrand))
@@ -199,9 +286,17 @@ namespace AVTOKarta.ViewModels
                 return;
             }
 
-            if (NewQuantity <= 0)
+            if (!double.TryParse(NewQuantity, System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture, out double qty) || qty <= 0)
             {
-                MessageBox.Show("Введите количество", "Ошибка",
+                MessageBox.Show("Введите корректное количество", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (_isExpenseMode && string.IsNullOrWhiteSpace(SelectedVehiclePlate))
+            {
+                MessageBox.Show("Выберите автомобиль", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
@@ -211,27 +306,32 @@ namespace AVTOKarta.ViewModels
                 Date = NewDate,
                 Type = NewType,
                 Brand = NewBrand.Trim(),
-                Quantity = NewQuantity,
+                Quantity = qty,
                 DocumentNumber = NewDocumentNumber ?? string.Empty,
                 Supplier = NewSupplier ?? string.Empty,
-                SquadId = _squadId
+                SquadId = _squadId,
+                OperationType = _isExpenseMode ? WarehouseOperationType.Expense : WarehouseOperationType.Income,
+                VehicleLicensePlate = _isExpenseMode ? (SelectedVehiclePlate ?? string.Empty) : string.Empty,
+                Notes = NewNotes ?? string.Empty
             };
 
             _items.Add(item);
             Save();
 
             NewBrand = string.Empty;
-            NewQuantity = 0;
+            NewQuantity = string.Empty;
             NewDocumentNumber = string.Empty;
             NewSupplier = string.Empty;
+            NewNotes = string.Empty;
         }
 
         private void DeleteItem()
         {
             if (SelectedItem == null) return;
 
+            string opText = SelectedItem.OperationType == WarehouseOperationType.Income ? "поступления" : "списания";
             var result = MessageBox.Show(
-                "Удалить запись о поступлении " + SelectedItem.Brand + "?",
+                "Удалить запись о " + opText + " " + SelectedItem.Brand + "?",
                 "Подтверждение", MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
             if (result == MessageBoxResult.Yes)
@@ -246,6 +346,61 @@ namespace AVTOKarta.ViewModels
             if (item == null) return;
             _items.Remove(item);
             Save();
+        }
+
+        public void SyncFromCards(int year, int month)
+        {
+            if (_dataService == null || string.IsNullOrEmpty(_squadId)) return;
+
+            var allVehicles = _dataService.LoadVehicles()
+                .Where(v => v.SquadId == _squadId)
+                .ToList();
+
+            bool changed = false;
+
+            foreach (var vehicle in allVehicles)
+            {
+                var card = _dataService.LoadCard(vehicle.LicensePlate, year, month);
+                if (card == null || card.Records == null) continue;
+
+                bool isDiesel = vehicle.Engine == EngineType.Diesel;
+                OilType fuelType = isDiesel ? OilType.Diesel : OilType.Gasoline;
+
+                foreach (var rec in card.Records)
+                {
+                    if (rec.FuelRefueled <= 0) continue;
+
+                    bool exists = _items.Any(i =>
+                        i.OperationType == WarehouseOperationType.Expense &&
+                        i.VehicleLicensePlate == vehicle.LicensePlate &&
+                        i.Type == fuelType &&
+                        i.Date == rec.Date &&
+                        Math.Abs(i.Quantity - rec.FuelRefueled) < 0.001);
+
+                    if (!exists)
+                    {
+                        var expense = new WarehouseItem
+                        {
+                            Date = rec.Date,
+                            Type = fuelType,
+                            Brand = isDiesel ? "ДТ" : "АИ-92",
+                            Quantity = rec.FuelRefueled,
+                            SquadId = _squadId,
+                            OperationType = WarehouseOperationType.Expense,
+                            VehicleLicensePlate = vehicle.LicensePlate,
+                            Notes = "Авт. списание: " + (rec.WorkDescription ?? "")
+                        };
+                        _items.Add(expense);
+                        changed = true;
+                    }
+                }
+            }
+
+            if (changed)
+            {
+                Save();
+                RecalculateTotals();
+            }
         }
     }
 }

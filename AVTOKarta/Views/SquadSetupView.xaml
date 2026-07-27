@@ -1,60 +1,175 @@
 <UserControl x:Class="AVTOKarta.Views.SquadSetupView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:hc="https://handyorg.github.io/handycontrol">
-    <Border Margin="20" BorderBrush="{StaticResource PrimaryBrush}" BorderThickness="2" CornerRadius="12"
-            Padding="24" Background="{StaticResource CardBrush}">
-        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel MaxWidth="500" HorizontalAlignment="Center">
-            <TextBlock Text="Настройка части" FontSize="20" FontWeight="Bold"
-                       Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,20" TextAlignment="Center"/>
+             xmlns:hc="https://handyorg.github.io/handycontrol"
+             xmlns:helpers="clr-namespace:AVTOKarta.Helpers"
+             xml:lang="ru-RU">
+    <UserControl.Resources>
+        <Style x:Key="FormLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="FieldCard" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource DividerBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.06" Color="#000000" Direction="270"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
 
-            <TextBlock Text="Наименование части:" FontWeight="SemiBold" Margin="0,0,0,2"/>
-            <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <DockPanel MaxWidth="600" HorizontalAlignment="Center" Margin="0,16">
+            <!-- ============ HEADER ============ -->
+            <Border DockPanel.Dock="Top" Style="{StaticResource CardBorderShadow}" Margin="0,0,0,10" Padding="20,16">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Width="42" Height="42" CornerRadius="12"
+                                Background="{StaticResource PrimaryLightBrush}" Margin="0,0,14,0"
+                                VerticalAlignment="Center">
+                            <TextBlock Text="&#x2699;" FontSize="20" Foreground="{StaticResource PrimaryBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="Настройка части" FontSize="18" FontWeight="Bold"
+                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Text="Первоначальная настройка пожарной части и защита данных"
+                                       FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,3,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
 
-            <TextBlock Text="Номер части:" FontWeight="SemiBold" Margin="0,8,0,2"/>
-            <TextBox Text="{Binding Number, UpdateSourceTrigger=PropertyChanged}"/>
+            <!-- ============ PART DATA ============ -->
+            <Border DockPanel.Dock="Top" Style="{StaticResource FieldCard}" Margin="0,0,0,10" Padding="20,16">
+                <StackPanel>
+                    <TextBlock Text="ДАННЫЕ ЧАСТИ" FontSize="10" FontWeight="Bold"
+                               Foreground="{StaticResource TextTertiaryBrush}" Margin="0,0,0,10"/>
 
-            <TextBlock Text="Номер отряда:" FontWeight="SemiBold" Margin="0,8,0,2"/>
-            <TextBox Text="{Binding CrewNumber, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="10"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="10"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="10"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="10"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-            <TextBlock Text="Область / регион:" FontWeight="SemiBold" Margin="0,8,0,2"/>
-            <TextBox Text="{Binding Region, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Наименование части" Style="{StaticResource FormLabel}" Margin="0,0,10,0"/>
+                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                                 MinHeight="32" Padding="10,7" FontSize="13"
+                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
+                                 BorderThickness="1" VerticalContentAlignment="Center"/>
 
-            <TextBlock Text="ФИО начальника части:" FontWeight="SemiBold" Margin="0,8,0,2"/>
-            <TextBox Text="{Binding ChiefName, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Номер части" Style="{StaticResource FormLabel}" Margin="0,0,10,0"/>
+                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Number, UpdateSourceTrigger=PropertyChanged}"
+                                 MinHeight="32" Padding="10,7" FontSize="13"
+                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
+                                 BorderThickness="1" VerticalContentAlignment="Center"/>
 
-            <TextBlock Text="ФИО старшего водителя:" FontWeight="SemiBold" Margin="0,8,0,2"/>
-            <TextBox Text="{Binding SeniorDriverName, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Номер отряда" Style="{StaticResource FormLabel}" Margin="0,0,10,0"/>
+                        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding CrewNumber, UpdateSourceTrigger=PropertyChanged}"
+                                 MinHeight="32" Padding="10,7" FontSize="13"
+                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
+                                 BorderThickness="1" VerticalContentAlignment="Center"/>
 
-            <TextBlock Text="Контактный телефон:" FontWeight="SemiBold" Margin="0,8,0,2"/>
-            <TextBox Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="Область / регион" Style="{StaticResource FormLabel}" Margin="0,0,10,0"/>
+                        <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding Region, UpdateSourceTrigger=PropertyChanged}"
+                                 MinHeight="32" Padding="10,7" FontSize="13"
+                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
+                                 BorderThickness="1" VerticalContentAlignment="Center"/>
 
-            <TextBlock Text="Адрес расположения:" FontWeight="SemiBold" Margin="0,8,0,2"/>
-            <TextBox Text="{Binding Address, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Grid.Row="8" Grid.Column="0" Text="Адрес расположения" Style="{StaticResource FormLabel}" Margin="0,0,10,0"/>
+                        <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding Address, UpdateSourceTrigger=PropertyChanged}"
+                                 MinHeight="32" Padding="10,7" FontSize="13"
+                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
+                                 BorderThickness="1" VerticalContentAlignment="Center"/>
+                    </Grid>
 
-            <Separator Margin="0,16"/>
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Начальник части" Style="{StaticResource FormLabel}" Margin="0,0,8,0"/>
+                        <TextBox Grid.Column="1" Text="{Binding ChiefName, UpdateSourceTrigger=PropertyChanged}"
+                                 MinHeight="32" Padding="10,7" FontSize="13"
+                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
+                                 BorderThickness="1" VerticalContentAlignment="Center" HorizontalAlignment="Stretch"/>
+                        <TextBlock Grid.Column="3" Text="Ст. водитель" Style="{StaticResource FormLabel}" Margin="0,0,8,0"/>
+                        <TextBox Grid.Column="4" Text="{Binding SeniorDriverName, UpdateSourceTrigger=PropertyChanged}"
+                                 MinHeight="32" Padding="10,7" FontSize="13"
+                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
+                                 BorderThickness="1" VerticalContentAlignment="Center" HorizontalAlignment="Stretch"/>
+                    </Grid>
 
-            <TextBlock Text="Защита данных" FontSize="16" FontWeight="Bold"
-                       Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10"/>
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Телефон" Style="{StaticResource FormLabel}" Margin="0,0,10,0"/>
+                        <TextBox Grid.Column="1" Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}"
+                                 MinHeight="32" Padding="10,7" FontSize="13"
+                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
+                                 BorderThickness="1" VerticalContentAlignment="Center"
+                                 helpers:PhoneHelper.EnablePhoneFormat="True" MaxLength="18"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
 
-            <TextBlock Text="Пароль шифрования:" FontWeight="SemiBold" Margin="0,0,0,2"/>
-            <hc:PasswordBox x:Name="PasswordBox1" Margin="4,0,4,8" Height="32"/>
+            <!-- ============ SECURITY ============ -->
+            <Border DockPanel.Dock="Top" Style="{StaticResource FieldCard}" Margin="0,0,0,10" Padding="20,16">
+                <StackPanel>
+                    <TextBlock Text="ЗАЩИТА ДАННЫХ" FontSize="10" FontWeight="Bold"
+                               Foreground="{StaticResource TextTertiaryBrush}" Margin="0,0,0,10"/>
 
-            <TextBlock Text="Подтвердите пароль:" FontWeight="SemiBold" Margin="0,0,0,2"/>
-            <hc:PasswordBox x:Name="PasswordBox2" Margin="4,0,4,8" Height="32"/>
+                    <TextBlock Text="Пароль шифрования:" Style="{StaticResource FormLabel}" Margin="0,0,0,4"/>
+                    <hc:PasswordBox x:Name="PasswordBox1" Height="36" Margin="0,0,0,10"
+                                    Padding="10,7" FontSize="13"/>
 
-            <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" FontWeight="SemiBold"
-                       Margin="0,4" TextWrapping="Wrap"/>
+                    <TextBlock Text="Подтвердите пароль:" Style="{StaticResource FormLabel}" Margin="0,0,0,4"/>
+                    <hc:PasswordBox x:Name="PasswordBox2" Height="36"
+                                    Padding="10,7" FontSize="13"/>
 
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
-                <Button Content="Отмена" Command="{Binding CancelCommand}" MinWidth="100"
-                        Margin="0,0,8,0" Style="{StaticResource GhostButton}"
-                        Foreground="{StaticResource TextSecondaryBrush}"/>
-                <Button Content="Сохранить" MinWidth="120"
-                        Style="{StaticResource SuccessButton}" Click="SaveButton_Click"/>
-            </StackPanel>
-        </StackPanel>
-        </ScrollViewer>
-    </Border>
+                    <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}"
+                               FontWeight="SemiBold" Margin="0,10,0,0" TextWrapping="Wrap" FontSize="12"/>
+                </StackPanel>
+            </Border>
+
+            <!-- ============ BUTTONS ============ -->
+            <Border DockPanel.Dock="Bottom" Margin="0" Padding="0">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,6,0,0">
+                    <Button Content="Отмена" Command="{Binding CancelCommand}" MinWidth="100"
+                            Margin="0,0,8,0" Style="{StaticResource GhostButton}"
+                            Foreground="{StaticResource TextSecondaryBrush}" Padding="14,8"/>
+                    <Button Content="Сохранить" MinWidth="120"
+                            Style="{StaticResource SuccessButton}" Click="SaveButton_Click" Padding="14,8"/>
+                </StackPanel>
+            </Border>
+        </DockPanel>
+    </ScrollViewer>
 </UserControl>

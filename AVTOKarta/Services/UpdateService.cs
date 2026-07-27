@@ -472,6 +472,7 @@ namespace AVTOKarta.Services
 
                 string tempDir = GetTempDir();
                 CleanupTemp(tempDir);
+                Directory.CreateDirectory(tempDir);
 
                 string fileName = Path.GetFileName(new Uri(result.DownloadUrl).AbsolutePath);
                 string filePath = Path.Combine(tempDir, fileName);

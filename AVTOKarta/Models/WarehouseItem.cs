@@ -6,6 +6,12 @@ using System;
 
 namespace AVTOKarta.Models
 {
+    public enum WarehouseOperationType
+    {
+        Income,
+        Expense
+    }
+
     public class WarehouseItem
     {
         public string Id { get; set; }
@@ -16,6 +22,9 @@ namespace AVTOKarta.Models
         public string DocumentNumber { get; set; }
         public string Supplier { get; set; }
         public string SquadId { get; set; }
+        public WarehouseOperationType OperationType { get; set; }
+        public string VehicleLicensePlate { get; set; }
+        public string Notes { get; set; }
 
         public WarehouseItem()
         {
@@ -25,6 +34,9 @@ namespace AVTOKarta.Models
             DocumentNumber = string.Empty;
             Supplier = string.Empty;
             SquadId = string.Empty;
+            OperationType = WarehouseOperationType.Income;
+            VehicleLicensePlate = string.Empty;
+            Notes = string.Empty;
         }
 
         public string TypeDisplay
@@ -42,6 +54,11 @@ namespace AVTOKarta.Models
                     default: return Type.ToString();
                 }
             }
+        }
+
+        public string OperationDisplay
+        {
+            get { return OperationType == WarehouseOperationType.Income ? "Приход" : "Расход"; }
         }
 
         public string UnitDisplay
