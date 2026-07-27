@@ -132,36 +132,12 @@ namespace AVTOKarta.Services
                 double totalSpecLiquid = 0;
                 double totalPlasticLub = 0;
 
-                foreach (var rec in records)
+                if (totalConsumption > 0)
                 {
-                    if (rec.OilEntries != null && rec.OilEntries.Count > 0)
-                    {
-                        foreach (var entry in rec.OilEntries)
-                        {
-                            switch (entry.Type)
-                            {
-                                case OilType.MotorOil:
-                                    totalMotorOil += entry.Quantity;
-                                    break;
-                                case OilType.TransmissionOil:
-                                    totalTransOil += entry.Quantity;
-                                    break;
-                                case OilType.SpecialLiquid:
-                                    totalSpecLiquid += entry.Quantity;
-                                    break;
-                                case OilType.PlasticLubricant:
-                                    totalPlasticLub += entry.Quantity;
-                                    break;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        totalMotorOil += rec.MotorOilLiters;
-                        totalTransOil += rec.TransmissionOilLiters;
-                        totalSpecLiquid += rec.SpecialLiquidLiters;
-                        totalPlasticLub += rec.PlasticLubricantKg;
-                    }
+                    totalMotorOil = Math.Round(totalConsumption / 100.0 * vehicle.FuelNorms.MotorOilNormPer100L, 3);
+                    totalTransOil = Math.Round(totalConsumption / 100.0 * vehicle.FuelNorms.TransmissionOilNormPer100L, 3);
+                    totalSpecLiquid = Math.Round(totalConsumption / 100.0 * vehicle.FuelNorms.SpecialLiquidNormPer100L, 3);
+                    totalPlasticLub = Math.Round(totalConsumption / 100.0 * vehicle.FuelNorms.PlasticLubricantNormPer100L, 3);
                 }
 
                 var vd = new VehicleData
@@ -1722,41 +1698,33 @@ namespace AVTOKarta.Services
             double total = 0;
             foreach (var vd in allData)
             {
-                foreach (var rec in vd.Records)
+                string vehicleBrand = null;
+                double normPer100L = 0;
+
+                switch (oilType)
                 {
-                    if (rec.OilEntries != null && rec.OilEntries.Count > 0)
-                    {
-                        foreach (var entry in rec.OilEntries)
-                        {
-                            if (entry.Type == oilType && string.Equals(entry.Name ?? "", brand, StringComparison.OrdinalIgnoreCase))
-                                total += entry.Quantity;
-                        }
-                    }
-                    else
-                    {
-                        double val = 0;
-                        switch (oilType)
-                        {
-                            case OilType.MotorOil: val = rec.MotorOilLiters; break;
-                            case OilType.TransmissionOil: val = rec.TransmissionOilLiters; break;
-                            case OilType.SpecialLiquid: val = rec.SpecialLiquidLiters; break;
-                            case OilType.PlasticLubricant: val = rec.PlasticLubricantKg; break;
-                        }
-                        if (val > 0)
-                        {
-                            string vehicleBrand = "";
-                            switch (oilType)
-                            {
-                                case OilType.MotorOil: vehicleBrand = (vd.Vehicle.FuelNorms.MotorOilBrand ?? "").Trim(); break;
-                                case OilType.TransmissionOil: vehicleBrand = (vd.Vehicle.FuelNorms.TransmissionOilBrand ?? "").Trim(); break;
-                                case OilType.SpecialLiquid: vehicleBrand = (vd.Vehicle.FuelNorms.SpecialLiquidBrand ?? "").Trim(); break;
-                                case OilType.PlasticLubricant: vehicleBrand = (vd.Vehicle.FuelNorms.PlasticLubricantBrand ?? "").Trim(); break;
-                            }
-                            if (string.Equals(vehicleBrand, brand, StringComparison.OrdinalIgnoreCase))
-                                total += val;
-                        }
-                    }
+                    case OilType.MotorOil:
+                        vehicleBrand = (vd.Vehicle.FuelNorms.MotorOilBrand ?? "").Trim();
+                        normPer100L = vd.Vehicle.FuelNorms.MotorOilNormPer100L;
+                        break;
+                    case OilType.TransmissionOil:
+                        vehicleBrand = (vd.Vehicle.FuelNorms.TransmissionOilBrand ?? "").Trim();
+                        normPer100L = vd.Vehicle.FuelNorms.TransmissionOilNormPer100L;
+                        break;
+                    case OilType.SpecialLiquid:
+                        vehicleBrand = (vd.Vehicle.FuelNorms.SpecialLiquidBrand ?? "").Trim();
+                        normPer100L = vd.Vehicle.FuelNorms.SpecialLiquidNormPer100L;
+                        break;
+                    case OilType.PlasticLubricant:
+                        vehicleBrand = (vd.Vehicle.FuelNorms.PlasticLubricantBrand ?? "").Trim();
+                        normPer100L = vd.Vehicle.FuelNorms.PlasticLubricantNormPer100L;
+                        break;
                 }
+
+                if (!string.Equals(vehicleBrand, brand, StringComparison.OrdinalIgnoreCase)) continue;
+                if (normPer100L <= 0) continue;
+
+                total += vd.TotalFuelConsumption / 100.0 * normPer100L;
             }
             return total;
         }

@@ -17,47 +17,6 @@ namespace AVTOKarta.Models
         Diesel
     }
 
-    public class OilEntry
-    {
-        public OilType Type { get; set; }
-        public string Name { get; set; }
-        public double Quantity { get; set; }
-
-        public OilEntry()
-        {
-            Name = string.Empty;
-        }
-
-        public OilEntry(OilType type, string name, double quantity)
-        {
-            Type = type;
-            Name = name ?? string.Empty;
-            Quantity = quantity;
-        }
-
-        public string TypeDisplay
-        {
-            get
-            {
-                switch (Type)
-                {
-                    case OilType.MotorOil: return "Моторное масло";
-                    case OilType.TransmissionOil: return "Трансмиссионное масло";
-                    case OilType.SpecialLiquid: return "Спец. жидкость";
-                    case OilType.PlasticLubricant: return "Пластичная смазка";
-                    case OilType.Gasoline: return "Бензин (АИ-92)";
-                    case OilType.Diesel: return "Диз. топливо (ДТ)";
-                    default: return Type.ToString();
-                }
-            }
-        }
-
-        public string UnitDisplay
-        {
-            get { return Type == OilType.PlasticLubricant ? "кг" : "л"; }
-        }
-    }
-
     public class OilTypeItem
     {
         public OilType Type { get; set; }
@@ -88,13 +47,6 @@ namespace AVTOKarta.Models
         public string SquadNumber { get; set; }
         public string DriverName { get; set; }
 
-        public double MotorOilLiters { get; set; }
-        public double TransmissionOilLiters { get; set; }
-        public double SpecialLiquidLiters { get; set; }
-        public double PlasticLubricantKg { get; set; }
-
-        public List<OilEntry> OilEntries { get; set; }
-
         public string DepartureTimeDisplay
         {
             get { return string.Format("{0:D2}:{1:D2}", DepartureHour, DepartureMinute); }
@@ -112,7 +64,6 @@ namespace AVTOKarta.Models
             Comments = string.Empty;
             SquadNumber = string.Empty;
             DriverName = string.Empty;
-            OilEntries = new List<OilEntry>();
         }
     }
 }

@@ -22,6 +22,7 @@ namespace AVTOKarta.Services
         private const string MetadataFile = "metadata.json";
         private const string SquadsFile = "squads.json";
         private const string VehiclesFile = "vehicles.json";
+        private const string DriversFile = "drivers.json";
         private const string CardsDir = "cards";
         private const long MaxZipEntrySize = 50 * 1024 * 1024;
         private const int MaxZipEntryCount = 10000;
@@ -107,6 +108,15 @@ namespace AVTOKarta.Services
                     result.VehiclesImported = true;
                 }
 
+                var driversEntry = archive.GetEntry(DriversFile);
+                if (driversEntry != null)
+                {
+                    string json = ReadEntry(driversEntry);
+                    string destPath = Path.Combine(targetDataPath, DriversFile);
+                    EncryptAndWrite(destPath, json, targetEncryption);
+                    result.DriversImported = true;
+                }
+
                 foreach (var entry in archive.Entries)
                 {
                     if (entry.FullName.StartsWith(CardsDir + "/") && entry.FullName.EndsWith(".json"))
@@ -157,7 +167,7 @@ namespace AVTOKarta.Services
                     var metadata = new ExportMetadata
                     {
                         ExportDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                        AppVersion = "1.0",
+                        AppVersion = "1.1.7",
                         SquadCount = 0,
                         VehicleCount = 0,
                         CardCount = 0
@@ -192,6 +202,20 @@ namespace AVTOKarta.Services
                         catch (Exception ex)
                         {
                             System.Diagnostics.Debug.WriteLine("Export: skipped corrupted vehicles.json: " + ex.Message);
+                        }
+                    }
+
+                    string driversPath = Path.Combine(_dataPath, DriversFile);
+                    if (File.Exists(driversPath))
+                    {
+                        try
+                        {
+                            string json = ReadEncryptedFile(driversPath);
+                            AddEntry(archive, DriversFile, json);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine("Export: skipped corrupted drivers.json: " + ex.Message);
                         }
                     }
 
@@ -245,6 +269,10 @@ namespace AVTOKarta.Services
                     if (File.Exists(vehiclesPath))
                         AddRawEntry(archive, VehiclesFile, vehiclesPath);
 
+                    string driversPath = Path.Combine(_dataPath, DriversFile);
+                    if (File.Exists(driversPath))
+                        AddRawEntry(archive, DriversFile, driversPath);
+
                     string cardsPath = Path.Combine(_dataPath, CardsDir);
                     if (Directory.Exists(cardsPath))
                     {
@@ -267,7 +295,7 @@ namespace AVTOKarta.Services
                     var metadata = new ExportMetadata
                     {
                         ExportDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                        AppVersion = "1.0",
+                        AppVersion = "1.1.7",
                         IsBackup = true
                     };
                     string metaJson = JsonConvert.SerializeObject(metadata, Formatting.Indented);
@@ -382,6 +410,7 @@ namespace AVTOKarta.Services
         public ExportMetadata Metadata { get; set; }
         public bool SquadsImported { get; set; }
         public bool VehiclesImported { get; set; }
+        public bool DriversImported { get; set; }
         public int CardsImported { get; set; }
     }
 }

@@ -1,8 +1,8 @@
-; Inno Setup Script for AVTOKarta v1.1.6
+; Inno Setup Script for AVTOKarta v1.1.7
 ; Requires Inno Setup 6+
 
 #define MyAppName "АВТОКАРТА МЧС"
-#define MyAppVersion "1.1.6"
+#define MyAppVersion "1.1.7"
 #define MyAppPublisher "WebARTup - Studio: Technologies"
 #define MyAppCopyright "Copyright © 2026 WebARTup - Studio: Technologies"
 #define MyAppExeName "AVTOKarta.exe"
@@ -32,8 +32,8 @@ ArchitecturesAllowed=x86compatible
 ArchitecturesInstallIn64BitMode=
 DisableProgramGroupPage=yes
 LicenseFile={#MyAppLicense}
-Password=reApCeVAfuHV
-Encryption=yes
+;Password=reApCeVAfuHV
+;Encryption=yes
 
 VersionInfoVersion={#MyAppVersion}.0
 VersionInfoCompany={#MyAppPublisher}

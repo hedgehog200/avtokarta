@@ -6,6 +6,12 @@ using System;
 
 namespace AVTOKarta.Models
 {
+    public enum EngineType
+    {
+        Gasoline,
+        Diesel
+    }
+
     public class Vehicle
     {
         public string LicensePlate { get; set; }
@@ -17,6 +23,12 @@ namespace AVTOKarta.Models
         public double InitialEngineMileage { get; set; }
         public FuelNorm FuelNorms { get; set; }
         public string SquadId { get; set; }
+        public EngineType Engine { get; set; }
+
+        public string EngineDisplay
+        {
+            get { return Engine == EngineType.Gasoline ? "Бензин" : "Дизель"; }
+        }
 
         public Vehicle()
         {
@@ -26,6 +38,7 @@ namespace AVTOKarta.Models
             CardNumber = "№1";
             FuelNorms = new FuelNorm();
             SquadId = string.Empty;
+            Engine = EngineType.Diesel;
         }
     }
 }

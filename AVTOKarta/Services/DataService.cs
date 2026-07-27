@@ -19,6 +19,7 @@ namespace AVTOKarta.Services
         private readonly string _dataPath;
         private const string SquadsFile = "squads.json";
         private const string OldSquadFile = "squad.json";
+        private const string DriversFile = "drivers.json";
 
         public DataService(string password, string dataPath)
         {
@@ -118,6 +119,26 @@ namespace AVTOKarta.Services
             return Task.Run(() => SaveVehicles(new List<Vehicle>(vehicles)));
         }
 
+        public List<Driver> LoadDrivers()
+        {
+            string path = Path.Combine(_dataPath, DriversFile);
+            if (!File.Exists(path))
+                return new List<Driver>();
+
+            return ReadEncrypted<List<Driver>>(path) ?? new List<Driver>();
+        }
+
+        public void SaveDrivers(List<Driver> drivers)
+        {
+            string path = Path.Combine(_dataPath, DriversFile);
+            WriteEncrypted(path, drivers);
+        }
+
+        public Task SaveDriversAsync(List<Driver> drivers)
+        {
+            return Task.Run(() => SaveDrivers(new List<Driver>(drivers)));
+        }
+
         public MonthlyCard LoadCard(string licensePlate, int year, int month)
         {
             string path = GetCardPath(licensePlate, year, month);
@@ -172,7 +193,16 @@ namespace AVTOKarta.Services
             if (!File.Exists(path))
                 return new List<WarehouseItem>();
 
-            return ReadEncrypted<List<WarehouseItem>>(path) ?? new List<WarehouseItem>();
+            var items = ReadEncrypted<List<WarehouseItem>>(path) ?? new List<WarehouseItem>();
+            foreach (var item in items)
+            {
+                if (item.VehicleLicensePlate == null) item.VehicleLicensePlate = string.Empty;
+                if (item.Notes == null) item.Notes = string.Empty;
+                if (item.DocumentNumber == null) item.DocumentNumber = string.Empty;
+                if (item.Supplier == null) item.Supplier = string.Empty;
+                if (item.Brand == null) item.Brand = string.Empty;
+            }
+            return items;
         }
 
         public void SaveWarehouseItems(string squadId, List<WarehouseItem> items)

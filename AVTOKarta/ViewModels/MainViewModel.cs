@@ -40,10 +40,12 @@ namespace AVTOKarta.ViewModels
         private bool _isSquadListMode;
         private bool _isFuelReportMode;
         private bool _isWarehouseMode;
+        private bool _isDriverListMode;
 
         private string _statusMessage;
         private SquadSetupViewModel _squadSetupVm;
         private WarehouseViewModel _warehouseVm;
+        private DriverListViewModel _driverListVm;
         private UpdateViewModel _updateVm;
 
         private double _totalActual;
@@ -84,6 +86,7 @@ namespace AVTOKarta.ViewModels
         public RelayCommand ExportDataCommand { get; }
         public RelayCommand ImportDataCommand { get; }
         public RelayCommand WarehouseCommand { get; }
+        public RelayCommand DriverListCommand { get; }
 
         public MainViewModel()
         {
@@ -119,6 +122,7 @@ namespace AVTOKarta.ViewModels
             ExportDataCommand = new RelayCommand(o => ExportData(), o => _dataService != null);
             ImportDataCommand = new RelayCommand(o => ImportData(), o => _dataService != null);
             WarehouseCommand = new RelayCommand(o => ShowWarehouse(), o => _dataService != null && _selectedSquad != null);
+            DriverListCommand = new RelayCommand(o => ShowDriverList(), o => _dataService != null);
 
             _selectedMonthIndex = DateTime.Now.Month - 1;
             _selectedYear = DateTime.Now.Year;
@@ -389,6 +393,12 @@ namespace AVTOKarta.ViewModels
             set { SetProperty(ref _isWarehouseMode, value); }
         }
 
+        public bool IsDriverListMode
+        {
+            get { return _isDriverListMode; }
+            set { SetProperty(ref _isDriverListMode, value); }
+        }
+
         public string StatusMessage
         {
             get { return _statusMessage; }
@@ -410,6 +420,12 @@ namespace AVTOKarta.ViewModels
         {
             get { return _warehouseVm; }
             set { SetProperty(ref _warehouseVm, value); }
+        }
+
+        public DriverListViewModel DriverListVm
+        {
+            get { return _driverListVm; }
+            set { SetProperty(ref _driverListVm, value); }
         }
 
         public UpdateViewModel UpdateVM
@@ -539,6 +555,7 @@ namespace AVTOKarta.ViewModels
             IsSquadListMode = false;
             IsFuelReportMode = false;
             IsWarehouseMode = false;
+            IsDriverListMode = false;
         }
 
         private void ShowSquadList()
@@ -550,6 +567,7 @@ namespace AVTOKarta.ViewModels
             IsSquadListMode = true;
             IsFuelReportMode = false;
             IsWarehouseMode = false;
+            IsDriverListMode = false;
         }
 
         private void ShowVehicles()
@@ -561,6 +579,7 @@ namespace AVTOKarta.ViewModels
             IsSquadListMode = false;
             IsFuelReportMode = false;
             IsWarehouseMode = false;
+            IsDriverListMode = false;
         }
 
         private void ShowCards()
@@ -572,6 +591,7 @@ namespace AVTOKarta.ViewModels
             IsSquadListMode = false;
             IsFuelReportMode = false;
             IsWarehouseMode = false;
+            IsDriverListMode = false;
 
             if (CardVehicle == null)
             {
@@ -601,6 +621,7 @@ namespace AVTOKarta.ViewModels
             IsSquadListMode = false;
             IsFuelReportMode = false;
             IsWarehouseMode = false;
+            IsDriverListMode = false;
         }
 
         private void ShowFuelReport()
@@ -612,6 +633,7 @@ namespace AVTOKarta.ViewModels
             IsSquadListMode = false;
             IsFuelReportMode = true;
             IsWarehouseMode = false;
+            IsDriverListMode = false;
         }
 
         private void ShowWarehouse()
@@ -623,6 +645,7 @@ namespace AVTOKarta.ViewModels
             IsSquadListMode = false;
             IsFuelReportMode = false;
             IsWarehouseMode = true;
+            IsDriverListMode = false;
 
             if (_dataService != null && _selectedSquad != null)
             {
@@ -630,6 +653,31 @@ namespace AVTOKarta.ViewModels
                     WarehouseVm = new WarehouseViewModel(_dataService, _selectedSquad);
                 else
                     WarehouseVm.Reload();
+
+                WarehouseVm.SyncFromCards(_selectedYear, _selectedMonthIndex);
+            }
+        }
+
+        private void ShowDriverList()
+        {
+            IsSetupMode = false;
+            IsVehicleMode = false;
+            IsCardMode = false;
+            IsSettingsMode = false;
+            IsSquadListMode = false;
+            IsFuelReportMode = false;
+            IsWarehouseMode = false;
+            IsDriverListMode = true;
+
+            if (_dataService != null)
+            {
+                if (DriverListVm == null)
+                    DriverListVm = new DriverListViewModel(_dataService, _allVehicles.ToList());
+                else
+                    DriverListVm.RefreshAll(_allVehicles.ToList());
+
+                Application.Current.Dispatcher.BeginInvoke(
+                    new Action(() => DriverListVm?.RefreshTripHistory()));
             }
         }
 
@@ -752,15 +800,16 @@ namespace AVTOKarta.ViewModels
 
         private void EditVehicle()
         {
-            if (SelectedVehicle == null) return;
-            if (EditVehicleDialog(SelectedVehicle))
+            var vehicle = SelectedVehicle;
+            if (vehicle == null) return;
+            if (EditVehicleDialog(vehicle))
             {
                 foreach (var v in _allVehicles)
                 {
-                    if (v != SelectedVehicle &&
-                        string.Equals(v.LicensePlate, SelectedVehicle.LicensePlate, StringComparison.OrdinalIgnoreCase))
+                    if (v != vehicle &&
+                        string.Equals(v.LicensePlate, vehicle.LicensePlate, StringComparison.OrdinalIgnoreCase))
                     {
-                        MessageBox.Show("Автомобиль с гос. знаком " + SelectedVehicle.LicensePlate + " уже существует.",
+                        MessageBox.Show("Автомобиль с гос. знаком " + vehicle.LicensePlate + " уже существует.",
                             "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
@@ -771,20 +820,21 @@ namespace AVTOKarta.ViewModels
                     _dataService.SaveVehiclesAsync(new List<Vehicle>(_allVehicles));
                     _cacheService.MarkDirty();
                 }
-                StatusMessage = "Автомобиль обновлён: " + SelectedVehicle.LicensePlate;
+                StatusMessage = "Автомобиль обновлён: " + vehicle.LicensePlate;
             }
         }
 
         private void DeleteVehicle()
         {
-            if (SelectedVehicle == null) return;
+            var vehicle = SelectedVehicle;
+            if (vehicle == null) return;
             var result = MessageBox.Show(
-                "Удалить автомобиль " + SelectedVehicle.LicensePlate + "?",
+                "Удалить автомобиль " + vehicle.LicensePlate + "?",
                 "Подтверждение", MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
             if (result == MessageBoxResult.Yes)
             {
-                _allVehicles.Remove(SelectedVehicle);
+                _allVehicles.Remove(vehicle);
                 RefreshFilteredVehicles();
                 if (_dataService != null)
                 {
@@ -973,6 +1023,13 @@ namespace AVTOKarta.ViewModels
             {
                 var vehiclesCopy = new List<Vehicle>(_allVehicles);
                 _dataService.SaveVehiclesAsync(vehiclesCopy);
+            }
+            catch (Exception) { }
+
+            try
+            {
+                if (_driverListVm != null)
+                    _dataService.SaveDriversAsync(new List<Driver>(_driverListVm.Drivers));
             }
             catch (Exception) { }
 
@@ -1221,7 +1278,7 @@ namespace AVTOKarta.ViewModels
                 TripSheetNumber = Records.Count + 1
             };
 
-            var vm = new CardViewModel(record, SelectedVehicle.FuelNorms);
+            var vm = new CardViewModel(record, SelectedVehicle.FuelNorms, _dataService?.LoadDrivers().Select(d => d.FullName).OrderBy(n => n).ToList());
             var dialog = new Views.CardEditView { DataContext = vm };
             if (dialog.ShowDialog() == true)
             {
@@ -1238,7 +1295,7 @@ namespace AVTOKarta.ViewModels
         {
             if (SelectedRecord == null || CurrentCard == null) return;
 
-            var vm = new CardViewModel(SelectedRecord, SelectedVehicle.FuelNorms);
+            var vm = new CardViewModel(SelectedRecord, SelectedVehicle.FuelNorms, _dataService?.LoadDrivers().Select(d => d.FullName).OrderBy(n => n).ToList());
             var dialog = new Views.CardEditView { DataContext = vm };
             if (dialog.ShowDialog() == true)
             {
@@ -1294,6 +1351,17 @@ namespace AVTOKarta.ViewModels
 
         private void UpdateTotals()
         {
+            if (CurrentCard == null)
+            {
+                TotalActual = 0;
+                TotalNorm = 0;
+                Savings = 0;
+                Overspend = 0;
+                SavingsVisibility = Visibility.Collapsed;
+                OverspendVisibility = Visibility.Collapsed;
+                return;
+            }
+
             if (Records == null || Records.Count == 0)
             {
                 TotalActual = 0;
@@ -1302,6 +1370,8 @@ namespace AVTOKarta.ViewModels
                 Overspend = 0;
                 SavingsVisibility = Visibility.Collapsed;
                 OverspendVisibility = Visibility.Collapsed;
+                CurrentCard.FuelRemainingOnLast = CurrentCard.FuelRemainingOnFirst + CurrentCard.FuelRefueledMonth;
+                OnPropertyChanged("CurrentCard");
                 return;
             }
 
@@ -1313,10 +1383,15 @@ namespace AVTOKarta.ViewModels
                 TotalNorm += r.NormConsumption;
             }
 
+            CurrentCard.FuelRemainingOnLast = Math.Round(
+                CurrentCard.FuelRemainingOnFirst + CurrentCard.FuelRefueledMonth - TotalActual, 3);
+
             Savings = CalculationService.CalculateSavings(TotalActual, TotalNorm);
             Overspend = CalculationService.CalculateOverspend(TotalActual, TotalNorm);
             SavingsVisibility = Savings > 0 ? Visibility.Visible : Visibility.Collapsed;
             OverspendVisibility = Overspend > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+            OnPropertyChanged("CurrentCard");
         }
 
         public void HandleKeyDown(System.Windows.Input.Key key, System.Windows.Input.ModifierKeys modifiers)

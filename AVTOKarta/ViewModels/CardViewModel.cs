@@ -35,27 +35,17 @@ namespace AVTOKarta.ViewModels
         private string _squadNumber;
         private string _driverName;
         private int _tripSheetNumber;
-        private double _motorOilLiters;
-        private double _transmissionOilLiters;
-        private double _specialLiquidLiters;
-        private double _plasticLubricantKg;
-
         private FuelNorm _fuelNorms;
         private List<string> _workDescriptions;
-        private ObservableCollection<OilEntry> _oilEntries;
-        private OilTypeItem _newOilType;
-        private string _newOilName;
-        private double _newOilQuantity;
+        private List<string> _driverNames;
 
         public RelayCommand ConfirmCommand { get; }
         public RelayCommand CancelCommand { get; }
-        public RelayCommand AddOilEntryCommand { get; }
-        public RelayCommand<OilEntry> RemoveOilEntryCommand { get; }
 
         public DailyRecord EditingRecord { get; }
         public bool? DialogResult { get; private set; }
 
-        public CardViewModel(DailyRecord record, FuelNorm fuelNorms)
+        public CardViewModel(DailyRecord record, FuelNorm fuelNorms, List<string> driverNames = null)
         {
             EditingRecord = record;
             _fuelNorms = fuelNorms;
@@ -80,16 +70,8 @@ namespace AVTOKarta.ViewModels
             _squadNumber = record.SquadNumber;
             _driverName = record.DriverName;
             _tripSheetNumber = record.TripSheetNumber;
-            _motorOilLiters = record.MotorOilLiters;
-            _transmissionOilLiters = record.TransmissionOilLiters;
-            _specialLiquidLiters = record.SpecialLiquidLiters;
-            _plasticLubricantKg = record.PlasticLubricantKg;
 
-            _oilEntries = new ObservableCollection<OilEntry>(
-                record.OilEntries != null ? record.OilEntries : new List<OilEntry>());
-            _newOilType = new OilTypeItem { Type = OilType.MotorOil, Name = "Моторное масло" };
-            _newOilName = string.Empty;
-            _newOilQuantity = 0;
+            _driverNames = driverNames ?? new List<string>();
 
             _workDescriptions = new List<string>
             {
@@ -109,8 +91,6 @@ namespace AVTOKarta.ViewModels
 
             ConfirmCommand = new RelayCommand(o => Confirm());
             CancelCommand = new RelayCommand(o => Cancel());
-            AddOilEntryCommand = new RelayCommand(o => AddOilEntry());
-            RemoveOilEntryCommand = new RelayCommand<OilEntry>(o => RemoveOilEntry(o));
         }
 
         public DateTime Date
@@ -217,30 +197,6 @@ namespace AVTOKarta.ViewModels
             set { SetProperty(ref _normConsumption, value); }
         }
 
-        public double MotorOilLiters
-        {
-            get { return _motorOilLiters; }
-            set { SetProperty(ref _motorOilLiters, value); }
-        }
-
-        public double TransmissionOilLiters
-        {
-            get { return _transmissionOilLiters; }
-            set { SetProperty(ref _transmissionOilLiters, value); }
-        }
-
-        public double SpecialLiquidLiters
-        {
-            get { return _specialLiquidLiters; }
-            set { SetProperty(ref _specialLiquidLiters, value); }
-        }
-
-        public double PlasticLubricantKg
-        {
-            get { return _plasticLubricantKg; }
-            set { SetProperty(ref _plasticLubricantKg, value); }
-        }
-
         public string Comments
         {
             get { return _comments; }
@@ -273,75 +229,6 @@ namespace AVTOKarta.ViewModels
         public string ReturnTimeDisplay
         {
             get { return string.Format("{0:D2}:{1:D2}", ReturnHour, ReturnMinute); }
-        }
-
-        public ObservableCollection<OilEntry> OilEntries
-        {
-            get { return _oilEntries; }
-            set { SetProperty(ref _oilEntries, value); }
-        }
-
-        public OilTypeItem NewOilType
-        {
-            get { return _newOilType; }
-            set { SetProperty(ref _newOilType, value); }
-        }
-
-        public string NewOilName
-        {
-            get { return _newOilName; }
-            set { SetProperty(ref _newOilName, value); }
-        }
-
-        public double NewOilQuantity
-        {
-            get { return _newOilQuantity; }
-            set { SetProperty(ref _newOilQuantity, value); }
-        }
-
-        public List<OilTypeItem> OilTypes
-        {
-            get
-            {
-                return new List<OilTypeItem>
-                {
-                    new OilTypeItem { Type = OilType.MotorOil, Name = "Моторное масло" },
-                    new OilTypeItem { Type = OilType.TransmissionOil, Name = "Трансмиссионное масло" },
-                    new OilTypeItem { Type = OilType.SpecialLiquid, Name = "Спец. жидкость" },
-                    new OilTypeItem { Type = OilType.PlasticLubricant, Name = "Пластичная смазка" }
-                };
-            }
-        }
-
-        private void AddOilEntry()
-        {
-            if (string.IsNullOrWhiteSpace(NewOilName))
-            {
-                MessageBox.Show("Введите наименование масла/смазки", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            if (NewOilQuantity <= 0)
-            {
-                MessageBox.Show("Введите количество", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            OilEntries.Add(new OilEntry(NewOilType.Type, NewOilName.Trim(), NewOilQuantity));
-            NewOilName = string.Empty;
-            NewOilQuantity = 0;
-            OnPropertyChanged("OilEntries");
-        }
-
-        private void RemoveOilEntry(OilEntry entry)
-        {
-            if (entry != null)
-            {
-                OilEntries.Remove(entry);
-                OnPropertyChanged("OilEntries");
-            }
         }
 
         public string DepartureTime
@@ -425,6 +312,11 @@ namespace AVTOKarta.ViewModels
             get { return _workDescriptions; }
         }
 
+        public List<string> DriverNames
+        {
+            get { return _driverNames; }
+        }
+
         private void RecalculateNorm()
         {
             var tempRecord = new DailyRecord
@@ -473,12 +365,6 @@ namespace AVTOKarta.ViewModels
             EditingRecord.SquadNumber = SquadNumber;
             EditingRecord.DriverName = DriverName;
             EditingRecord.TripSheetNumber = TripSheetNumber;
-            EditingRecord.MotorOilLiters = MotorOilLiters;
-            EditingRecord.TransmissionOilLiters = TransmissionOilLiters;
-            EditingRecord.SpecialLiquidLiters = SpecialLiquidLiters;
-            EditingRecord.PlasticLubricantKg = PlasticLubricantKg;
-
-            EditingRecord.OilEntries = new List<OilEntry>(OilEntries);
 
             DialogResult = true;
         }

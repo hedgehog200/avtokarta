@@ -5,7 +5,7 @@
         xmlns:views="clr-namespace:AVTOKarta.Views"
         xmlns:hc="https://handyorg.github.io/handycontrol"
         xml:lang="ru-RU"
-        Title="АВТОКарта v1.1.6 — WebARTup - Studio: Technologies" Height="750" Width="1150"
+        Title="АВТОКарта v1.1.7 — WebARTup - Studio: Technologies" Height="750" Width="1150"
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized"
         KeyDown="Window_KeyDown"
@@ -17,24 +17,35 @@
     </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="220"/>
+            <ColumnDefinition x:Name="SidebarColumn" Width="220" MinWidth="56" MaxWidth="350"/>
+            <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
         <!-- SIDEBAR -->
-        <Border Grid.Column="0" Background="{StaticResource SidebarBrush}">
+        <Border x:Name="SidebarBorder" Grid.Column="0" Background="{StaticResource SidebarBrush}"
+                ClipToBounds="True">
             <DockPanel>
-                <StackPanel DockPanel.Dock="Top" Margin="16,20,16,16">
+                <!-- Toggle collapse button -->
+                <Button DockPanel.Dock="Top" Click="ToggleSidebar_Click"
+                        Style="{StaticResource NavButton}" Margin="4,8,4,4" Padding="0" Height="32">
+                    <TextBlock x:Name="SidebarToggleIcon" Text="&#x276E;" FontSize="14"
+                               Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Button>
+
+                <!-- Logo -->
+                <StackPanel x:Name="SidebarLogo" DockPanel.Dock="Top" Margin="16,8,16,8"
+                            HorizontalAlignment="Center">
                     <TextBlock Text="АВТОКарта" Foreground="{StaticResource WhiteBrush}" FontSize="20" FontWeight="Bold"
                                HorizontalAlignment="Center"/>
                     <TextBlock Text="Учёт эксплуатации&#x0a;пожарных автомобилей" Foreground="{StaticResource PrimaryBrush}" FontSize="11"
-                               HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                               HorizontalAlignment="Center" Margin="0,4,0,0" TextWrapping="Wrap" TextAlignment="Center"/>
                 </StackPanel>
 
                 <!-- Squad selector -->
-                <Border DockPanel.Dock="Top" Background="{StaticResource SidebarHoverBrush}" Margin="12,0,12,8" Padding="10"
+                <Border x:Name="SidebarSquadSelector" DockPanel.Dock="Top" Background="{StaticResource SidebarHoverBrush}" Margin="12,0,12,8" Padding="10"
                         CornerRadius="8">
-                    <StackPanel>
+                    <StackPanel x:Name="SquadSelectorInner">
                         <TextBlock Text="Текущая часть:" Foreground="{StaticResource SidebarLabelBrush}" FontSize="10" Margin="0,0,0,4"/>
                         <ComboBox ItemsSource="{Binding Squads}"
                                   SelectedItem="{Binding SelectedSquad}"
@@ -54,117 +65,129 @@
                 </Border>
 
                 <!-- Squad info (fixed bottom) -->
-                <Border DockPanel.Dock="Bottom" Background="{StaticResource SidebarHoverBrush}" Margin="12,0,12,12" Padding="12"
+                <Border x:Name="SidebarSquadInfo" DockPanel.Dock="Bottom" Background="{StaticResource SidebarHoverBrush}" Margin="12,0,12,12" Padding="12"
                         CornerRadius="8">
                     <StackPanel>
-                        <TextBlock Text="{Binding SquadName}" Foreground="{StaticResource WhiteBrush}" FontSize="13"
+                        <TextBlock x:Name="SquadInfoText1" Text="{Binding SquadName}" Foreground="{StaticResource WhiteBrush}" FontSize="13"
                                    FontWeight="SemiBold" TextWrapping="Wrap"/>
-                        <TextBlock Text="{Binding SquadNumber}" Foreground="{StaticResource WhiteBrush}" FontSize="12"
+                        <TextBlock x:Name="SquadInfoText2" Text="{Binding SquadNumber}" Foreground="{StaticResource WhiteBrush}" FontSize="12"
                                    Margin="0,2,0,0" Opacity="0.8"/>
                     </StackPanel>
                 </Border>
 
                 <!-- Navigation (scrollable) -->
-                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                <ScrollViewer x:Name="SidebarScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                               VerticalContentAlignment="Top">
-                    <StackPanel Margin="8,0,8,0">
-                        <TextBlock Text="НАВИГАЦИЯ" Foreground="{StaticResource SidebarLabelBrush}" FontSize="10" FontWeight="Bold"
-                                   Margin="12,12,12,8"/>
+                    <StackPanel x:Name="SidebarNavPanel" Margin="8,0,8,0">
+                        <TextBlock x:Name="SidebarNavLabel" Text="НАВИГАЦИЯ" Foreground="{StaticResource SidebarLabelBrush}" FontSize="10" FontWeight="Bold"
+                                   Margin="12,12,12,8" HorizontalAlignment="Center"/>
 
-                        <Button Command="{Binding SquadListCommand}" Style="{StaticResource NavButton}">
-                            <StackPanel Orientation="Horizontal">
+                        <Button Command="{Binding SquadListCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn1">
+                            <StackPanel Orientation="Horizontal" x:Name="NavContent1">
                                 <Border Width="26" Height="26" CornerRadius="13" Background="#3F51B5" Margin="0,0,10,0">
                                     <TextBlock Text="&#x263A;" FontSize="14" Foreground="White"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
-                                <TextBlock Text="Части" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="NavLabel1" Text="Части" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
-                        <Button Command="{Binding VehicleListCommand}" Style="{StaticResource NavButton}">
-                            <StackPanel Orientation="Horizontal">
+                        <Button Command="{Binding DriverListCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn2">
+                            <StackPanel Orientation="Horizontal" x:Name="NavContent2">
+                                <Border Width="26" Height="26" CornerRadius="13" Background="#E91E63" Margin="0,0,10,0">
+                                    <TextBlock Text="&#x25A0;" FontSize="14" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock x:Name="NavLabel2" Text="Водители" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Command="{Binding VehicleListCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn3">
+                            <StackPanel Orientation="Horizontal" x:Name="NavContent3">
                                 <Border Width="26" Height="26" CornerRadius="13" Background="#00897B" Margin="0,0,10,0">
                                     <TextBlock Text="&#x25CF;" FontSize="14" Foreground="White"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
-                                <TextBlock Text="Автомобили" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="NavLabel3" Text="Автомобили" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
-                        <Button Command="{Binding CardListCommand}" Style="{StaticResource NavButton}">
-                            <StackPanel Orientation="Horizontal">
+                        <Button Command="{Binding CardListCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn4">
+                            <StackPanel Orientation="Horizontal" x:Name="NavContent4">
                                 <Border Width="26" Height="26" CornerRadius="13" Background="#F4511E" Margin="0,0,10,0">
                                     <TextBlock Text="&#x25A0;" FontSize="14" Foreground="White"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
-                                <TextBlock Text="Карточки" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="NavLabel4" Text="Карточки" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
-                        <Button Command="{Binding WarehouseCommand}" Style="{StaticResource NavButton}">
-                            <StackPanel Orientation="Horizontal">
+                        <Button Command="{Binding WarehouseCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn5">
+                            <StackPanel Orientation="Horizontal" x:Name="NavContent5">
                                 <Border Width="26" Height="26" CornerRadius="13" Background="#6A1B9A" Margin="0,0,10,0">
                                     <TextBlock Text="&#x25C6;" FontSize="14" Foreground="White"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
-                                <TextBlock Text="Склад ГСМ" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="NavLabel5" Text="Склад ГСМ" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
-                        <Button Command="{Binding SettingsCommand}" Style="{StaticResource NavButton}">
-                            <StackPanel Orientation="Horizontal">
+                        <Button Command="{Binding SettingsCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn6">
+                            <StackPanel Orientation="Horizontal" x:Name="NavContent6">
                                 <Border Width="26" Height="26" CornerRadius="13" Background="#757575" Margin="0,0,10,0">
                                     <TextBlock Text="&#x2699;" FontSize="14" Foreground="White"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
-                                <TextBlock Text="Настройки" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="NavLabel6" Text="Настройки" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
-                        <Button Command="{Binding FuelReportCommand}" Style="{StaticResource NavButton}">
-                            <StackPanel Orientation="Horizontal">
+                        <Button Command="{Binding FuelReportCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn7">
+                            <StackPanel Orientation="Horizontal" x:Name="NavContent7">
                                 <Border Width="26" Height="26" CornerRadius="13" Background="#FB8C00" Margin="0,0,10,0">
                                     <TextBlock Text="&#x25B2;" FontSize="12" Foreground="White"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
-                                <TextBlock Text="Отчёт ГСМ" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="NavLabel7" Text="Отчёт ГСМ" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
-                        <Border Height="1" Background="{StaticResource SidebarDividerBrush}" Margin="12,8,12,8"/>
+                        <Border Height="1" Background="{StaticResource SidebarDividerBrush}" Margin="12,8,12,8"
+                                x:Name="SidebarDivider1"/>
 
-                        <TextBlock Text="ДАННЫЕ" Foreground="{StaticResource SidebarLabelBrush}" FontSize="10" FontWeight="Bold"
-                                   Margin="12,0,12,8"/>
+                        <TextBlock x:Name="SidebarDataLabel" Text="ДАННЫЕ" Foreground="{StaticResource SidebarLabelBrush}" FontSize="10" FontWeight="Bold"
+                                   Margin="12,0,12,8" HorizontalAlignment="Center"/>
 
-                        <Button Command="{Binding ExportDataCommand}" Style="{StaticResource NavButton}">
-                            <StackPanel Orientation="Horizontal">
+                        <Button Command="{Binding ExportDataCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn8">
+                            <StackPanel Orientation="Horizontal" x:Name="NavContent8">
                                 <Border Width="26" Height="26" CornerRadius="13" Background="#43A047" Margin="0,0,10,0">
                                     <TextBlock Text="&#x2191;" FontSize="14" Foreground="White"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
-                                <TextBlock Text="Выгрузка данных" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="NavLabel8" Text="Выгрузка данных" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
-                        <Button Command="{Binding ImportDataCommand}" Style="{StaticResource NavButton}">
-                            <StackPanel Orientation="Horizontal">
+                        <Button Command="{Binding ImportDataCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn9">
+                            <StackPanel Orientation="Horizontal" x:Name="NavContent9">
                                 <Border Width="26" Height="26" CornerRadius="13" Background="#1E88E5" Margin="0,0,10,0">
                                     <TextBlock Text="&#x2193;" FontSize="14" Foreground="White"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
-                                <TextBlock Text="Загрузка данных" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="NavLabel9" Text="Загрузка данных" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
-                        <Border Height="1" Background="{StaticResource SidebarDividerBrush}" Margin="12,12,12,8"/>
+                        <Border Height="1" Background="{StaticResource SidebarDividerBrush}" Margin="12,12,12,8"
+                                x:Name="SidebarDivider2"/>
 
-                        <Button Click="MenuItem_Exit_Click" Style="{StaticResource ExitButton}">
-                            <StackPanel Orientation="Horizontal">
+                        <Button Click="MenuItem_Exit_Click" Style="{StaticResource ExitButton}" x:Name="NavBtn10">
+                            <StackPanel Orientation="Horizontal" x:Name="NavContent10">
                                 <Border Width="26" Height="26" CornerRadius="13" Background="#C62828" Margin="0,0,10,0">
                                     <TextBlock Text="&#x2716;" FontSize="12" Foreground="White"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
-                                <TextBlock Text="Выход" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="NavLabel10" Text="Выход" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -172,8 +195,14 @@
             </DockPanel>
         </Border>
 
+        <!-- GRID SPLITTER for sidebar resize -->
+        <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                      Background="Transparent" ResizeBehavior="CurrentAndNext"
+                      Cursor="SizeWE"
+                      MouseEnter="GridSplitter_MouseEnter" MouseLeave="GridSplitter_MouseLeave"/>
+
         <!-- MAIN CONTENT -->
-        <Grid Grid.Column="1">
+        <Grid Grid.Column="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
@@ -182,7 +211,8 @@
 
             <!-- TOP INFO BAR -->
             <Border Grid.Row="0" Background="{StaticResource WhiteBrush}" Padding="16,10"
-                    BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,0,1">
+                    BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,0,1"
+                    Visibility="{Binding IsDriverListMode, Converter={StaticResource BoolToVis}, ConverterParameter='Invert'}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -205,62 +235,84 @@
 
             <!-- CONTENT AREA -->
             <Grid Grid.Row="1">
+                    <!-- ЭКРАН СПИСКА ВОДИТЕЛЕЙ (первый = низший z-order, чтобы не перекрывать другие экраны) -->
+                    <views:DriverListView DataContext="{Binding DriverListVm}"
+                                         Visibility="{Binding DataContext.IsDriverListMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}"
+                                         Panel.ZIndex="0"/>
+
                     <!-- ЭКРАН НАСТРОЙКИ ЧАСТИ (первый запуск) -->
                     <views:SquadSetupView DataContext="{Binding SquadSetupVm}"
-                                          Visibility="{Binding DataContext.IsSetupMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}"/>
+                                          Visibility="{Binding DataContext.IsSetupMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}"
+                                          Panel.ZIndex="1"/>
 
                     <!-- УПРАВЛЕНИЕ ЧАСТЯМИ -->
                     <views:SquadListView DataContext="{Binding}"
-                                         Visibility="{Binding IsSquadListMode, Converter={StaticResource BoolToVis}}"/>
+                                         Visibility="{Binding IsSquadListMode, Converter={StaticResource BoolToVis}}"
+                                         Panel.ZIndex="2"/>
 
                     <!-- СПИСОК АВТОМОБИЛЕЙ -->
-                    <DockPanel Visibility="{Binding IsVehicleMode, Converter={StaticResource BoolToVis}}">
+                    <DockPanel Visibility="{Binding IsVehicleMode, Converter={StaticResource BoolToVis}}" Panel.ZIndex="3">
                         <Border DockPanel.Dock="Top" Margin="16,12,16,8" Padding="16,12"
                                 Style="{StaticResource CardBorderShadow}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="Справочник автомобилей" FontSize="18" FontWeight="Bold"
+                                <Border Width="36" Height="36" CornerRadius="18" Background="#00897B" Margin="0,0,12,0"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="&#x25CF;" FontSize="18" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Grid.Column="1" Text="Автомобили" FontSize="18" FontWeight="Bold"
                                            Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                                <Button Grid.Column="1" Content="+ Добавить автомобиль"
+                                <Button Grid.Column="2" Content="+ ДОБАВИТЬ"
                                         Command="{Binding AddVehicleCommand}"
-                                        Style="{StaticResource SuccessButton}" Padding="14,8"/>
+                                        Style="{StaticResource SuccessButton}" Padding="14,7" FontSize="12"/>
                             </Grid>
                         </Border>
 
-                        <DataGrid Grid.Column="0" ItemsSource="{Binding Vehicles}"
-                                  SelectedItem="{Binding SelectedVehicle}" Margin="16,0,16,8">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Гос. знак" Binding="{Binding LicensePlate}" Width="100"/>
-                                <DataGridTextColumn Header="Марка" Binding="{Binding Make}" Width="130"/>
-                                <DataGridTextColumn Header="Тип" Binding="{Binding Type}" Width="130"/>
-                                <DataGridTextColumn Header="№ карточки" Binding="{Binding CardNumber}" Width="90"/>
-                                <DataGridTextColumn Header="Пробег шасси (км)" Binding="{Binding InitialChassisMileage, StringFormat=N0}" Width="110"/>
-                                <DataGridTextColumn Header="Пробег двиг. (км)" Binding="{Binding InitialEngineMileage, StringFormat=N0}" Width="110"/>
-                                <DataGridTemplateColumn Header="Действия" Width="80" IsReadOnly="True">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                <Button Content="&#x270E;" Style="{StaticResource IconButton}"
-                                                        Command="{Binding DataContext.EditVehicleCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                                        CommandParameter="{Binding}" FontSize="14" Padding="6"
-                                                        Foreground="{StaticResource PrimaryBrush}"/>
-                                                <Button Content="&#x2716;" Style="{StaticResource IconButton}"
-                                                        Command="{Binding DataContext.DeleteVehicleCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                                        CommandParameter="{Binding}" FontSize="12" Padding="6"
-                                                        Foreground="{StaticResource DangerBrush}"/>
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                            </DataGrid.Columns>
-                        </DataGrid>
+                        <Border Margin="16,0,16,8" Padding="12"
+                                Style="{StaticResource CardBorderShadow}">
+                            <DataGrid ItemsSource="{Binding Vehicles}"
+                                      SelectedItem="{Binding SelectedVehicle}"
+                                      CanUserAddRows="False" AutoGenerateColumns="False"
+                                      RowHeaderWidth="0" FontSize="12"
+                                      HeadersVisibility="Column" GridLinesVisibility="None"
+                                      BorderThickness="0" Background="Transparent"
+                                      AlternatingRowBackground="#FAFBFC">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="ГОС. ЗНАК" Binding="{Binding LicensePlate}" Width="100" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="МАРКА" Binding="{Binding Make}" Width="140" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="ТИП" Binding="{Binding Type}" Width="130" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="ДВИГАТЕЛЬ" Binding="{Binding EngineDisplay}" Width="80" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="№ КАРТОЧКИ" Binding="{Binding CardNumber}" Width="90" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="ПРОБЕГ ШАССИ" Binding="{Binding InitialChassisMileage, StringFormat=N0}" Width="100" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="ПРОБЕГ ДВИГ." Binding="{Binding InitialEngineMileage, StringFormat=N0}" Width="100" IsReadOnly="True"/>
+                                    <DataGridTemplateColumn Header="" Width="70" IsReadOnly="True">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                    <Button Content="&#x270E;" Style="{StaticResource IconButton}"
+                                                            Command="{Binding DataContext.EditVehicleCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                            CommandParameter="{Binding}" FontSize="13" Padding="5"
+                                                            Foreground="{StaticResource PrimaryBrush}"/>
+                                                    <Button Content="&#x2716;" Style="{StaticResource IconButton}"
+                                                            Command="{Binding DataContext.DeleteVehicleCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                            CommandParameter="{Binding}" FontSize="11" Padding="5"
+                                                            Foreground="{StaticResource DangerBrush}"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Border>
                     </DockPanel>
 
                     <!-- ЭКРАН КАРТОЧКИ -->
-                    <DockPanel Visibility="{Binding IsCardMode, Converter={StaticResource BoolToVis}}">
+                    <DockPanel Visibility="{Binding IsCardMode, Converter={StaticResource BoolToVis}}" Panel.ZIndex="4">
                         <Border DockPanel.Dock="Top" Margin="16,12,16,0" Padding="16,12"
                                 Style="{StaticResource CardBorderShadow}">
                             <StackPanel>
@@ -352,8 +404,9 @@
                                          Text="{Binding CurrentCard.FuelRefueledMonth, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource DoubleStr}}" Margin="2,4"/>
 
                                 <Label Grid.Row="2" Grid.Column="0" Content="Остаток на конец:"/>
-                                <TextBox Grid.Row="2" Grid.Column="1"
-                                         Text="{Binding CurrentCard.FuelRemainingOnLast, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource DoubleStr}}" Margin="2,4"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" IsReadOnly="True"
+                                         Text="{Binding CurrentCard.FuelRemainingOnLast, Converter={StaticResource DoubleStr}}" Margin="2,4"
+                                         Background="{StaticResource PrimaryLightBrush}"/>
                                 <Label Grid.Row="2" Grid.Column="2" Content="Уровень топлива (см):"/>
                                 <TextBox Grid.Row="2" Grid.Column="3"
                                          Text="{Binding CurrentCard.FuelLevelCm, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource DoubleStr}}" Margin="2,4"/>
@@ -447,7 +500,7 @@
                                 <DataGridTextColumn Header="Спидометр, км" Binding="{Binding OdometerBeforeDeparture, StringFormat=N0}" Width="80" IsReadOnly="True"/>
                                 <DataGridTextColumn Header="Пробег км" Binding="{Binding DistanceKm, StringFormat=N1}" Width="60" IsReadOnly="True"/>
                                 <DataGridTextColumn Header="С насосом" Binding="{Binding TimeWithPumpMinutes, StringFormat=N0}" Width="60" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="Без насоса (мин)" Binding="{Binding TimeWithoutPumpMinutes, StringFormat=N0}" Width="60" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="На холостом (мин)" Binding="{Binding TimeWithoutPumpMinutes, StringFormat=N0}" Width="60" IsReadOnly="True"/>
                                 <DataGridTextColumn Header="Смена, мин." Binding="{Binding ShiftChangeMinutes, StringFormat=N0}" Width="60" IsReadOnly="True"/>
                                 <DataGridTextColumn Header="Прочие (мин)" Binding="{Binding MiscWorkMinutes, StringFormat=N0}" Width="55" IsReadOnly="True"/>
                                 <DataGridTextColumn Header="Расход" Width="55" IsReadOnly="True"/>
@@ -461,20 +514,24 @@
 
                     <!-- ЭКРАН НАСТРОЕК -->
                     <views:SettingsView DataContext="{Binding}"
-                                        Visibility="{Binding IsSettingsMode, Converter={StaticResource BoolToVis}}"/>
+                                        Visibility="{Binding IsSettingsMode, Converter={StaticResource BoolToVis}}"
+                                        Panel.ZIndex="5"/>
 
                     <!-- ЭКРАН ОТЧЁТА ГСМ -->
                     <views:FuelReportView DataContext="{Binding}"
-                                          Visibility="{Binding IsFuelReportMode, Converter={StaticResource BoolToVis}}"/>
+                                          Visibility="{Binding IsFuelReportMode, Converter={StaticResource BoolToVis}}"
+                                          Panel.ZIndex="6"/>
 
                     <!-- ЭКРАН СКЛАДА ГСМ -->
                     <views:WarehouseView DataContext="{Binding}"
-                                         Visibility="{Binding IsWarehouseMode, Converter={StaticResource BoolToVis}}"/>
+                                         Visibility="{Binding IsWarehouseMode, Converter={StaticResource BoolToVis}}"
+                                         Panel.ZIndex="7"/>
                 </Grid>
 
             <!-- BOTTOM: Status bar + Totals -->
             <Border Grid.Row="2" Background="{StaticResource WhiteBrush}" BorderBrush="{StaticResource DividerBrush}"
-                    BorderThickness="0,1,0,0" Padding="12,6">
+                    BorderThickness="0,1,0,0" Padding="12,6"
+                    Visibility="{Binding IsDriverListMode, Converter={StaticResource BoolToVis}, ConverterParameter='Invert'}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
