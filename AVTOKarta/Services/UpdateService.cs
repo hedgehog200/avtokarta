@@ -37,7 +37,17 @@ namespace AVTOKarta.Services
 
         static UpdateService()
         {
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+            try
+            {
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12
+                    | (SecurityProtocolType)3072
+                    | (SecurityProtocolType)12288;
+            }
+            catch
+            {
+                try { ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12; }
+                catch { ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12; }
+            }
             ServicePointManager.ServerCertificateValidationCallback = ValidateCertificate;
         }
 
@@ -46,13 +56,36 @@ namespace AVTOKarta.Services
             if (sslPolicyErrors == SslPolicyErrors.None)
                 return true;
 
-            foreach (var status in chain.ChainStatus)
+            try
             {
-                if (status.Status != X509ChainStatusFlags.NoError &&
-                    status.Status != X509ChainStatusFlags.RevocationStatusUnknown &&
-                    status.Status != X509ChainStatusFlags.OfflineRevocation)
+                if (chain != null)
                 {
-                    return false;
+                    chain.ChainPolicy.RevocationFlag = X509RevocationFlag.EntireChain;
+                    chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+                    chain.ChainPolicy.UrlRetrievalTimeout = new TimeSpan(0, 0, 30);
+                    chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllFlags;
+                    bool valid = chain.Build(new X509Certificate2(certificate));
+                    if (valid)
+                        return true;
+                }
+            }
+            catch
+            {
+            }
+
+            if (chain != null)
+            {
+                foreach (var status in chain.ChainStatus)
+                {
+                    if (status.Status != X509ChainStatusFlags.NoError &&
+                        status.Status != X509ChainStatusFlags.RevocationStatusUnknown &&
+                        status.Status != X509ChainStatusFlags.OfflineRevocation &&
+                        status.Status != X509ChainStatusFlags.PartialChain &&
+                        status.Status != X509ChainStatusFlags.UntrustedRoot &&
+                        status.Status != X509ChainStatusFlags.Cyclic)
+                    {
+                        return false;
+                    }
                 }
             }
 
