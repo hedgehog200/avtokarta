@@ -1278,6 +1278,8 @@ namespace AVTOKarta.ViewModels
                 TripSheetNumber = Records.Count + 1
             };
 
+            record.NormConsumption = CalculationService.CalculateNormConsumption(record, SelectedVehicle.FuelNorms);
+            record.ActualConsumption = record.NormConsumption;
             var vm = new CardViewModel(record, SelectedVehicle.FuelNorms, _dataService?.LoadDrivers().Select(d => d.FullName).OrderBy(n => n).ToList());
             var dialog = new Views.CardEditView { DataContext = vm };
             if (dialog.ShowDialog() == true)

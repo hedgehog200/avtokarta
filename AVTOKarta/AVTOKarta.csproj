@@ -86,6 +86,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="Views\UpdateNotificationWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="Views\VehicleListView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -145,6 +149,7 @@
     <Compile Include="Helpers\DateTimeHelper.cs" />
     <Compile Include="Helpers\PasswordInputDialog.cs" />
     <Compile Include="Helpers\PhoneHelper.cs" />
+    <Compile Include="Helpers\MarkdownHelper.cs" />
     <Compile Include="Services\DataService.cs" />
     <Compile Include="Services\EncryptionService.cs" />
     <Compile Include="Services\CacheService.cs" />
@@ -178,6 +183,9 @@
     </Compile>
     <Compile Include="Views\SquadSetupView.xaml.cs">
       <DependentUpon>SquadSetupView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\UpdateNotificationWindow.xaml.cs">
+      <DependentUpon>UpdateNotificationWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\VehicleListView.xaml.cs">
       <DependentUpon>VehicleListView.xaml</DependentUpon>

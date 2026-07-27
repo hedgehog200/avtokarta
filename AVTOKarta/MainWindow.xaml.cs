@@ -34,6 +34,31 @@ namespace AVTOKarta
             _navButtons = new Button[] { NavBtn1, NavBtn2, NavBtn3, NavBtn4, NavBtn5, NavBtn6, NavBtn7, NavBtn8, NavBtn9, NavBtn10 };
             _collapsibleElements = new UIElement[] { SidebarLogo, SidebarSquadSelector, SidebarSquadInfo, SidebarNavLabel, SidebarDataLabel };
             _dividers = new UIElement[] { SidebarDivider1, SidebarDivider2 };
+
+            CollapseSidebarImmediate();
+        }
+
+        private void CollapseSidebarImmediate()
+        {
+            _isSidebarCollapsed = true;
+
+            foreach (var el in _collapsibleElements)
+                el.Visibility = Visibility.Collapsed;
+            foreach (var d in _dividers)
+                d.Visibility = Visibility.Collapsed;
+            foreach (var label in _navLabels)
+                label.Visibility = Visibility.Collapsed;
+
+            foreach (var btn in _navButtons)
+            {
+                btn.Padding = new Thickness(0, 8, 0, 8);
+                btn.Margin = new Thickness(6, 2, 6, 2);
+                btn.HorizontalContentAlignment = HorizontalAlignment.Center;
+            }
+
+            SidebarNavLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            SidebarDataLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            SidebarColumn.Width = new GridLength(SidebarCollapsedWidth);
         }
 
         private void ToggleSidebar_Click(object sender, RoutedEventArgs e)
@@ -41,7 +66,7 @@ namespace AVTOKarta
             _isSidebarCollapsed = !_isSidebarCollapsed;
             double targetWidth = _isSidebarCollapsed ? SidebarCollapsedWidth : SidebarExpandedWidth;
 
-            SidebarToggleIcon.Text = _isSidebarCollapsed ? "\u25B6" : "\u276E";
+            SidebarToggleIcon.Text = _isSidebarCollapsed ? "\u2630" : "\u2716";
 
             bool showLabels = !_isSidebarCollapsed;
 
@@ -59,11 +84,13 @@ namespace AVTOKarta
                 if (showLabels)
                 {
                     btn.Padding = new Thickness(14, 10, 14, 10);
+                    btn.Margin = new Thickness(6, 2, 6, 2);
                     btn.HorizontalContentAlignment = HorizontalAlignment.Left;
                 }
                 else
                 {
                     btn.Padding = new Thickness(0, 10, 0, 10);
+                    btn.Margin = new Thickness(6, 2, 6, 2);
                     btn.HorizontalContentAlignment = HorizontalAlignment.Center;
                 }
             }

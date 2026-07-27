@@ -195,9 +195,16 @@
                     <TextBlock Text="{Binding PublishedAt}" Margin="0,0,0,4" FontSize="12"
                                Foreground="{StaticResource TextSecondaryBrush}"/>
 
-                    <FlowDocumentScrollViewer Document="{Binding ReleaseNotesDocument}" MaxHeight="200"
-                                               VerticalScrollBarVisibility="Auto"
-                                               Visibility="{Binding ReleaseNotes, Converter={x:Static local:NullOrEmptyToVisibilityConverter.Instance}}"/>
+                    <Grid MaxHeight="150" Margin="0,0,0,4"
+                          Visibility="{Binding ReleaseNotes, Converter={x:Static local:NullOrEmptyToVisibilityConverter.Instance}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition MaxHeight="150"/>
+                        </Grid.RowDefinitions>
+                        <Border Grid.Row="0" BorderThickness="1" BorderBrush="{StaticResource DividerBrush}">
+                            <FlowDocumentScrollViewer Document="{Binding ReleaseNotesDocument}"
+                                                       VerticalScrollBarVisibility="Auto"/>
+                        </Border>
+                    </Grid>
                 </StackPanel>
             </Border>
         </DockPanel>

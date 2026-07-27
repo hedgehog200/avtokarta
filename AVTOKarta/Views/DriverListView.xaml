@@ -57,7 +57,7 @@
                         <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" FontSize="10" Margin="0,0,0,6"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Content="Отмена" Command="{Binding CancelCommand}" Padding="12,5" FontSize="11" Margin="0,0,6,0"
-                                    Style="{StaticResource GhostButton}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    Style="{StaticResource DangerButton}"/>
                             <Button Content="Сохранить" Command="{Binding ConfirmCommand}"
                                     Style="{StaticResource SuccessButton}" Padding="12,5" FontSize="11"/>
                         </StackPanel>

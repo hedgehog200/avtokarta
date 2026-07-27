@@ -5,7 +5,7 @@
         xmlns:views="clr-namespace:AVTOKarta.Views"
         xmlns:hc="https://handyorg.github.io/handycontrol"
         xml:lang="ru-RU"
-        Title="АВТОКарта v1.1.7 — WebARTup - Studio: Technologies" Height="750" Width="1150"
+        Title="АВТОКарта v1.1.8 — WebARTup - Studio: Technologies" Height="750" Width="1150"
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized"
         KeyDown="Window_KeyDown"
@@ -28,18 +28,17 @@
             <DockPanel>
                 <!-- Toggle collapse button -->
                 <Button DockPanel.Dock="Top" Click="ToggleSidebar_Click"
-                        Style="{StaticResource NavButton}" Margin="4,8,4,4" Padding="0" Height="32">
-                    <TextBlock x:Name="SidebarToggleIcon" Text="&#x276E;" FontSize="14"
-                               Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        x:Name="SidebarToggleButton" Style="{StaticResource NavButton}"
+                        HorizontalContentAlignment="Center" Padding="0,10" Margin="6,2">
+                    <TextBlock x:Name="SidebarToggleIcon" Text="&#x2630;" FontSize="20"
+                               Foreground="White"/>
                 </Button>
 
                 <!-- Logo -->
-                <StackPanel x:Name="SidebarLogo" DockPanel.Dock="Top" Margin="16,8,16,8"
+                <StackPanel x:Name="SidebarLogo" DockPanel.Dock="Top" Margin="16,4,16,8"
                             HorizontalAlignment="Center">
-                    <TextBlock Text="АВТОКарта" Foreground="{StaticResource WhiteBrush}" FontSize="20" FontWeight="Bold"
+                    <TextBlock Text="АВТОКАРТА" Foreground="{StaticResource WhiteBrush}" FontSize="16" FontWeight="Bold"
                                HorizontalAlignment="Center"/>
-                    <TextBlock Text="Учёт эксплуатации&#x0a;пожарных автомобилей" Foreground="{StaticResource PrimaryBrush}" FontSize="11"
-                               HorizontalAlignment="Center" Margin="0,4,0,0" TextWrapping="Wrap" TextAlignment="Center"/>
                 </StackPanel>
 
                 <!-- Squad selector -->
@@ -82,7 +81,7 @@
                         <TextBlock x:Name="SidebarNavLabel" Text="НАВИГАЦИЯ" Foreground="{StaticResource SidebarLabelBrush}" FontSize="10" FontWeight="Bold"
                                    Margin="12,12,12,8" HorizontalAlignment="Center"/>
 
-                        <Button Command="{Binding SquadListCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn1">
+                        <Button Command="{Binding SquadListCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn1" ToolTip="Части">
                             <StackPanel Orientation="Horizontal" x:Name="NavContent1">
                                 <Border Width="26" Height="26" CornerRadius="13" Background="#3F51B5" Margin="0,0,10,0">
                                     <TextBlock Text="&#x263A;" FontSize="14" Foreground="White"
@@ -92,7 +91,7 @@
                             </StackPanel>
                         </Button>
 
-                        <Button Command="{Binding DriverListCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn2">
+                        <Button Command="{Binding DriverListCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn2" ToolTip="Водители">
                             <StackPanel Orientation="Horizontal" x:Name="NavContent2">
                                 <Border Width="26" Height="26" CornerRadius="13" Background="#E91E63" Margin="0,0,10,0">
                                     <TextBlock Text="&#x25A0;" FontSize="14" Foreground="White"
@@ -102,7 +101,7 @@
                             </StackPanel>
                         </Button>
 
-                        <Button Command="{Binding VehicleListCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn3">
+                        <Button Command="{Binding VehicleListCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn3" ToolTip="Автомобили">
                             <StackPanel Orientation="Horizontal" x:Name="NavContent3">
                                 <Border Width="26" Height="26" CornerRadius="13" Background="#00897B" Margin="0,0,10,0">
                                     <TextBlock Text="&#x25CF;" FontSize="14" Foreground="White"
@@ -112,7 +111,7 @@
                             </StackPanel>
                         </Button>
 
-                        <Button Command="{Binding CardListCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn4">
+                        <Button Command="{Binding CardListCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn4" ToolTip="Карточки">
                             <StackPanel Orientation="Horizontal" x:Name="NavContent4">
                                 <Border Width="26" Height="26" CornerRadius="13" Background="#F4511E" Margin="0,0,10,0">
                                     <TextBlock Text="&#x25A0;" FontSize="14" Foreground="White"
@@ -122,7 +121,7 @@
                             </StackPanel>
                         </Button>
 
-                        <Button Command="{Binding WarehouseCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn5">
+                        <Button Command="{Binding WarehouseCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn5" ToolTip="Склад ГСМ">
                             <StackPanel Orientation="Horizontal" x:Name="NavContent5">
                                 <Border Width="26" Height="26" CornerRadius="13" Background="#6A1B9A" Margin="0,0,10,0">
                                     <TextBlock Text="&#x25C6;" FontSize="14" Foreground="White"
@@ -132,7 +131,7 @@
                             </StackPanel>
                         </Button>
 
-                        <Button Command="{Binding SettingsCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn6">
+                        <Button Command="{Binding SettingsCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn6" ToolTip="Настройки">
                             <StackPanel Orientation="Horizontal" x:Name="NavContent6">
                                 <Border Width="26" Height="26" CornerRadius="13" Background="#757575" Margin="0,0,10,0">
                                     <TextBlock Text="&#x2699;" FontSize="14" Foreground="White"
@@ -142,7 +141,7 @@
                             </StackPanel>
                         </Button>
 
-                        <Button Command="{Binding FuelReportCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn7">
+                        <Button Command="{Binding FuelReportCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn7" ToolTip="Отчёт ГСМ">
                             <StackPanel Orientation="Horizontal" x:Name="NavContent7">
                                 <Border Width="26" Height="26" CornerRadius="13" Background="#FB8C00" Margin="0,0,10,0">
                                     <TextBlock Text="&#x25B2;" FontSize="12" Foreground="White"
@@ -158,7 +157,7 @@
                         <TextBlock x:Name="SidebarDataLabel" Text="ДАННЫЕ" Foreground="{StaticResource SidebarLabelBrush}" FontSize="10" FontWeight="Bold"
                                    Margin="12,0,12,8" HorizontalAlignment="Center"/>
 
-                        <Button Command="{Binding ExportDataCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn8">
+                        <Button Command="{Binding ExportDataCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn8" ToolTip="Выгрузка данных">
                             <StackPanel Orientation="Horizontal" x:Name="NavContent8">
                                 <Border Width="26" Height="26" CornerRadius="13" Background="#43A047" Margin="0,0,10,0">
                                     <TextBlock Text="&#x2191;" FontSize="14" Foreground="White"
@@ -168,7 +167,7 @@
                             </StackPanel>
                         </Button>
 
-                        <Button Command="{Binding ImportDataCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn9">
+                        <Button Command="{Binding ImportDataCommand}" Style="{StaticResource NavButton}" x:Name="NavBtn9" ToolTip="Загрузка данных">
                             <StackPanel Orientation="Horizontal" x:Name="NavContent9">
                                 <Border Width="26" Height="26" CornerRadius="13" Background="#1E88E5" Margin="0,0,10,0">
                                     <TextBlock Text="&#x2193;" FontSize="14" Foreground="White"
@@ -181,7 +180,7 @@
                         <Border Height="1" Background="{StaticResource SidebarDividerBrush}" Margin="12,12,12,8"
                                 x:Name="SidebarDivider2"/>
 
-                        <Button Click="MenuItem_Exit_Click" Style="{StaticResource ExitButton}" x:Name="NavBtn10">
+                        <Button Click="MenuItem_Exit_Click" Style="{StaticResource ExitButton}" x:Name="NavBtn10" ToolTip="Выход">
                             <StackPanel Orientation="Horizontal" x:Name="NavContent10">
                                 <Border Width="26" Height="26" CornerRadius="13" Background="#C62828" Margin="0,0,10,0">
                                     <TextBlock Text="&#x2716;" FontSize="12" Foreground="White"

@@ -65,7 +65,6 @@ namespace AVTOKarta.Helpers
                 else if (trimmed.StartsWith("---") || trimmed.StartsWith("***"))
                 {
                     var para = new Paragraph { Margin = new Thickness(0, 6, 0, 6) };
-                    para.BreakDirection = FlowDirection.LeftToRight;
                     var border = new System.Windows.Controls.Border
                     {
                         Height = 1,

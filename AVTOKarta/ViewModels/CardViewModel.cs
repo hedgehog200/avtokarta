@@ -31,6 +31,7 @@ namespace AVTOKarta.ViewModels
         private double _miscWorkMinutes;
         private double _fuelRefueled;
         private double _normConsumption;
+        private double _actualConsumption;
         private string _comments;
         private string _squadNumber;
         private string _driverName;
@@ -66,6 +67,7 @@ namespace AVTOKarta.ViewModels
             _miscWorkMinutes = record.MiscWorkMinutes;
             _fuelRefueled = record.FuelRefueled;
             _normConsumption = record.NormConsumption;
+            _actualConsumption = record.ActualConsumption;
             _comments = record.Comments;
             _squadNumber = record.SquadNumber;
             _driverName = record.DriverName;
@@ -195,6 +197,12 @@ namespace AVTOKarta.ViewModels
         {
             get { return _normConsumption; }
             set { SetProperty(ref _normConsumption, value); }
+        }
+
+        public double ActualConsumption
+        {
+            get { return _actualConsumption; }
+            set { SetProperty(ref _actualConsumption, value); }
         }
 
         public string Comments
@@ -361,6 +369,7 @@ namespace AVTOKarta.ViewModels
             EditingRecord.MiscWorkMinutes = MiscWorkMinutes;
             EditingRecord.FuelRefueled = FuelRefueled;
             EditingRecord.NormConsumption = NormConsumption;
+            EditingRecord.ActualConsumption = ActualConsumption;
             EditingRecord.Comments = Comments;
             EditingRecord.SquadNumber = SquadNumber;
             EditingRecord.DriverName = DriverName;

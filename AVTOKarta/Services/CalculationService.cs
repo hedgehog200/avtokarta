@@ -49,7 +49,6 @@ namespace AVTOKarta.Services
             foreach (var record in card.Records)
             {
                 record.NormConsumption = CalculateNormConsumption(record, norms);
-                record.ActualConsumption = record.NormConsumption;
             }
 
             card.FuelRemainingOnLast = CalculateFuelRemainingOnLast(card);

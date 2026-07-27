@@ -442,24 +442,16 @@ namespace AVTOKarta.Services
 
                 Log("Найдено обновление: " + result.RemoteVersion);
 
-                string notes = string.IsNullOrEmpty(result.ReleaseNotes)
-                    ? "(нет описания)"
-                    : result.ReleaseNotes;
-
-                string message = "Доступно обновление " + result.RemoteVersion + " (текущая версия: " + result.CurrentVersion + ")\n\n"
-                    + "Что нового:\n"
-                    + notes
-                    + "\n\nСкачать и установить обновление?";
+                string notes = result.ReleaseNotes ?? "";
 
                 bool confirmed = false;
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    var answer = MessageBox.Show(
-                        message,
-                        "Обновление AVTOKarta",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Information);
-                    confirmed = answer == MessageBoxResult.Yes;
+                    var dlg = new Views.UpdateNotificationWindow(
+                        result.RemoteVersion, result.CurrentVersion, notes);
+                    dlg.Owner = Application.Current.MainWindow;
+                    var answer = dlg.ShowDialog();
+                    confirmed = answer == true;
                 });
 
                 if (!confirmed)
