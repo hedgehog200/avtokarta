@@ -195,9 +195,9 @@
                     <TextBlock Text="{Binding PublishedAt}" Margin="0,0,0,4" FontSize="12"
                                Foreground="{StaticResource TextSecondaryBrush}"/>
 
-                    <TextBlock Text="{Binding ReleaseNotes}" TextWrapping="Wrap" FontSize="12"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               Visibility="{Binding ReleaseNotes, Converter={x:Static local:NullOrEmptyToVisibilityConverter.Instance}}"/>
+                    <FlowDocumentScrollViewer Document="{Binding ReleaseNotesDocument}" MaxHeight="200"
+                                               VerticalScrollBarVisibility="Auto"
+                                               Visibility="{Binding ReleaseNotes, Converter={x:Static local:NullOrEmptyToVisibilityConverter.Instance}}"/>
                 </StackPanel>
             </Border>
         </DockPanel>

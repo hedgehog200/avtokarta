@@ -5,6 +5,7 @@
 using System;
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Documents;
 using System.Windows.Input;
 using AVTOKarta.Helpers;
 using AVTOKarta.Services;
@@ -47,7 +48,17 @@ namespace AVTOKarta.ViewModels
         public string ReleaseNotes
         {
             get => _releaseNotes;
-            set { _releaseNotes = value; OnPropertyChanged(); }
+            set { _releaseNotes = value; OnPropertyChanged(); OnPropertyChanged(nameof(ReleaseNotesDocument)); }
+        }
+
+        public FlowDocument ReleaseNotesDocument
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(_releaseNotes))
+                    return null;
+                return MarkdownHelper.ConvertToFlowDocument(_releaseNotes);
+            }
         }
 
         public string PublishedAt
