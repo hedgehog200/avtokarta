@@ -4,53 +4,32 @@
         Title="Обновление AVTOKarta"
         Width="420" Height="Auto" SizeToContent="Height"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
-        Background="White" ShowInTaskbar="False">
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        <Border Grid.Row="0" Background="{StaticResource PrimaryBrush}" Padding="16,12">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#x2B06;" FontSize="18" Foreground="White" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <TextBlock Text="Доступно обновление" FontSize="15" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+        ShowInTaskbar="False"
+        Background="{StaticResource BackgroundBrush}">
+    <DockPanel>
+        <!-- Buttons -->
+        <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,1,0,0" Padding="16,12">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Позже" Click="Skip_Click" MinWidth="80" Padding="12,6" FontSize="12"
+                        Margin="0,0,8,0"
+                        Style="{StaticResource GhostButton}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                <Button Content="Обновить" Click="Update_Click" MinWidth="80" Padding="12,6" FontSize="12"
+                        Style="{StaticResource PrimaryButton}"/>
             </StackPanel>
         </Border>
 
-        <TextBlock x:Name="VersionBlock" Grid.Row="1" Margin="16,14,16,6" FontSize="13" FontWeight="SemiBold"
-                   Foreground="{StaticResource TextPrimaryBrush}" TextWrapping="Wrap"/>
+        <!-- Content -->
+        <StackPanel Margin="24,20">
+            <TextBlock x:Name="VersionBlock" FontSize="13" FontWeight="SemiBold"
+                       Foreground="{StaticResource TextPrimaryBrush}" TextWrapping="Wrap" Margin="0,0,0,12"/>
 
-        <Border Grid.Row="2" Background="#F8F8F8" CornerRadius="6" Margin="16,0,16,12" Padding="10,8"
-                MaxHeight="120">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <TextBlock x:Name="NotesBlock" FontSize="11.5"
-                           Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
-            </ScrollViewer>
-        </Border>
-
-        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,16,14">
-            <Button Content="Позже" Click="Skip_Click" MinWidth="80" Padding="12,6" FontSize="12"
-                    Margin="0,0,8,0">
-                <Button.Template>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="bg" Background="Transparent" CornerRadius="6"
-                                BorderBrush="{StaticResource DividerBrush}" BorderThickness="1"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bg" Property="Background" Value="#F0F0F0"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Button.Template>
-            </Button>
-            <Button Content="Обновить" Click="Update_Click" MinWidth="80" Padding="12,6" FontSize="12"
-                    Style="{StaticResource SuccessButton}"/>
+            <Border Background="{StaticResource SurfaceBrush}" CornerRadius="8" Padding="14,10"
+                    MaxHeight="120" BorderBrush="{StaticResource DividerBrush}" BorderThickness="1">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <TextBlock x:Name="NotesBlock" FontSize="11.5"
+                               Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                </ScrollViewer>
+            </Border>
         </StackPanel>
-    </Grid>
+    </DockPanel>
 </Window>

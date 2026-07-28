@@ -3,6 +3,7 @@
 // Лицензия: см. файл LICENSE в корне проекта.
 
 using System.Windows;
+using System.Windows.Input;
 using AVTOKarta.ViewModels;
 
 namespace AVTOKarta.Views
@@ -12,6 +13,16 @@ namespace AVTOKarta.Views
         public VehicleEditView()
         {
             InitializeComponent();
+        }
+
+        private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            DragMove();
+        }
+
+        private void CloseBtn_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)

@@ -5,87 +5,118 @@
         Title="Редактирование автомобиля" Height="560" Width="450"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
+        WindowStyle="None" AllowsTransparency="False"
         Background="{StaticResource BackgroundBrush}">
     <Border Background="White">
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="20">
-                <TextBlock Text="Данные автомобиля" FontSize="18" FontWeight="Bold"
-                           Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,16"/>
+        <DockPanel>
+            <!-- Header -->
+            <Border DockPanel.Dock="Top" Background="{StaticResource PrimaryBrush}" Padding="20,14"
+                    MouseLeftButtonDown="Header_MouseLeftButtonDown" Cursor="Hand">
+                <DockPanel>
+                    <TextBlock Text="Данные автомобиля" FontSize="16" FontWeight="Bold"
+                               Foreground="White" VerticalAlignment="Center"/>
+                    <Button Content="&#xE8BB;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                            HorizontalAlignment="Right" Background="Transparent" Foreground="White"
+                            BorderThickness="0" Cursor="Hand" Click="CloseBtn_Click" Width="32" Height="32"/>
+                </DockPanel>
+            </Border>
 
-                <TextBlock Text="Часть:" FontWeight="SemiBold"/>
-                <ComboBox ItemsSource="{Binding AvailableSquads}"
-                          SelectedValue="{Binding SelectedSquadId}"
-                          SelectedValuePath="Id"
-                          Margin="4,4,4,8" Height="28"
-                          ItemContainerStyle="{StaticResource ComboBoxItemStyle}">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                                <TextBlock Text="{Binding Number}" Margin="6,0,0,0"/>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-
-                <TextBlock Text="Государственный знак:" FontWeight="SemiBold"/>
-                <TextBox Text="{Binding LicensePlate, UpdateSourceTrigger=PropertyChanged}"/>
-
-                <TextBlock Text="Марка автомобиля:" FontWeight="SemiBold" Margin="0,8,0,2"/>
-                <TextBox Text="{Binding Make, UpdateSourceTrigger=PropertyChanged}"/>
-
-                <TextBlock Text="Тип автомобиля:" FontWeight="SemiBold" Margin="0,8,0,2"/>
-                <TextBox Text="{Binding Type, UpdateSourceTrigger=PropertyChanged}"/>
-
-                <TextBlock Text="Тип двигателя:" FontWeight="SemiBold" Margin="0,8,0,2"/>
-                <ComboBox ItemsSource="{Binding EngineTypes}"
-                          SelectedItem="{Binding SelectedEngineItem}"
-                          DisplayMemberPath="Name"
-                          Margin="4,4,4,8" Height="28"
-                          ItemContainerStyle="{StaticResource ComboBoxItemStyle}"/>
-
-                <TextBlock Text="Номер карточки:" FontWeight="SemiBold" Margin="0,8,0,2"/>
-                <TextBox Text="{Binding CardNumber, UpdateSourceTrigger=PropertyChanged}"/>
-
-                <TextBlock Text="Начальный пробег шасси (км):" FontWeight="SemiBold" Margin="0,8,0,2"/>
-                <TextBox Text="{Binding InitialChassisMileage, StringFormat=N2, TargetNullValue=0, FallbackValue=0}"/>
-
-                <TextBlock Text="Начальный пробег двигателя (прив.) (км):" FontWeight="SemiBold" Margin="0,8,0,2"/>
-                <TextBox Text="{Binding InitialEngineMileage, StringFormat=N2, TargetNullValue=0, FallbackValue=0}"/>
-
-                <Border Background="{StaticResource PrimaryLightBrush}" CornerRadius="8" Padding="12" Margin="0,12,0,0">
-                    <TextBlock Text="Нормы расхода топлива" FontSize="14" FontWeight="Bold"
-                               Foreground="{StaticResource PrimaryBrush}"/>
-                </Border>
-
-                <TextBlock Text="Норма на пробег (л/км):" FontWeight="SemiBold" Margin="0,8,0,2"/>
-                <TextBox Text="{Binding NormPerKmWithoutPump, StringFormat=F2, TargetNullValue=0, FallbackValue=0}"/>
-
-                <TextBlock Text="Норма на пробег с насосом (л/км):" FontWeight="SemiBold" Margin="0,8,0,2"/>
-                <TextBox Text="{Binding NormPerKmWithPump, StringFormat=F2, TargetNullValue=0, FallbackValue=0}"/>
-
-                <TextBlock Text="Норма на работу насоса (л/мин):" FontWeight="SemiBold" Margin="0,8,0,2"/>
-                <TextBox Text="{Binding NormPerMinPump, StringFormat=F2, TargetNullValue=0, FallbackValue=0}"/>
-
-                <TextBlock Text="Норма холостого хода (л/мин):" FontWeight="SemiBold" Margin="0,8,0,2"/>
-                <TextBox Text="{Binding NormPerMinIdle, StringFormat=F2, TargetNullValue=0, FallbackValue=0}"/>
-
-                <TextBlock Text="Норма смены караула (л/мин):" FontWeight="SemiBold" Margin="0,8,0,2"/>
-                <TextBox Text="{Binding NormPerMinShiftChange, StringFormat=F2, TargetNullValue=0, FallbackValue=0}"/>
-
-                <TextBlock Text="Норма прочих работ (л/мин):" FontWeight="SemiBold" Margin="0,8,0,2"/>
-                <TextBox Text="{Binding NormPerMinMisc, StringFormat=F2, TargetNullValue=0, FallbackValue=0}"/>
-
-                <TextBlock Text="Коэффициент приведения (км/мин):" FontWeight="SemiBold" Margin="0,8,0,2"/>
-                <TextBox Text="{Binding ReductionCoefficient, StringFormat=F2, TargetNullValue=0, FallbackValue=0}"/>
-
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,12">
+            <!-- Buttons -->
+            <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,1,0,0" Padding="16,12">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button Content="Отмена" Command="{Binding CancelCommand}" MinWidth="100" Margin="0,0,8,0"
-                            Style="{StaticResource DangerButton}"/>
+                            Style="{StaticResource GhostButton}" Foreground="{StaticResource TextSecondaryBrush}"/>
                     <Button Content="Сохранить" MinWidth="100"
-                            Style="{StaticResource SuccessButton}" Click="SaveButton_Click"/>
+                            Style="{StaticResource PrimaryButton}" Click="SaveButton_Click"/>
                 </StackPanel>
-            </StackPanel>
-        </ScrollViewer>
+            </Border>
+
+            <!-- Content -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24,20">
+                <StackPanel>
+                    <TextBlock Text="Часть:" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <ComboBox ItemsSource="{Binding AvailableSquads}"
+                              SelectedValue="{Binding SelectedSquadId}"
+                              SelectedValuePath="Id"
+                              Margin="0,0,0,12" Height="36"
+                              ItemContainerStyle="{StaticResource ComboBoxItemStyle}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding Number}" Margin="6,0,0,0"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <TextBlock Text="Государственный знак:" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding LicensePlate, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"/>
+
+                    <TextBlock Text="Марка автомобиля:" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding Make, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"/>
+
+                    <TextBlock Text="Тип автомобиля:" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding Type, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"/>
+
+                    <TextBlock Text="Тип двигателя:" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <ComboBox ItemsSource="{Binding EngineTypes}"
+                              SelectedItem="{Binding SelectedEngineItem}"
+                              DisplayMemberPath="Name"
+                              Margin="0,0,0,12" Height="36"
+                              ItemContainerStyle="{StaticResource ComboBoxItemStyle}"/>
+
+                    <TextBlock Text="Номер карточки:" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding CardNumber, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"/>
+
+                    <TextBlock Text="Начальный пробег шасси (км):" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding InitialChassisMileage, StringFormat=N2, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,12"/>
+
+                    <TextBlock Text="Начальный пробег двигателя (прив.) (км):" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding InitialEngineMileage, StringFormat=N2, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,14"/>
+
+                    <Border Background="{StaticResource PrimaryLightBrush}" CornerRadius="8" Padding="14,10" Margin="0,0,0,14">
+                        <TextBlock Text="Нормы расхода топлива" FontSize="14" FontWeight="Bold"
+                                   Foreground="{StaticResource PrimaryBrush}"/>
+                    </Border>
+
+                    <TextBlock Text="Норма на пробег (л/км):" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding NormPerKmWithoutPump, StringFormat=F2, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,10"/>
+
+                    <TextBlock Text="Норма на пробег с насосом (л/км):" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding NormPerKmWithPump, StringFormat=F2, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,10"/>
+
+                    <TextBlock Text="Норма на работу насоса (л/мин):" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding NormPerMinPump, StringFormat=F2, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,10"/>
+
+                    <TextBlock Text="Норма холостого хода (л/мин):" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding NormPerMinIdle, StringFormat=F2, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,10"/>
+
+                    <TextBlock Text="Норма смены караула (л/мин):" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding NormPerMinShiftChange, StringFormat=F2, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,10"/>
+
+                    <TextBlock Text="Норма прочих работ (л/мин):" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding NormPerMinMisc, StringFormat=F2, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,10"/>
+
+                    <TextBlock Text="Коэффициент приведения (км/мин):" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding ReductionCoefficient, StringFormat=F2, TargetNullValue=0, FallbackValue=0}"/>
+                </StackPanel>
+            </ScrollViewer>
+        </DockPanel>
     </Border>
 </Window>

@@ -29,6 +29,21 @@ namespace AVTOKarta.Views
             }
         }
 
+        private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            DragMove();
+        }
+
+        private void CloseBtn_Click(object sender, RoutedEventArgs e)
+        {
+            DialogResult = false;
+        }
+
+        private void Overlay_Click(object sender, MouseButtonEventArgs e)
+        {
+            DialogResult = false;
+        }
+
         private void TimeInput_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
             e.Handled = !Regex.IsMatch(e.Text, "^[0-9:]$");

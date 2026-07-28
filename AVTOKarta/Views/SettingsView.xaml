@@ -25,6 +25,38 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="FormControlTextBox" TargetType="TextBox">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="10,7"/>
+            <Setter Property="MinHeight" Value="32"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource DividerBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"
+                                          Background="Transparent"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                                <Setter TargetName="Bd" Property="BorderThickness" Value="1.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -80,46 +112,32 @@
 
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="Наименование" Style="{StaticResource FormLabel}" Margin="0,0,10,0"/>
                         <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding SelectedSquad.Name, UpdateSourceTrigger=PropertyChanged}"
-                                 MinHeight="32" Padding="10,7" FontSize="13"
-                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
-                                 BorderThickness="1" VerticalContentAlignment="Center"/>
+                                 Style="{StaticResource FormControlTextBox}" HorizontalAlignment="Stretch"/>
 
                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Номер" Style="{StaticResource FormLabel}" Margin="0,0,10,0"/>
                         <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding SelectedSquad.Number, UpdateSourceTrigger=PropertyChanged}"
-                                 MinHeight="32" Padding="10,7" FontSize="13"
-                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
-                                 BorderThickness="1" VerticalContentAlignment="Center"/>
+                                 Style="{StaticResource FormControlTextBox}" HorizontalAlignment="Stretch"/>
 
                         <TextBlock Grid.Row="4" Grid.Column="0" Text="Область / регион" Style="{StaticResource FormLabel}" Margin="0,0,10,0"/>
                         <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding SelectedSquad.Region, UpdateSourceTrigger=PropertyChanged}"
-                                 MinHeight="32" Padding="10,7" FontSize="13"
-                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
-                                 BorderThickness="1" VerticalContentAlignment="Center"/>
+                                 Style="{StaticResource FormControlTextBox}" HorizontalAlignment="Stretch"/>
 
                         <TextBlock Grid.Row="6" Grid.Column="0" Text="Начальник" Style="{StaticResource FormLabel}" Margin="0,0,10,0"/>
                         <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding SelectedSquad.ChiefName, UpdateSourceTrigger=PropertyChanged}"
-                                 MinHeight="32" Padding="10,7" FontSize="13"
-                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
-                                 BorderThickness="1" VerticalContentAlignment="Center"/>
+                                 Style="{StaticResource FormControlTextBox}" HorizontalAlignment="Stretch"/>
 
                         <TextBlock Grid.Row="8" Grid.Column="0" Text="Ст. водитель" Style="{StaticResource FormLabel}" Margin="0,0,10,0"/>
                         <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding SelectedSquad.SeniorDriverName, UpdateSourceTrigger=PropertyChanged}"
-                                 MinHeight="32" Padding="10,7" FontSize="13"
-                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
-                                 BorderThickness="1" VerticalContentAlignment="Center"/>
+                                 Style="{StaticResource FormControlTextBox}" HorizontalAlignment="Stretch"/>
 
                         <TextBlock Grid.Row="10" Grid.Column="0" Text="Телефон" Style="{StaticResource FormLabel}" Margin="0,0,10,0"/>
                         <TextBox Grid.Row="10" Grid.Column="1" Text="{Binding SelectedSquad.Phone, UpdateSourceTrigger=PropertyChanged}"
-                                 MinHeight="32" Padding="10,7" FontSize="13"
-                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
-                                 BorderThickness="1" VerticalContentAlignment="Center"
+                                 Style="{StaticResource FormControlTextBox}" HorizontalAlignment="Stretch"
                                  helpers:PhoneHelper.EnablePhoneFormat="True" MaxLength="18"/>
 
                         <TextBlock Grid.Row="12" Grid.Column="0" Text="Адрес" Style="{StaticResource FormLabel}" Margin="0,0,10,0"/>
                         <TextBox Grid.Row="12" Grid.Column="1" Text="{Binding SelectedSquad.Address, UpdateSourceTrigger=PropertyChanged}"
-                                 MinHeight="32" Padding="10,7" FontSize="13"
-                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
-                                 BorderThickness="1" VerticalContentAlignment="Center"/>
+                                 Style="{StaticResource FormControlTextBox}" HorizontalAlignment="Stretch"/>
                     </Grid>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">

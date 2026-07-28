@@ -25,6 +25,7 @@ namespace AVTOKarta.ViewModels
         private string _returnTimeText;
         private double _odometerBeforeDeparture;
         private double _distanceKm;
+        private double _previousOdometer;
         private double _timeWithPumpMinutes;
         private double _timeWithoutPumpMinutes;
         private double _shiftChangeMinutes;
@@ -46,10 +47,11 @@ namespace AVTOKarta.ViewModels
         public DailyRecord EditingRecord { get; }
         public bool? DialogResult { get; private set; }
 
-        public CardViewModel(DailyRecord record, FuelNorm fuelNorms, List<string> driverNames = null)
+        public CardViewModel(DailyRecord record, FuelNorm fuelNorms, List<string> driverNames = null, double previousOdometer = 0)
         {
             EditingRecord = record;
             _fuelNorms = fuelNorms;
+            _previousOdometer = previousOdometer;
 
             _date = record.Date;
             _workDescription = record.WorkDescription;
@@ -137,12 +139,18 @@ namespace AVTOKarta.ViewModels
             set { SetProperty(ref _odometerBeforeDeparture, value); }
         }
 
+        public double PreviousOdometer
+        {
+            get { return _previousOdometer; }
+        }
+
         public double DistanceKm
         {
             get { return _distanceKm; }
             set
             {
                 SetProperty(ref _distanceKm, value);
+                OdometerBeforeDeparture = _previousOdometer;
                 RecalculateNorm();
             }
         }

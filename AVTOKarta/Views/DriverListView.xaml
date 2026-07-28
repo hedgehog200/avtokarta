@@ -167,7 +167,7 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Border Background="{StaticResource SuccessBrush}" CornerRadius="6"
+                                <Border Background="{StaticResource PrimaryBrush}" CornerRadius="6"
                                         Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="История поездок" FontSize="15" FontWeight="Bold"
                                            Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>

@@ -83,34 +83,19 @@
                         </Grid.RowDefinitions>
 
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="Наименование части" Style="{StaticResource FormLabel}" Margin="0,0,10,0"/>
-                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
-                                 MinHeight="32" Padding="10,7" FontSize="13"
-                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
-                                 BorderThickness="1" VerticalContentAlignment="Center"/>
+                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
 
                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Номер части" Style="{StaticResource FormLabel}" Margin="0,0,10,0"/>
-                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Number, UpdateSourceTrigger=PropertyChanged}"
-                                 MinHeight="32" Padding="10,7" FontSize="13"
-                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
-                                 BorderThickness="1" VerticalContentAlignment="Center"/>
+                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Number, UpdateSourceTrigger=PropertyChanged}"/>
 
                         <TextBlock Grid.Row="4" Grid.Column="0" Text="Номер отряда" Style="{StaticResource FormLabel}" Margin="0,0,10,0"/>
-                        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding CrewNumber, UpdateSourceTrigger=PropertyChanged}"
-                                 MinHeight="32" Padding="10,7" FontSize="13"
-                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
-                                 BorderThickness="1" VerticalContentAlignment="Center"/>
+                        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding CrewNumber, UpdateSourceTrigger=PropertyChanged}"/>
 
                         <TextBlock Grid.Row="6" Grid.Column="0" Text="Область / регион" Style="{StaticResource FormLabel}" Margin="0,0,10,0"/>
-                        <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding Region, UpdateSourceTrigger=PropertyChanged}"
-                                 MinHeight="32" Padding="10,7" FontSize="13"
-                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
-                                 BorderThickness="1" VerticalContentAlignment="Center"/>
+                        <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding Region, UpdateSourceTrigger=PropertyChanged}"/>
 
                         <TextBlock Grid.Row="8" Grid.Column="0" Text="Адрес расположения" Style="{StaticResource FormLabel}" Margin="0,0,10,0"/>
-                        <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding Address, UpdateSourceTrigger=PropertyChanged}"
-                                 MinHeight="32" Padding="10,7" FontSize="13"
-                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
-                                 BorderThickness="1" VerticalContentAlignment="Center"/>
+                        <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding Address, UpdateSourceTrigger=PropertyChanged}"/>
                     </Grid>
 
                     <Grid Margin="0,10,0,0">
@@ -123,14 +108,10 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="Начальник части" Style="{StaticResource FormLabel}" Margin="0,0,8,0"/>
                         <TextBox Grid.Column="1" Text="{Binding ChiefName, UpdateSourceTrigger=PropertyChanged}"
-                                 MinHeight="32" Padding="10,7" FontSize="13"
-                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
-                                 BorderThickness="1" VerticalContentAlignment="Center" HorizontalAlignment="Stretch"/>
+                                 HorizontalAlignment="Stretch"/>
                         <TextBlock Grid.Column="3" Text="Ст. водитель" Style="{StaticResource FormLabel}" Margin="0,0,8,0"/>
                         <TextBox Grid.Column="4" Text="{Binding SeniorDriverName, UpdateSourceTrigger=PropertyChanged}"
-                                 MinHeight="32" Padding="10,7" FontSize="13"
-                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
-                                 BorderThickness="1" VerticalContentAlignment="Center" HorizontalAlignment="Stretch"/>
+                                 HorizontalAlignment="Stretch"/>
                     </Grid>
 
                     <Grid Margin="0,10,0,0">
@@ -140,9 +121,6 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="Телефон" Style="{StaticResource FormLabel}" Margin="0,0,10,0"/>
                         <TextBox Grid.Column="1" Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}"
-                                 MinHeight="32" Padding="10,7" FontSize="13"
-                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource DividerBrush}"
-                                 BorderThickness="1" VerticalContentAlignment="Center"
                                  helpers:PhoneHelper.EnablePhoneFormat="True" MaxLength="18"/>
                     </Grid>
                 </StackPanel>
@@ -171,23 +149,10 @@
             <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,6,0,0">
                 <Button Content="Отмена" Command="{Binding CancelCommand}"
                         Margin="0,0,8,0" FontSize="13" MinWidth="0" Padding="16,8"
-                        Style="{StaticResource DangerButton}"/>
+                        Style="{StaticResource GhostButton}" Foreground="{StaticResource TextSecondaryBrush}"/>
                 <Button Content="Сохранить" Click="SaveButton_Click"
-                        Margin="4" FontSize="13" MinWidth="0" Padding="16,8">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="border" Background="{StaticResource SuccessBrush}"
-                                    CornerRadius="8" Padding="{TemplateBinding Padding}">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="border" Property="Background" Value="#2E7D32"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
+                        Margin="4" FontSize="13" MinWidth="0" Padding="16,8"
+                        Style="{StaticResource PrimaryButton}"/>
             </StackPanel>
         </Grid>
     </ScrollViewer>

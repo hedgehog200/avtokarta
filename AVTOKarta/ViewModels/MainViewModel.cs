@@ -52,6 +52,7 @@ namespace AVTOKarta.ViewModels
         private double _totalNorm;
         private double _savings;
         private double _overspend;
+        private double _reducedMileage;
         private Visibility _savingsVisibility = Visibility.Collapsed;
         private Visibility _overspendVisibility = Visibility.Collapsed;
         private DailyRecord _selectedRecord;
@@ -59,6 +60,7 @@ namespace AVTOKarta.ViewModels
         private ObservableCollection<CardHistoryItem> _cardHistory;
         private CardHistoryItem _selectedCardHistoryItem;
         private int _deliveryTypeIndex;
+        private int _currentScreenIndex = -1;
 
         public RelayCommand SquadSetupCommand { get; }
         public RelayCommand SquadListCommand { get; }
@@ -443,9 +445,8 @@ namespace AVTOKarta.ViewModels
         {
             get
             {
-                if (_selectedSquad == null || string.IsNullOrWhiteSpace(_selectedSquad.Number))
-                    return string.Empty;
-                return "№ " + _selectedSquad.Number;
+                if (_selectedSquad == null) return string.Empty;
+                return _selectedSquad.Number;
             }
         }
 
@@ -474,6 +475,12 @@ namespace AVTOKarta.ViewModels
                 if (CurrentCard != null)
                     CurrentCard.DeliveryType = (FuelDeliveryType)value;
             }
+        }
+
+        public int CurrentScreenIndex
+        {
+            get { return _currentScreenIndex; }
+            set { SetProperty(ref _currentScreenIndex, value); }
         }
 
         public string CurrentMonthYear
@@ -546,6 +553,12 @@ namespace AVTOKarta.ViewModels
             set { SetProperty(ref _overspendVisibility, value); }
         }
 
+        public double ReducedMileage
+        {
+            get { return _reducedMileage; }
+            set { SetProperty(ref _reducedMileage, value); }
+        }
+
         private void ShowSetup()
         {
             IsSetupMode = true;
@@ -568,6 +581,7 @@ namespace AVTOKarta.ViewModels
             IsFuelReportMode = false;
             IsWarehouseMode = false;
             IsDriverListMode = false;
+            CurrentScreenIndex = 0;
         }
 
         private void ShowVehicles()
@@ -580,6 +594,7 @@ namespace AVTOKarta.ViewModels
             IsFuelReportMode = false;
             IsWarehouseMode = false;
             IsDriverListMode = false;
+            CurrentScreenIndex = 2;
         }
 
         private void ShowCards()
@@ -592,6 +607,7 @@ namespace AVTOKarta.ViewModels
             IsFuelReportMode = false;
             IsWarehouseMode = false;
             IsDriverListMode = false;
+            CurrentScreenIndex = 3;
 
             if (CardVehicle == null)
             {
@@ -622,6 +638,7 @@ namespace AVTOKarta.ViewModels
             IsFuelReportMode = false;
             IsWarehouseMode = false;
             IsDriverListMode = false;
+            CurrentScreenIndex = 3;
         }
 
         private void ShowFuelReport()
@@ -634,6 +651,7 @@ namespace AVTOKarta.ViewModels
             IsFuelReportMode = true;
             IsWarehouseMode = false;
             IsDriverListMode = false;
+            CurrentScreenIndex = 6;
         }
 
         private void ShowWarehouse()
@@ -646,6 +664,7 @@ namespace AVTOKarta.ViewModels
             IsFuelReportMode = false;
             IsWarehouseMode = true;
             IsDriverListMode = false;
+            CurrentScreenIndex = 4;
 
             if (_dataService != null && _selectedSquad != null)
             {
@@ -668,6 +687,7 @@ namespace AVTOKarta.ViewModels
             IsFuelReportMode = false;
             IsWarehouseMode = false;
             IsDriverListMode = true;
+            CurrentScreenIndex = 1;
 
             if (_dataService != null)
             {
@@ -884,9 +904,7 @@ namespace AVTOKarta.ViewModels
                 {
                     VehicleLicensePlate = vehicle.LicensePlate,
                     Month = monthName,
-                    Year = _selectedYear,
-                    ChassisMileageOnFirst = GetPreviousMileage(vehicle, _selectedYear, _selectedMonthIndex, true),
-                    EngineMileageOnFirst = GetPreviousMileage(vehicle, _selectedYear, _selectedMonthIndex, false)
+                    Year = _selectedYear
                 };
                 _deliveryTypeIndex = 0;
                 OnPropertyChanged("DeliveryTypeIndex");
@@ -897,6 +915,9 @@ namespace AVTOKarta.ViewModels
                 _deliveryTypeIndex = (int)CurrentCard.DeliveryType;
                 OnPropertyChanged("DeliveryTypeIndex");
             }
+
+            CurrentCard.ChassisMileageOnFirst = GetPreviousMileage(vehicle, _selectedYear, _selectedMonthIndex, true);
+            CurrentCard.EngineMileageOnFirst = GetPreviousMileage(vehicle, _selectedYear, _selectedMonthIndex, false);
 
             Records.Clear();
             foreach (var rec in CurrentCard.Records)
@@ -927,7 +948,7 @@ namespace AVTOKarta.ViewModels
                 if (isChassis)
                     return lastRecord.OdometerBeforeDeparture + lastRecord.DistanceKm;
                 else
-                    return lastRecord.OdometerBeforeDeparture + lastRecord.DistanceKm;
+                    return prevCard.EngineMileageOnFirst + CalculationService.CalculateReductionMileage(prevCard.Records, vehicle.FuelNorms.ReductionCoefficient);
             }
 
             return isChassis ? vehicle.InitialChassisMileage : vehicle.InitialEngineMileage;
@@ -971,6 +992,7 @@ namespace AVTOKarta.ViewModels
 
             try
             {
+                RecalculateOdometersFromFirst();
                 CurrentCard.Records = new List<DailyRecord>(Records);
                 if (SelectedVehicle != null)
                     CalculationService.RecalculateAllRecords(CurrentCard, SelectedVehicle.FuelNorms);
@@ -1267,24 +1289,58 @@ namespace AVTOKarta.ViewModels
             }
         }
 
+        private double CalculatePreviousOdometer()
+        {
+            if (Records.Count > 0)
+            {
+                var lastRecord = Records[Records.Count - 1];
+                return lastRecord.OdometerBeforeDeparture + lastRecord.DistanceKm;
+            }
+
+            if (CurrentCard != null)
+            {
+                return CurrentCard.ChassisMileageOnFirst;
+            }
+
+            return 0;
+        }
+
+        private void RecalculateOdometersFromFirst()
+        {
+            if (CurrentCard == null || Records == null || Records.Count == 0) return;
+
+            double odometer = CurrentCard.ChassisMileageOnFirst;
+            foreach (var record in Records)
+            {
+                record.OdometerBeforeDeparture = odometer;
+                odometer += record.DistanceKm;
+            }
+            OnPropertyChanged("CurrentCard");
+        }
+
         private void AddRecord()
         {
             if (CurrentCard == null) return;
+
+            var prevOdometer = CalculatePreviousOdometer();
 
             var record = new DailyRecord
             {
                 Id = Records.Count + 1,
                 Date = new DateTime(CurrentCard.Year, DateTimeHelper.GetMonthIndex(CurrentCard.Month) + 1, 1),
-                TripSheetNumber = Records.Count + 1
+                TripSheetNumber = Records.Count + 1,
+                OdometerBeforeDeparture = prevOdometer,
+                SquadNumber = ""
             };
 
             record.NormConsumption = CalculationService.CalculateNormConsumption(record, SelectedVehicle.FuelNorms);
             record.ActualConsumption = record.NormConsumption;
-            var vm = new CardViewModel(record, SelectedVehicle.FuelNorms, _dataService?.LoadDrivers().Select(d => d.FullName).OrderBy(n => n).ToList());
+            var vm = new CardViewModel(record, SelectedVehicle.FuelNorms, _dataService?.LoadDrivers().Select(d => d.FullName).OrderBy(n => n).ToList(), prevOdometer);
             var dialog = new Views.CardEditView { DataContext = vm };
             if (dialog.ShowDialog() == true)
             {
                 record.NormConsumption = CalculationService.CalculateNormConsumption(record, SelectedVehicle.FuelNorms);
+                record.ActualConsumption = record.NormConsumption;
                 Records.Add(record);
                 CurrentCard.Records = new List<DailyRecord>(Records);
                 UpdateTotals();
@@ -1297,11 +1353,23 @@ namespace AVTOKarta.ViewModels
         {
             if (SelectedRecord == null || CurrentCard == null) return;
 
-            var vm = new CardViewModel(SelectedRecord, SelectedVehicle.FuelNorms, _dataService?.LoadDrivers().Select(d => d.FullName).OrderBy(n => n).ToList());
+            double prevOdometer = 0;
+            int idx = Records.IndexOf(SelectedRecord);
+            if (idx > 0)
+            {
+                prevOdometer = Records[idx - 1].OdometerBeforeDeparture + Records[idx - 1].DistanceKm;
+            }
+            else
+            {
+                prevOdometer = CalculatePreviousOdometer();
+            }
+
+            var vm = new CardViewModel(SelectedRecord, SelectedVehicle.FuelNorms, _dataService?.LoadDrivers().Select(d => d.FullName).OrderBy(n => n).ToList(), prevOdometer);
             var dialog = new Views.CardEditView { DataContext = vm };
             if (dialog.ShowDialog() == true)
             {
                 SelectedRecord.NormConsumption = CalculationService.CalculateNormConsumption(SelectedRecord, SelectedVehicle.FuelNorms);
+                SelectedRecord.ActualConsumption = SelectedRecord.NormConsumption;
                 CurrentCard.Records = new List<DailyRecord>(Records);
                 UpdateTotals();
                 SaveCard();
@@ -1359,6 +1427,7 @@ namespace AVTOKarta.ViewModels
                 TotalNorm = 0;
                 Savings = 0;
                 Overspend = 0;
+                ReducedMileage = 0;
                 SavingsVisibility = Visibility.Collapsed;
                 OverspendVisibility = Visibility.Collapsed;
                 return;
@@ -1370,6 +1439,7 @@ namespace AVTOKarta.ViewModels
                 TotalNorm = 0;
                 Savings = 0;
                 Overspend = 0;
+                ReducedMileage = 0;
                 SavingsVisibility = Visibility.Collapsed;
                 OverspendVisibility = Visibility.Collapsed;
                 CurrentCard.FuelRemainingOnLast = CurrentCard.FuelRemainingOnFirst + CurrentCard.FuelRefueledMonth;
@@ -1379,14 +1449,22 @@ namespace AVTOKarta.ViewModels
 
             TotalActual = 0;
             TotalNorm = 0;
+            double totalKm = 0;
+            double totalShiftMisc = 0;
             foreach (var r in Records)
             {
                 TotalActual += r.ActualConsumption;
                 TotalNorm += r.NormConsumption;
+                totalKm += r.DistanceKm;
+                totalShiftMisc += r.ShiftChangeMinutes + r.MiscWorkMinutes;
             }
 
             CurrentCard.FuelRemainingOnLast = Math.Round(
                 CurrentCard.FuelRemainingOnFirst + CurrentCard.FuelRefueledMonth - TotalActual, 3);
+
+            double coefficient = SelectedVehicle != null && SelectedVehicle.FuelNorms != null
+                ? SelectedVehicle.FuelNorms.ReductionCoefficient : 0.35;
+            ReducedMileage = Math.Round(totalKm + totalShiftMisc * coefficient, 0);
 
             Savings = CalculationService.CalculateSavings(TotalActual, TotalNorm);
             Overspend = CalculationService.CalculateOverspend(TotalActual, TotalNorm);

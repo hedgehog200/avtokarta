@@ -11,3 +11,9 @@ page_setup_dump.ps1
 title_dump.txt
 nuget.exe
 AVTOKarta_setup.iss
+.serena/
+Output/
+*.zip
+*.xlsx
+opencode.json
+пароль.txt

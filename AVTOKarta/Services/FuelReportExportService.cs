@@ -774,17 +774,6 @@ namespace AVTOKarta.Services
             SetFormula(ws, row, 20, string.Format("=R{0}-S{0}", row), fontSize: 10);
             row++;
 
-            // СЖ (сжигаемое жидкое топливо)
-            SetCell(ws, row, 1, "СЖ", wrap: true);
-            SetCell(ws, row, 2, "л.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            row += 2;
-
-            // ТС-1 (керосин)
-            SetCell(ws, row, 1, "ТС-1 (керосин)", wrap: true);
-            SetCell(ws, row, 2, "л.", hAlign: XLAlignmentHorizontalValues.Center);
-            row += 2;
-
-            // МиС Всего
             var allMotorBrands = new List<string>();
             var allTransBrands = new List<string>();
             var allSpecBrands = new List<string>();
@@ -804,97 +793,105 @@ namespace AVTOKarta.Services
 
             double oilStart = allData.Sum(v => v.TotalMotorOil + v.TotalTransOil);
             double oilConsumed = allData.Sum(v => v.TotalMotorOil);
-
-            SetCell(ws, row, 1, "МиС Всего", wrap: true);
-            SetCell(ws, row, 2, "л.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            SetCellNum(ws, row, 3, oilStart, fontSize: 10);
-            SetFormula(ws, row, 12, string.Format("=SUM(M{0}:M{1})", row + 1, row + allMotorBrands.Count + allTransBrands.Count + allSpecBrands.Count + 4), fontSize: 10);
-            SetCellNum(ws, row, 13, oilConsumed, fontSize: 10);
-            SetFormula(ws, row, 17, string.Format("=C{0}-M{0}", row), fontSize: 10);
-            SetFormula(ws, row, 18, string.Format("=Q{0}", row), fontSize: 10);
-            SetFormula(ws, row, 20, string.Format("=Q{0}", row), fontSize: 10);
-            int misRow = row;
-            row++;
-
-            foreach (var brand in allMotorBrands)
-            {
-                double consumed = CalculateBrandConsumption(allData, OilType.MotorOil, brand);
-                SetCell(ws, row, 1, brand, wrap: true);
-                SetCell(ws, row, 2, "л.", hAlign: XLAlignmentHorizontalValues.Center);
-                if (consumed > 0)
-                {
-                    SetCellNum(ws, row, 13, consumed, fontSize: 10);
-                }
-                row++;
-            }
-
-            foreach (var brand in allTransBrands)
-            {
-                double consumed = CalculateBrandConsumption(allData, OilType.TransmissionOil, brand);
-                SetCell(ws, row, 1, brand, wrap: true);
-                SetCell(ws, row, 2, "л.", hAlign: XLAlignmentHorizontalValues.Center);
-                if (consumed > 0)
-                {
-                    SetCellNum(ws, row, 13, consumed, fontSize: 10);
-                }
-                row++;
-            }
-
-            // специальные масла и жидкости
             double specConsumed = allData.Sum(v => v.TotalSpecLiquid);
-            SetCell(ws, row, 1, "специальные масла и жидкости", wrap: true);
-            SetCell(ws, row, 2, "л.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            SetCellNum(ws, row, 3, 0, fontSize: 10);
-            SetCellNum(ws, row, 5, whSpecLiquid, fontSize: 10);
-            SetFormula(ws, row, 4, string.Format("=SUM(E{0}:J{0})", row), fontSize: 10);
-            SetCellNum(ws, row, 12, specConsumed, fontSize: 10);
-            SetCellNum(ws, row, 13, specConsumed, fontSize: 10);
-            SetFormula(ws, row, 17, string.Format("=C{0}+D{0}-M{0}", row), fontSize: 10);
-            SetCellNum(ws, row, 20, 0, fontSize: 10);
-            row++;
+            double plasticTotal = allData.Sum(v => v.TotalPlasticLub);
+            bool hasMisData = allMotorBrands.Count > 0 || allTransBrands.Count > 0 || oilStart > 0 || oilConsumed > 0;
+            bool hasSpecData = allSpecBrands.Count > 0 || specConsumed > 0 || whSpecLiquid > 0;
+            bool hasPlasticData = allPlasticBrands.Count > 0 || plasticTotal > 0;
 
-            // РАЗДОТ
-            SetCell(ws, row, 1, "РАЗДОТ", wrap: true);
-            SetCell(ws, row, 2, "кг.", hAlign: XLAlignmentHorizontalValues.Center);
-            row++;
-
-            foreach (var brand in allSpecBrands)
+            if (hasMisData)
             {
-                double consumed = CalculateBrandConsumption(allData, OilType.SpecialLiquid, brand);
-                double brandWh = 0;
-                whSpecByBrand.TryGetValue(brand, out brandWh);
-                SetCell(ws, row, 1, brand, wrap: true);
-                SetCell(ws, row, 2, "кг.", hAlign: XLAlignmentHorizontalValues.Center);
-                if (consumed > 0 || brandWh > 0)
-                {
-                    SetCellNum(ws, row, 3, 0, fontSize: 10);
-                    SetCellNum(ws, row, 5, brandWh, fontSize: 10);
-                    SetFormula(ws, row, 4, string.Format("=SUM(E{0}:J{0})", row), fontSize: 10);
-                    SetCellNum(ws, row, 12, consumed, fontSize: 10);
-                    SetCellNum(ws, row, 13, consumed, fontSize: 10);
-                    SetFormula(ws, row, 17, string.Format("=C{0}+D{0}-M{0}", row), fontSize: 10);
-                    SetFormula(ws, row, 18, string.Format("=Q{0}", row), fontSize: 10);
-                    SetFormula(ws, row, 20, string.Format("=Q{0}", row), fontSize: 10);
-                }
+                SetCell(ws, row, 1, "МиС Всего", wrap: true);
+                SetCell(ws, row, 2, "л.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+                SetCellNum(ws, row, 3, oilStart, fontSize: 10);
+                SetFormula(ws, row, 12, string.Format("=SUM(M{0}:M{1})", row + 1, row + allMotorBrands.Count + allTransBrands.Count + allSpecBrands.Count + 4), fontSize: 10);
+                SetCellNum(ws, row, 13, oilConsumed, fontSize: 10);
+                SetFormula(ws, row, 17, string.Format("=C{0}-M{0}", row), fontSize: 10);
+                SetFormula(ws, row, 18, string.Format("=Q{0}", row), fontSize: 10);
+                SetFormula(ws, row, 20, string.Format("=Q{0}", row), fontSize: 10);
                 row++;
+
+                foreach (var brand in allMotorBrands)
+                {
+                    double consumed = CalculateBrandConsumption(allData, OilType.MotorOil, brand);
+                    SetCell(ws, row, 1, brand, wrap: true);
+                    SetCell(ws, row, 2, "л.", hAlign: XLAlignmentHorizontalValues.Center);
+                    if (consumed > 0)
+                    {
+                        SetCellNum(ws, row, 13, consumed, fontSize: 10);
+                    }
+                    row++;
+                }
+
+                foreach (var brand in allTransBrands)
+                {
+                    double consumed = CalculateBrandConsumption(allData, OilType.TransmissionOil, brand);
+                    SetCell(ws, row, 1, brand, wrap: true);
+                    SetCell(ws, row, 2, "л.", hAlign: XLAlignmentHorizontalValues.Center);
+                    if (consumed > 0)
+                    {
+                        SetCellNum(ws, row, 13, consumed, fontSize: 10);
+                    }
+                    row++;
+                }
             }
 
-            SetCell(ws, row, 1, "Масло компрессорное", wrap: true);
-            SetCell(ws, row, 2, "л.", hAlign: XLAlignmentHorizontalValues.Center);
-            row++;
-
-            double plasticTotal = allData.Sum(v => v.TotalPlasticLub);
-
-            foreach (var brand in allPlasticBrands)
+            if (hasSpecData)
             {
-                double consumed = CalculateBrandConsumption(allData, OilType.PlasticLubricant, brand);
-                SetCell(ws, row, 1, brand, wrap: true);
-                SetCell(ws, row, 2, "кг.", hAlign: XLAlignmentHorizontalValues.Center);
-                if (consumed > 0)
-                {
-                    SetCellNum(ws, row, 17, consumed, fontSize: 10);
-                }
+                SetCell(ws, row, 1, "специальные масла и жидкости", wrap: true);
+                SetCell(ws, row, 2, "л.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+                SetCellNum(ws, row, 3, 0, fontSize: 10);
+                SetCellNum(ws, row, 5, whSpecLiquid, fontSize: 10);
+                SetFormula(ws, row, 4, string.Format("=SUM(E{0}:J{0})", row), fontSize: 10);
+                SetCellNum(ws, row, 12, specConsumed, fontSize: 10);
+                SetCellNum(ws, row, 13, specConsumed, fontSize: 10);
+                SetFormula(ws, row, 17, string.Format("=C{0}+D{0}-M{0}", row), fontSize: 10);
+                SetCellNum(ws, row, 20, 0, fontSize: 10);
                 row++;
+
+                SetCell(ws, row, 1, "РАЗДОТ", wrap: true);
+                SetCell(ws, row, 2, "кг.", hAlign: XLAlignmentHorizontalValues.Center);
+                row++;
+
+                foreach (var brand in allSpecBrands)
+                {
+                    double consumed = CalculateBrandConsumption(allData, OilType.SpecialLiquid, brand);
+                    double brandWh = 0;
+                    whSpecByBrand.TryGetValue(brand, out brandWh);
+                    SetCell(ws, row, 1, brand, wrap: true);
+                    SetCell(ws, row, 2, "кг.", hAlign: XLAlignmentHorizontalValues.Center);
+                    if (consumed > 0 || brandWh > 0)
+                    {
+                        SetCellNum(ws, row, 3, 0, fontSize: 10);
+                        SetCellNum(ws, row, 5, brandWh, fontSize: 10);
+                        SetFormula(ws, row, 4, string.Format("=SUM(E{0}:J{0})", row), fontSize: 10);
+                        SetCellNum(ws, row, 12, consumed, fontSize: 10);
+                        SetCellNum(ws, row, 13, consumed, fontSize: 10);
+                        SetFormula(ws, row, 17, string.Format("=C{0}+D{0}-M{0}", row), fontSize: 10);
+                        SetFormula(ws, row, 18, string.Format("=Q{0}", row), fontSize: 10);
+                        SetFormula(ws, row, 20, string.Format("=Q{0}", row), fontSize: 10);
+                    }
+                    row++;
+                }
+            }
+
+            if (hasPlasticData)
+            {
+                SetCell(ws, row, 1, "Масло компрессорное", wrap: true);
+                SetCell(ws, row, 2, "л.", hAlign: XLAlignmentHorizontalValues.Center);
+                row++;
+
+                foreach (var brand in allPlasticBrands)
+                {
+                    double consumed = CalculateBrandConsumption(allData, OilType.PlasticLubricant, brand);
+                    SetCell(ws, row, 1, brand, wrap: true);
+                    SetCell(ws, row, 2, "кг.", hAlign: XLAlignmentHorizontalValues.Center);
+                    if (consumed > 0)
+                    {
+                        SetCellNum(ws, row, 17, consumed, fontSize: 10);
+                    }
+                    row++;
+                }
             }
 
             var dataRange = ws.Range(14, 1, row - 1, 20);

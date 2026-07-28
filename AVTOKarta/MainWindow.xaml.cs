@@ -1,144 +1,89 @@
-﻿// Copyright (c) 2026 WebARTup - Studio: Technologies
-// Все права защищены. Использование без лицензии запрещено.
-// Лицензия: см. файл LICENSE в корне проекта.
-
-using System;
+﻿using System;
+using System.ComponentModel;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Threading;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 using AVTOKarta.ViewModels;
 
 namespace AVTOKarta
 {
     public partial class MainWindow : Window
     {
-        private bool _isSidebarCollapsed;
-        private const double SidebarExpandedWidth = 220;
-        private const double SidebarCollapsedWidth = 56;
-        private const int AnimationSteps = 12;
-        private const int AnimationIntervalMs = 16;
-        private DispatcherTimer _sidebarAnimationTimer;
-
-        private TextBlock[] _navLabels;
-        private Button[] _navButtons;
-        private UIElement[] _collapsibleElements;
-        private UIElement[] _dividers;
+        private bool _isDrawerOpen;
 
         public MainWindow()
         {
             InitializeComponent();
             DataContext = new MainViewModel();
 
-            _navLabels = new TextBlock[] { NavLabel1, NavLabel2, NavLabel3, NavLabel4, NavLabel5, NavLabel6, NavLabel7, NavLabel8, NavLabel9, NavLabel10 };
-            _navButtons = new Button[] { NavBtn1, NavBtn2, NavBtn3, NavBtn4, NavBtn5, NavBtn6, NavBtn7, NavBtn8, NavBtn9, NavBtn10 };
-            _collapsibleElements = new UIElement[] { SidebarLogo, SidebarSquadSelector, SidebarSquadInfo, SidebarNavLabel, SidebarDataLabel };
-            _dividers = new UIElement[] { SidebarDivider1, SidebarDivider2 };
+            ((MainViewModel)DataContext).PropertyChanged += OnViewModelPropertyChanged;
 
-            CollapseSidebarImmediate();
+            DrawerPanel.RenderTransform = new TranslateTransform(-280, 0);
         }
 
-        private void CollapseSidebarImmediate()
+        private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            _isSidebarCollapsed = true;
-
-            foreach (var el in _collapsibleElements)
-                el.Visibility = Visibility.Collapsed;
-            foreach (var d in _dividers)
-                d.Visibility = Visibility.Collapsed;
-            foreach (var label in _navLabels)
-                label.Visibility = Visibility.Collapsed;
-
-            foreach (var btn in _navButtons)
+            if (e.PropertyName == "CurrentScreenIndex")
             {
-                btn.Padding = new Thickness(0, 8, 0, 8);
-                btn.Margin = new Thickness(6, 2, 6, 2);
-                btn.HorizontalContentAlignment = HorizontalAlignment.Center;
+                var vm = (MainViewModel)DataContext;
+                UpdateActiveNavButton(vm.CurrentScreenIndex);
             }
-
-            SidebarNavLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            SidebarDataLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            SidebarColumn.Width = new GridLength(SidebarCollapsedWidth);
         }
 
-        private void ToggleSidebar_Click(object sender, RoutedEventArgs e)
+        private void UpdateActiveNavButton(int screenIndex)
         {
-            _isSidebarCollapsed = !_isSidebarCollapsed;
-            double targetWidth = _isSidebarCollapsed ? SidebarCollapsedWidth : SidebarExpandedWidth;
+        }
 
-            SidebarToggleIcon.Text = _isSidebarCollapsed ? "\u2630" : "\u2716";
+        private void BurgerBtn_Click(object sender, RoutedEventArgs e)
+        {
+            ToggleDrawer();
+        }
 
-            bool showLabels = !_isSidebarCollapsed;
+        private void OverlayBackdrop_Click(object sender, MouseButtonEventArgs e)
+        {
+            CloseDrawer();
+        }
 
-            foreach (var el in _collapsibleElements)
-                el.Visibility = showLabels ? Visibility.Visible : Visibility.Collapsed;
-
-            foreach (var d in _dividers)
-                d.Visibility = showLabels ? Visibility.Visible : Visibility.Collapsed;
-
-            foreach (var label in _navLabels)
-                label.Visibility = showLabels ? Visibility.Visible : Visibility.Collapsed;
-
-            foreach (var btn in _navButtons)
-            {
-                if (showLabels)
-                {
-                    btn.Padding = new Thickness(14, 10, 14, 10);
-                    btn.Margin = new Thickness(6, 2, 6, 2);
-                    btn.HorizontalContentAlignment = HorizontalAlignment.Left;
-                }
-                else
-                {
-                    btn.Padding = new Thickness(0, 10, 0, 10);
-                    btn.Margin = new Thickness(6, 2, 6, 2);
-                    btn.HorizontalContentAlignment = HorizontalAlignment.Center;
-                }
-            }
-
-            if (showLabels)
-            {
-                SidebarNavLabel.HorizontalAlignment = HorizontalAlignment.Left;
-                SidebarDataLabel.HorizontalAlignment = HorizontalAlignment.Left;
-            }
+        private void ToggleDrawer()
+        {
+            if (_isDrawerOpen)
+                CloseDrawer();
             else
-            {
-                SidebarNavLabel.HorizontalAlignment = HorizontalAlignment.Center;
-                SidebarDataLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            }
-
-            StartSidebarAnimation(targetWidth);
+                OpenDrawer();
         }
 
-        private void StartSidebarAnimation(double targetWidth)
+        private void OpenDrawer()
         {
-            if (_sidebarAnimationTimer != null && _sidebarAnimationTimer.IsEnabled)
-                _sidebarAnimationTimer.Stop();
+            _isDrawerOpen = true;
+            BurgerOverlay.Visibility = Visibility.Visible;
 
-            double startWidth = SidebarColumn.Width.Value;
-            double diff = targetWidth - startWidth;
-            double step = diff / AnimationSteps;
-            int frame = 0;
+            var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200));
+            OverlayBackdrop.BeginAnimation(OpacityProperty, fadeIn);
 
-            _sidebarAnimationTimer = new DispatcherTimer
+            var slideIn = new DoubleAnimation(-280, 0, TimeSpan.FromMilliseconds(250))
             {
-                Interval = TimeSpan.FromMilliseconds(AnimationIntervalMs)
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
             };
+            DrawerPanel.RenderTransform.BeginAnimation(TranslateTransform.XProperty, slideIn);
+        }
 
-            _sidebarAnimationTimer.Tick += (s, args) =>
+        private void CloseDrawer()
+        {
+            _isDrawerOpen = false;
+
+            var slideOut = new DoubleAnimation(0, -280, TimeSpan.FromMilliseconds(200))
             {
-                frame++;
-                if (frame >= AnimationSteps)
-                {
-                    SidebarColumn.Width = new GridLength(targetWidth);
-                    _sidebarAnimationTimer.Stop();
-                }
-                else
-                {
-                    SidebarColumn.Width = new GridLength(startWidth + step * frame);
-                }
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
             };
+            slideOut.Completed += (s, e) =>
+            {
+                BurgerOverlay.Visibility = Visibility.Collapsed;
+            };
+            DrawerPanel.RenderTransform.BeginAnimation(TranslateTransform.XProperty, slideOut);
 
-            _sidebarAnimationTimer.Start();
+            var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(200));
+            OverlayBackdrop.BeginAnimation(OpacityProperty, fadeOut);
         }
 
         private void Window_KeyDown(object sender, KeyEventArgs e)
@@ -148,30 +93,16 @@ namespace AVTOKarta
 
             vm.HandleKeyDown(e.Key, Keyboard.Modifiers);
 
-            if (e.Key == Key.S && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            if (e.Key == Key.Escape && _isDrawerOpen)
+            {
+                CloseDrawer();
                 e.Handled = true;
-            else if (e.Key == Key.N && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
-                e.Handled = true;
-            else if (e.Key == Key.F5)
-                e.Handled = true;
+            }
         }
 
         private void MenuItem_Exit_Click(object sender, RoutedEventArgs e)
         {
             Application.Current.Shutdown();
-        }
-
-        private void GridSplitter_MouseEnter(object sender, MouseEventArgs e)
-        {
-            if (sender is GridSplitter gs)
-                gs.Background = new System.Windows.Media.SolidColorBrush(
-                    System.Windows.Media.Color.FromArgb(0x30, 0xFF, 0xFF, 0xFF));
-        }
-
-        private void GridSplitter_MouseLeave(object sender, MouseEventArgs e)
-        {
-            if (sender is GridSplitter gs)
-                gs.Background = System.Windows.Media.Brushes.Transparent;
         }
     }
 }

@@ -6,48 +6,72 @@
              Title="Редактирование части" Height="470" Width="420"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
+        WindowStyle="None" AllowsTransparency="False"
         Background="{StaticResource BackgroundBrush}">
     <Border Background="White">
-        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24">
-        <StackPanel Margin="24">
-            <TextBlock Text="Данные части" FontSize="18" FontWeight="Bold"
-                       Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,16"/>
+        <DockPanel>
+            <!-- Header -->
+            <Border DockPanel.Dock="Top" Background="{StaticResource PrimaryBrush}" Padding="20,14"
+                    MouseLeftButtonDown="Header_MouseLeftButtonDown" Cursor="Hand">
+                <DockPanel>
+                    <TextBlock Text="Данные части" FontSize="16" FontWeight="Bold"
+                               Foreground="White" VerticalAlignment="Center"/>
+                    <Button Content="&#xE8BB;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                            HorizontalAlignment="Right" Background="Transparent" Foreground="White"
+                            BorderThickness="0" Cursor="Hand" Click="CloseBtn_Click" Width="32" Height="32"/>
+                </DockPanel>
+            </Border>
 
-            <TextBlock Text="Наименование части:" FontWeight="SemiBold"/>
-            <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
+            <!-- Buttons -->
+            <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,1,0,0" Padding="16,12">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Отмена" Command="{Binding CancelCommand}" MinWidth="100" Margin="0,0,8,0"
+                            Style="{StaticResource GhostButton}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <Button Content="Сохранить" MinWidth="100"
+                            Style="{StaticResource PrimaryButton}" Click="SaveButton_Click"/>
+                </StackPanel>
+            </Border>
 
-            <TextBlock Text="Номер части:" FontWeight="SemiBold" Margin="0,8,0,2"/>
-            <TextBox Text="{Binding Number, UpdateSourceTrigger=PropertyChanged}"/>
+            <!-- Content -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24,20">
+                <StackPanel>
+                    <TextBlock Text="Наименование части:" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"/>
 
-            <TextBlock Text="Номер отряда:" FontWeight="SemiBold" Margin="0,8,0,2"/>
-            <TextBox Text="{Binding CrewNumber, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="Номер части:" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding Number, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"/>
 
-            <TextBlock Text="Область / регион:" FontWeight="SemiBold" Margin="0,8,0,2"/>
-            <TextBox Text="{Binding Region, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="Номер отряда:" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding CrewNumber, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"/>
 
-            <TextBlock Text="ФИО начальника части:" FontWeight="SemiBold" Margin="0,8,0,2"/>
-            <TextBox Text="{Binding ChiefName, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="Область / регион:" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding Region, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"/>
 
-            <TextBlock Text="ФИО старшего водителя:" FontWeight="SemiBold" Margin="0,8,0,2"/>
-            <TextBox Text="{Binding SeniorDriverName, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="ФИО начальника части:" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding ChiefName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"/>
 
-            <TextBlock Text="Контактный телефон:" FontWeight="SemiBold" Margin="0,8,0,2"/>
-            <TextBox Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}"
-                     helpers:PhoneHelper.EnablePhoneFormat="True" MaxLength="18"/>
+                    <TextBlock Text="ФИО старшего водителя:" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding SeniorDriverName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"/>
 
-            <TextBlock Text="Адрес расположения:" FontWeight="SemiBold" Margin="0,8,0,2"/>
-            <TextBox Text="{Binding Address, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="Контактный телефон:" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}"
+                             helpers:PhoneHelper.EnablePhoneFormat="True" MaxLength="18" Margin="0,0,0,12"/>
 
-            <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}"
-                       FontWeight="SemiBold" Margin="0,4" TextWrapping="Wrap"/>
+                    <TextBlock Text="Адрес расположения:" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding Address, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10"/>
 
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
-                <Button Content="Отмена" Command="{Binding CancelCommand}" MinWidth="100"
-                        Margin="0,0,8,0" Style="{StaticResource DangerButton}"/>
-                <Button Content="Сохранить" MinWidth="100"
-                        Style="{StaticResource SuccessButton}" Click="SaveButton_Click"/>
-            </StackPanel>
-        </StackPanel>
-        </ScrollViewer>
+                    <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}"
+                               FontWeight="SemiBold" FontSize="12" TextWrapping="Wrap"/>
+                </StackPanel>
+            </ScrollViewer>
+        </DockPanel>
     </Border>
 </Window>
