@@ -77,11 +77,11 @@
 
                     <TextBlock Text="Начальный пробег шасси (км):" FontWeight="SemiBold" FontSize="13"
                                Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                    <TextBox Text="{Binding InitialChassisMileage, StringFormat=N2, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,12"/>
+                    <TextBox Text="{Binding InitialChassisMileage, StringFormat=F3, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,12"/>
 
                     <TextBlock Text="Начальный пробег двигателя (прив.) (км):" FontWeight="SemiBold" FontSize="13"
                                Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                    <TextBox Text="{Binding InitialEngineMileage, StringFormat=N2, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,14"/>
+                    <TextBox Text="{Binding InitialEngineMileage, StringFormat=F3, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,14"/>
 
                     <Border Background="{StaticResource PrimaryLightBrush}" CornerRadius="8" Padding="14,10" Margin="0,0,0,14">
                         <TextBlock Text="Нормы расхода топлива" FontSize="14" FontWeight="Bold"
@@ -90,31 +90,31 @@
 
                     <TextBlock Text="Норма на пробег (л/км):" FontWeight="SemiBold" FontSize="13"
                                Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                    <TextBox Text="{Binding NormPerKmWithoutPump, StringFormat=F2, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,10"/>
+                    <TextBox Text="{Binding NormPerKmWithoutPump, StringFormat=F3, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,10"/>
 
                     <TextBlock Text="Норма на пробег с насосом (л/км):" FontWeight="SemiBold" FontSize="13"
                                Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                    <TextBox Text="{Binding NormPerKmWithPump, StringFormat=F2, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,10"/>
+                    <TextBox Text="{Binding NormPerKmWithPump, StringFormat=F3, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,10"/>
 
                     <TextBlock Text="Норма на работу насоса (л/мин):" FontWeight="SemiBold" FontSize="13"
                                Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                    <TextBox Text="{Binding NormPerMinPump, StringFormat=F2, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,10"/>
+                    <TextBox Text="{Binding NormPerMinPump, StringFormat=F3, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,10"/>
 
                     <TextBlock Text="Норма холостого хода (л/мин):" FontWeight="SemiBold" FontSize="13"
                                Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                    <TextBox Text="{Binding NormPerMinIdle, StringFormat=F2, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,10"/>
+                    <TextBox Text="{Binding NormPerMinIdle, StringFormat=F3, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,10"/>
 
                     <TextBlock Text="Норма смены караула (л/мин):" FontWeight="SemiBold" FontSize="13"
                                Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                    <TextBox Text="{Binding NormPerMinShiftChange, StringFormat=F2, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,10"/>
+                    <TextBox Text="{Binding NormPerMinShiftChange, StringFormat=F3, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,10"/>
 
                     <TextBlock Text="Норма прочих работ (л/мин):" FontWeight="SemiBold" FontSize="13"
                                Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                    <TextBox Text="{Binding NormPerMinMisc, StringFormat=F2, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,10"/>
+                    <TextBox Text="{Binding NormPerMinMisc, StringFormat=F3, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,10"/>
 
                     <TextBlock Text="Коэффициент приведения (км/мин):" FontWeight="SemiBold" FontSize="13"
                                Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                    <TextBox Text="{Binding ReductionCoefficient, StringFormat=F2, TargetNullValue=0, FallbackValue=0}"/>
+                    <TextBox Text="{Binding ReductionCoefficient, StringFormat=F3, TargetNullValue=0, FallbackValue=0}"/>
                 </StackPanel>
             </ScrollViewer>
         </DockPanel>

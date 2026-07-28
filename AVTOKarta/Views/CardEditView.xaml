@@ -242,7 +242,7 @@
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="Расход по норме: " FontWeight="SemiBold"
                                    Foreground="{StaticResource PrimaryBrush}" FontSize="13"/>
-                        <TextBlock Text="{Binding NormConsumption, Mode=OneWay, StringFormat=F2}"
+                        <TextBlock Text="{Binding NormConsumption, Mode=OneWay, StringFormat=F3}"
                                    FontWeight="Bold" FontSize="14"
                                    Foreground="{StaticResource PrimaryBrush}"/>
                         <TextBlock Text=" л" Foreground="{StaticResource PrimaryBrush}" FontSize="13"/>

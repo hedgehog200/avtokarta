@@ -708,7 +708,7 @@ namespace AVTOKarta.Services
             SetCellNum(ws, row, 13, gasConsumed, fontSize: 10);
             SetFormula(ws, row, 17, string.Format("=K{0}", row), fontSize: 10);
             SetFormula(ws, row, 18, string.Format("=C{0}+D{0}-L{0}", row), fontSize: 10);
-            SetFormula(ws, row, 19, string.Format("=R{0}*{1}", row, gasTankRatio.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)), fontSize: 10);
+            SetFormula(ws, row, 19, string.Format("=R{0}*{1}", row, gasTankRatio.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)), fontSize: 10);
             SetFormula(ws, row, 20, string.Format("=R{0}-S{0}", row), fontSize: 10);
             row++;
 
@@ -732,7 +732,7 @@ namespace AVTOKarta.Services
             SetCellNum(ws, row, 13, gasConsumed, fontSize: 10);
             SetFormula(ws, row, 17, string.Format("=K{0}", row), fontSize: 10);
             SetFormula(ws, row, 18, string.Format("=C{0}+D{0}-L{0}", row), fontSize: 10);
-            SetFormula(ws, row, 19, string.Format("=R{0}*{1}", row, gasTankRatio.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)), fontSize: 10);
+            SetFormula(ws, row, 19, string.Format("=R{0}*{1}", row, gasTankRatio.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)), fontSize: 10);
             SetFormula(ws, row, 20, string.Format("=R{0}-S{0}", row), fontSize: 10);
             row++;
 
@@ -751,7 +751,7 @@ namespace AVTOKarta.Services
             SetCellNum(ws, row, 13, dieselConsumed, fontSize: 10);
             SetFormula(ws, row, 17, string.Format("=K{0}", row), fontSize: 10);
             SetFormula(ws, row, 18, string.Format("=C{0}+D{0}-L{0}", row), fontSize: 10);
-            SetFormula(ws, row, 19, string.Format("=R{0}*{1}", row, dieselTankRatio.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)), fontSize: 10);
+            SetFormula(ws, row, 19, string.Format("=R{0}*{1}", row, dieselTankRatio.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)), fontSize: 10);
             SetFormula(ws, row, 20, string.Format("=R{0}-S{0}", row), fontSize: 10);
             row++;
 
@@ -770,7 +770,7 @@ namespace AVTOKarta.Services
             SetCellNum(ws, row, 13, dieselConsumed, fontSize: 10);
             SetFormula(ws, row, 17, string.Format("=K{0}", row), fontSize: 10);
             SetFormula(ws, row, 18, string.Format("=C{0}+D{0}-L{0}", row), fontSize: 10);
-            SetFormula(ws, row, 19, string.Format("=R{0}*{1}", row, dieselTankRatio.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)), fontSize: 10);
+            SetFormula(ws, row, 19, string.Format("=R{0}*{1}", row, dieselTankRatio.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)), fontSize: 10);
             SetFormula(ws, row, 20, string.Format("=R{0}-S{0}", row), fontSize: 10);
             row++;
 
@@ -975,11 +975,11 @@ namespace AVTOKarta.Services
             SetCell(ws, 59, 1, "03-10-201-253-340", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true);
             SetCell(ws, 59, 2, "руб.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
             ws.Range(59, 4, 59, 5).Merge();
-            SetCellNum(ws, 59, 4, 0, fontSize: 10, format: "0");
+            SetCellNum(ws, 59, 4, 0, fontSize: 10, format: "0.000");
             ws.Range(59, 14, 59, 15).Merge();
-            SetCellNum(ws, 59, 14, 0, fontSize: 10, format: "0");
+            SetCellNum(ws, 59, 14, 0, fontSize: 10, format: "0.000");
             ws.Range(59, 17, 59, 18).Merge();
-            SetCellNum(ws, 59, 17, 0, fontSize: 10, format: "0");
+            SetCellNum(ws, 59, 17, 0, fontSize: 10, format: "0.000");
 
             SetCell(ws, 60, 1, "в т.ч.   АБ - всего", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Left, wrap: true);
             SetCell(ws, 60, 2, " -", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
@@ -993,9 +993,9 @@ namespace AVTOKarta.Services
             ws.Range(60, 10, 60, 11).Merge();
             SetCell(ws, 60, 10, " -", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
             ws.Range(60, 12, 60, 13).Merge();
-            SetCellNum(ws, 60, 12, 0, fontSize: 10, format: "0");
+            SetCellNum(ws, 60, 12, 0, fontSize: 10, format: "0.000");
             ws.Range(60, 14, 60, 15).Merge();
-            SetCellNum(ws, 60, 14, 0, fontSize: 10, format: "0");
+            SetCellNum(ws, 60, 14, 0, fontSize: 10, format: "0.000");
             ws.Range(60, 17, 60, 18).Merge();
             SetCell(ws, 60, 17, " -", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
 
@@ -1126,7 +1126,7 @@ namespace AVTOKarta.Services
                 SetCellNum(ws, row, 13, vd.HeatingDutyFuel, fontSize: 10);
                 SetCellNum(ws, row, 14, vd.TrainingPumpFuel + vd.TrainingNoPumpFuel, fontSize: 10);
                 SetCellNum(ws, row, 15, vd.LiteraryEventsFuel, fontSize: 10);
-                SetCellNum(ws, row, 16, vd.ReducedMileage, fontSize: 10, format: "0");
+                SetCellNum(ws, row, 16, vd.ReducedMileage, fontSize: 10, format: "0.000");
                 SetCellNum(ws, row, 17, vd.Refueled, fontSize: 10);
                 row++;
             }
@@ -1260,25 +1260,25 @@ namespace AVTOKarta.Services
                 SetCellNum(ws, row, 4, vd.StartFuel, format: "0.000");
                 SetCellNum(ws, row, 5, vd.Refueled);
 
-                SetCellNum(ws, row, 8, vd.MainWorkPumpMin, format: "0");
+                SetCellNum(ws, row, 8, vd.MainWorkPumpMin, format: "0.000");
                 SetCellNum(ws, row, 9, vd.MainWorkPumpFuel);
-                SetCellNum(ws, row, 10, vd.MainWorkNoPumpMin, format: "0");
+                SetCellNum(ws, row, 10, vd.MainWorkNoPumpMin, format: "0.000");
                 SetCellNum(ws, row, 11, vd.MainWorkNoPumpFuel);
-                SetCellNum(ws, row, 12, vd.TrainingPumpMin, format: "0");
+                SetCellNum(ws, row, 12, vd.TrainingPumpMin, format: "0.000");
                 SetCellNum(ws, row, 13, vd.TrainingPumpFuel);
-                SetCellNum(ws, row, 14, vd.TrainingNoPumpMin, format: "0");
+                SetCellNum(ws, row, 14, vd.TrainingNoPumpMin, format: "0.000");
                 SetCellNum(ws, row, 15, vd.TrainingNoPumpFuel);
-                SetCellNum(ws, row, 16, vd.EtoMin, format: "0");
+                SetCellNum(ws, row, 16, vd.EtoMin, format: "0.000");
                 SetCellNum(ws, row, 17, vd.EtoFuel);
 
-                SetCellNum(ws, row, 18, vd.OdometerStart, format: "0");
-                SetCellNum(ws, row, 19, vd.OdometerEnd, format: "0");
+                SetCellNum(ws, row, 18, vd.OdometerStart, format: "0.000");
+                SetCellNum(ws, row, 19, vd.OdometerEnd, format: "0.000");
 
                 string r = row.ToString();
-                SetFormula(ws, row, 6, string.Format("=H{0}+J{0}+L{0}+N{0}+P{0}", r), format: "0");
+                SetFormula(ws, row, 6, string.Format("=H{0}+J{0}+L{0}+N{0}+P{0}", r), format: "0.000");
                 SetFormula(ws, row, 7, string.Format("=I{0}+K{0}+M{0}+O{0}+Q{0}", r));
-                SetFormula(ws, row, 20, string.Format("=S{0}-R{0}", r), format: "0");
-                SetCellNum(ws, row, 21, vd.ReducedMileage, format: "0");
+                SetFormula(ws, row, 20, string.Format("=S{0}-R{0}", r), format: "0.000");
+                SetCellNum(ws, row, 21, vd.ReducedMileage, format: "0.000");
                 SetCellNum(ws, row, 22, vd.TotalFuelConsumption);
                 SetCellNum(ws, row, 23, vd.EndFuel, format: "0.000");
 
@@ -1326,30 +1326,30 @@ namespace AVTOKarta.Services
                 SetCell(ws, row, 1, num.ToString(), fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center);
                 SetCell(ws, row, 2, (vd.Vehicle.Make ?? "") + " " + (vd.Vehicle.Type ?? ""), hAlign: XLAlignmentHorizontalValues.Left);
                 SetCell(ws, row, 3, vd.Vehicle.LicensePlate ?? "", hAlign: XLAlignmentHorizontalValues.Center);
-                SetCellNum(ws, row, 4, vd.StartFuel, format: "0.00");
-                SetCellNum(ws, row, 5, vd.Refueled, format: "0");
+                SetCellNum(ws, row, 4, vd.StartFuel, format: "0.000");
+                SetCellNum(ws, row, 5, vd.Refueled, format: "0.000");
 
-                SetCellNum(ws, row, 8, vd.MainWorkPumpMin, format: "0");
+                SetCellNum(ws, row, 8, vd.MainWorkPumpMin, format: "0.000");
                 SetCellNum(ws, row, 9, vd.MainWorkPumpFuel);
-                SetCellNum(ws, row, 10, vd.MainWorkNoPumpMin, format: "0");
+                SetCellNum(ws, row, 10, vd.MainWorkNoPumpMin, format: "0.000");
                 SetCellNum(ws, row, 11, vd.MainWorkNoPumpFuel);
-                SetCellNum(ws, row, 12, vd.TrainingPumpMin, format: "0");
+                SetCellNum(ws, row, 12, vd.TrainingPumpMin, format: "0.000");
                 SetCellNum(ws, row, 13, vd.TrainingPumpFuel);
-                SetCellNum(ws, row, 14, vd.TrainingNoPumpMin, format: "0");
+                SetCellNum(ws, row, 14, vd.TrainingNoPumpMin, format: "0.000");
                 SetCellNum(ws, row, 15, vd.TrainingNoPumpFuel);
-                SetCellNum(ws, row, 16, vd.EtoMin, format: "0");
+                SetCellNum(ws, row, 16, vd.EtoMin, format: "0.000");
                 SetCellNum(ws, row, 17, vd.EtoFuel);
 
-                SetCellNum(ws, row, 18, vd.OdometerStart, format: "0");
-                SetCellNum(ws, row, 19, vd.OdometerEnd, format: "0");
+                SetCellNum(ws, row, 18, vd.OdometerStart, format: "0.000");
+                SetCellNum(ws, row, 19, vd.OdometerEnd, format: "0.000");
 
                 string r = row.ToString();
-                SetFormula(ws, row, 6, string.Format("=H{0}+J{0}+L{0}+N{0}+P{0}", r), fontSize: 11, format: "0");
+                SetFormula(ws, row, 6, string.Format("=H{0}+J{0}+L{0}+N{0}+P{0}", r), fontSize: 11, format: "0.000");
                 SetFormula(ws, row, 7, string.Format("=I{0}+K{0}+M{0}+O{0}+Q{0}", r));
-                SetFormula(ws, row, 20, string.Format("=S{0}-R{0}", r), fontSize: 11, format: "0");
-                SetCellNum(ws, row, 21, vd.ReducedMileage, format: "0");
+                SetFormula(ws, row, 20, string.Format("=S{0}-R{0}", r), fontSize: 11, format: "0.000");
+                SetCellNum(ws, row, 21, vd.ReducedMileage, format: "0.000");
                 SetCellNum(ws, row, 22, vd.TotalFuelConsumption);
-                SetCellNum(ws, row, 23, vd.EndFuel, format: "0.00");
+                SetCellNum(ws, row, 23, vd.EndFuel, format: "0.000");
 
                 row++;
                 num++;

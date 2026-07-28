@@ -122,8 +122,8 @@
                             <DataGridTextColumn Header="ТИП" Binding="{Binding Type}" Width="130" IsReadOnly="True"/>
                             <DataGridTextColumn Header="ДВИГАТЕЛЬ" Binding="{Binding EngineDisplay}" Width="80" IsReadOnly="True"/>
                             <DataGridTextColumn Header="№ КАРТОЧКИ" Binding="{Binding CardNumber}" Width="90" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="ПРОБЕГ ШАССИ" Binding="{Binding InitialChassisMileage, StringFormat=N0}" Width="100" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="ПРОБЕГ ДВИГ." Binding="{Binding InitialEngineMileage, StringFormat=N0}" Width="100" IsReadOnly="True"/>
+                             <DataGridTextColumn Header="ПРОБЕГ ШАССИ" Binding="{Binding InitialChassisMileage, StringFormat=F3}" Width="100" IsReadOnly="True"/>
+                             <DataGridTextColumn Header="ПРОБЕГ ДВИГ." Binding="{Binding InitialEngineMileage, StringFormat=F3}" Width="100" IsReadOnly="True"/>
                             <DataGridTemplateColumn Header="" Width="70" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -331,12 +331,12 @@
                         </DataGridTemplateColumn>
                         <DataGridTextColumn Header="Выезд" Binding="{Binding DepartureTimeDisplay}" Width="55" IsReadOnly="True"/>
                         <DataGridTextColumn Header="Возврат" Binding="{Binding ReturnTimeDisplay}" Width="55" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="Спидометр, км" Binding="{Binding OdometerBeforeDeparture, StringFormat=N0}" Width="80" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="Пробег км" Binding="{Binding DistanceKm, StringFormat=N1}" Width="60" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="С насосом" Binding="{Binding TimeWithPumpMinutes, StringFormat=N0}" Width="60" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="На холостом (мин)" Binding="{Binding TimeWithoutPumpMinutes, StringFormat=N0}" Width="60" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="Смена, мин." Binding="{Binding ShiftChangeMinutes, StringFormat=N0}" Width="60" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="Прочие (мин)" Binding="{Binding MiscWorkMinutes, StringFormat=N0}" Width="55" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="Спидометр, км" Binding="{Binding OdometerBeforeDeparture, StringFormat=F3}" Width="80" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="Пробег км" Binding="{Binding DistanceKm, StringFormat=F3}" Width="60" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="С насосом" Binding="{Binding TimeWithPumpMinutes, StringFormat=F3}" Width="60" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="На холостом (мин)" Binding="{Binding TimeWithoutPumpMinutes, StringFormat=F3}" Width="60" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="Смена, мин." Binding="{Binding ShiftChangeMinutes, StringFormat=F3}" Width="60" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="Прочие (мин)" Binding="{Binding MiscWorkMinutes, StringFormat=F3}" Width="55" IsReadOnly="True"/>
                         <DataGridTextColumn Header="Расход" Binding="{Binding FuelRefueled, StringFormat=F3}" Width="55" IsReadOnly="True"/>
                         <DataGridTextColumn Header="Факт" Binding="{Binding ActualConsumption, StringFormat=F3}" Width="60" IsReadOnly="True"/>
                         <DataGridTextColumn Header="По норме" Binding="{Binding NormConsumption, StringFormat=F3}" Width="60" IsReadOnly="True"/>
@@ -383,7 +383,7 @@
                     <Border Background="{StaticResource PillSuccessBrush}" CornerRadius="12" Padding="12,5" Margin="0,0,6,0">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Факт: " Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
-                            <TextBlock Text="{Binding TotalActual, StringFormat=F2}" FontWeight="Bold" FontSize="12"
+                            <TextBlock Text="{Binding TotalActual, StringFormat=F3}" FontWeight="Bold" FontSize="12"
                                        Foreground="{StaticResource SuccessBrush}"/>
                             <TextBlock Text=" л" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
                         </StackPanel>
@@ -391,7 +391,7 @@
                     <Border Background="{StaticResource PillPrimaryBrush}" CornerRadius="12" Padding="12,5" Margin="0,0,6,0">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Норма: " Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
-                            <TextBlock Text="{Binding TotalNorm, StringFormat=F2}" FontWeight="Bold" FontSize="12"
+                            <TextBlock Text="{Binding TotalNorm, StringFormat=F3}" FontWeight="Bold" FontSize="12"
                                        Foreground="{StaticResource PrimaryBrush}"/>
                             <TextBlock Text=" л" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
                         </StackPanel>
@@ -400,7 +400,7 @@
                             Visibility="{Binding SavingsVisibility}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Экономия: " Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
-                            <TextBlock Text="{Binding Savings, StringFormat=F2}" FontWeight="Bold" FontSize="12"
+                            <TextBlock Text="{Binding Savings, StringFormat=F3}" FontWeight="Bold" FontSize="12"
                                        Foreground="{StaticResource SuccessBrush}"/>
                             <TextBlock Text=" л" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
                         </StackPanel>
@@ -409,7 +409,7 @@
                             Visibility="{Binding OverspendVisibility}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Перерасход: " Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
-                            <TextBlock Text="{Binding Overspend, StringFormat=F2}" FontWeight="Bold" FontSize="12"
+                            <TextBlock Text="{Binding Overspend, StringFormat=F3}" FontWeight="Bold" FontSize="12"
                                        Foreground="{StaticResource DangerBrush}"/>
                             <TextBlock Text=" л" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
                         </StackPanel>

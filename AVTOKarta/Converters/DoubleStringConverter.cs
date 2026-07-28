@@ -13,7 +13,7 @@ namespace AVTOKarta.Converters
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is double d)
-                return d.ToString(culture);
+                return d.ToString("F3", culture);
             return "0";
         }
 

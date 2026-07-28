@@ -51,8 +51,8 @@
                 <DataGridTextColumn Header="Марка" Binding="{Binding Make}" Width="150"/>
                 <DataGridTextColumn Header="Тип" Binding="{Binding Type}" Width="150"/>
                 <DataGridTextColumn Header="№ карточки" Binding="{Binding CardNumber}" Width="90"/>
-                <DataGridTextColumn Header="Норма л/км" Binding="{Binding FuelNorms.ConsumptionPerKmWithoutPump, StringFormat=F2}" Width="80"/>
-                <DataGridTextColumn Header="Норма л/мин (насос)" Binding="{Binding FuelNorms.ConsumptionPerMinPump, StringFormat=F2}" Width="110"/>
+                <DataGridTextColumn Header="Норма л/км" Binding="{Binding FuelNorms.ConsumptionPerKmWithoutPump, StringFormat=F3}" Width="80"/>
+                <DataGridTextColumn Header="Норма л/мин (насос)" Binding="{Binding FuelNorms.ConsumptionPerMinPump, StringFormat=F3}" Width="110"/>
             </DataGrid.Columns>
         </DataGrid>
 

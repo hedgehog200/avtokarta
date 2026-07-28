@@ -241,7 +241,7 @@
                         <StackPanel>
                             <TextBlock Text="Диз. топливо" FontSize="11" Foreground="#6B7280"/>
                             <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                                <TextBlock Text="{Binding WarehouseVm.TotalDiesel, StringFormat=F2}"
+                                <TextBlock Text="{Binding WarehouseVm.TotalDiesel, StringFormat=F3}"
                                            FontSize="18" FontWeight="Bold" Foreground="#2E7D32"/>
                                 <TextBlock Text=" л" FontSize="12" Foreground="#6B7280"
                                            VerticalAlignment="Bottom" Margin="3,0,0,2"/>
@@ -253,7 +253,7 @@
                         <StackPanel>
                             <TextBlock Text="Бензин" FontSize="11" Foreground="#6B7280"/>
                             <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                                <TextBlock Text="{Binding WarehouseVm.TotalGasoline, StringFormat=F2}"
+                                <TextBlock Text="{Binding WarehouseVm.TotalGasoline, StringFormat=F3}"
                                            FontSize="18" FontWeight="Bold" Foreground="#E65100"/>
                                 <TextBlock Text=" л" FontSize="12" Foreground="#6B7280"
                                            VerticalAlignment="Bottom" Margin="3,0,0,2"/>
@@ -265,7 +265,7 @@
                         <StackPanel>
                             <TextBlock Text="Моторное масло" FontSize="11" Foreground="#6B7280"/>
                             <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                                <TextBlock Text="{Binding WarehouseVm.TotalMotorOil, StringFormat=F2}"
+                                <TextBlock Text="{Binding WarehouseVm.TotalMotorOil, StringFormat=F3}"
                                            FontSize="18" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
                                 <TextBlock Text=" л" FontSize="12" Foreground="#6B7280"
                                            VerticalAlignment="Bottom" Margin="3,0,0,2"/>
@@ -277,7 +277,7 @@
                         <StackPanel>
                             <TextBlock Text="Трансм. масло" FontSize="11" Foreground="#6B7280"/>
                             <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                                <TextBlock Text="{Binding WarehouseVm.TotalTransOil, StringFormat=F2}"
+                                <TextBlock Text="{Binding WarehouseVm.TotalTransOil, StringFormat=F3}"
                                            FontSize="18" FontWeight="Bold" Foreground="#1565C0"/>
                                 <TextBlock Text=" л" FontSize="12" Foreground="#6B7280"
                                            VerticalAlignment="Bottom" Margin="3,0,0,2"/>
@@ -289,7 +289,7 @@
                         <StackPanel>
                             <TextBlock Text="Спец. жидкость" FontSize="11" Foreground="#6B7280"/>
                             <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                                <TextBlock Text="{Binding WarehouseVm.TotalSpecLiquid, StringFormat=F2}"
+                                <TextBlock Text="{Binding WarehouseVm.TotalSpecLiquid, StringFormat=F3}"
                                            FontSize="18" FontWeight="Bold" Foreground="#7B1FA2"/>
                                 <TextBlock Text=" л" FontSize="12" Foreground="#6B7280"
                                            VerticalAlignment="Bottom" Margin="3,0,0,2"/>
@@ -301,7 +301,7 @@
                         <StackPanel>
                             <TextBlock Text="Пласт. смазка" FontSize="11" Foreground="#6B7280"/>
                             <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                                <TextBlock Text="{Binding WarehouseVm.TotalPlasticLub, StringFormat=F2}"
+                                <TextBlock Text="{Binding WarehouseVm.TotalPlasticLub, StringFormat=F3}"
                                            FontSize="18" FontWeight="Bold" Foreground="#37474F"/>
                                 <TextBlock Text=" кг" FontSize="12" Foreground="#6B7280"
                                            VerticalAlignment="Bottom" Margin="3,0,0,2"/>
@@ -502,7 +502,7 @@
                     <DataGridTextColumn Header="Дата" Binding="{Binding Date, StringFormat=d.M.yyyy}" Width="95" IsReadOnly="True"/>
                     <DataGridTextColumn Header="Тип ГСМ" Binding="{Binding TypeDisplay}" Width="145" IsReadOnly="True"/>
                     <DataGridTextColumn Header="Наименование / марка" Binding="{Binding Brand}" Width="150" IsReadOnly="True"/>
-                    <DataGridTextColumn Header="Кол-во" Binding="{Binding Quantity, StringFormat=F2}" Width="75" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Кол-во" Binding="{Binding Quantity, StringFormat=F3}" Width="75" IsReadOnly="True"/>
                     <DataGridTextColumn Header="Ед." Binding="{Binding UnitDisplay}" Width="42" IsReadOnly="True"/>
                     <DataGridTextColumn Header="Гос. знак" Binding="{Binding VehicleLicensePlate}" Width="95" IsReadOnly="True"/>
                     <DataGridTextColumn Header="Примечание" Binding="{Binding Notes}" Width="180" IsReadOnly="True"/>

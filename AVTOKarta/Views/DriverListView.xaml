@@ -254,7 +254,7 @@
                         <DataGridTextColumn Header="Место работы" Binding="{Binding WorkDescription}" Width="*"/>
                         <DataGridTextColumn Header="Выезд" Binding="{Binding DepartureTime}" Width="55"/>
                         <DataGridTextColumn Header="Возврат" Binding="{Binding ReturnTime}" Width="55"/>
-                        <DataGridTextColumn Header="Пробег, км" Binding="{Binding DistanceKm, StringFormat=N1}" Width="80"/>
+                        <DataGridTextColumn Header="Пробег, км" Binding="{Binding DistanceKm, StringFormat=F3}" Width="80"/>
                         <DataGridTextColumn Header="Расход, л" Binding="{Binding ActualConsumption, StringFormat=F3}" Width="80"/>
                         <DataGridTextColumn Header="Караул" Binding="{Binding SquadNumber}" Width="65"/>
                     </DataGrid.Columns>
