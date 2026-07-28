@@ -136,10 +136,9 @@
                                          Background="Transparent"
                                          Margin="{TemplateBinding Padding}"
                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                         HorizontalAlignment="Left"
+                                         HorizontalAlignment="Stretch"
                                          BorderThickness="0"
-                                         Visibility="Collapsed"
-                                         CaretBrush="Transparent"/>
+                                         Visibility="Collapsed"/>
                                 <ToggleButton x:Name="toggleButton" Grid.Column="0" Grid.ColumnSpan="2"
                                               IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
                                               Focusable="False" ClickMode="Press"

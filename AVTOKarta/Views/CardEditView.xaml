@@ -86,7 +86,8 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0" Text="ФИО водителя:" Style="{StaticResource FieldLabel}"/>
                     <ComboBox Grid.Column="1" ItemsSource="{Binding DriverNames}"
-                              Text="{Binding DriverName, UpdateSourceTrigger=PropertyChanged}"
+                              SelectedItem="{Binding DriverName}"
+                              Text="{Binding DriverName, UpdateSourceTrigger=LostFocus, Mode=TwoWay}"
                               IsEditable="True" Margin="0" Padding="12,10" MaxDropDownHeight="200"
                               FontSize="14" MinHeight="38" VerticalContentAlignment="Center"
                               ItemContainerStyle="{StaticResource ComboBoxItemStyle}"/>
@@ -110,7 +111,8 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0" Text="Наименование:" Style="{StaticResource FieldLabel}"/>
                     <ComboBox Grid.Column="1" ItemsSource="{Binding WorkDescriptions}"
-                              Text="{Binding WorkDescription, UpdateSourceTrigger=PropertyChanged}"
+                              SelectedItem="{Binding WorkDescription}"
+                              Text="{Binding WorkDescription, UpdateSourceTrigger=LostFocus, Mode=TwoWay}"
                               IsEditable="True" Margin="0" Padding="12,10" MaxDropDownHeight="250"
                               FontSize="14" MinHeight="38" VerticalContentAlignment="Center"
                               ItemContainerStyle="{StaticResource ComboBoxItemStyle}"/>
