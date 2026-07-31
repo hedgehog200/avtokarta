@@ -167,7 +167,7 @@ namespace AVTOKarta.Services
                     var metadata = new ExportMetadata
                     {
                         ExportDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                        AppVersion = "1.1.8",
+                        AppVersion = "1.1.9",
                         SquadCount = 0,
                         VehicleCount = 0,
                         CardCount = 0
@@ -295,7 +295,7 @@ namespace AVTOKarta.Services
                     var metadata = new ExportMetadata
                     {
                         ExportDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                        AppVersion = "1.1.8",
+                        AppVersion = "1.1.9",
                         IsBackup = true
                     };
                     string metaJson = JsonConvert.SerializeObject(metadata, Formatting.Indented);
