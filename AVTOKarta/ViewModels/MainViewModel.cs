@@ -1442,10 +1442,13 @@ namespace AVTOKarta.ViewModels
                 ReducedMileage = 0;
                 SavingsVisibility = Visibility.Collapsed;
                 OverspendVisibility = Visibility.Collapsed;
+                CurrentCard.FuelRefueledMonth = 0;
                 CurrentCard.FuelRemainingOnLast = CurrentCard.FuelRemainingOnFirst + CurrentCard.FuelRefueledMonth;
                 OnPropertyChanged("CurrentCard");
                 return;
             }
+
+            CurrentCard.FuelRefueledMonth = Records.Sum(r => r.FuelRefueled);
 
             TotalActual = 0;
             TotalNorm = 0;
@@ -1459,12 +1462,12 @@ namespace AVTOKarta.ViewModels
                 totalShiftMisc += r.ShiftChangeMinutes + r.MiscWorkMinutes;
             }
 
-            CurrentCard.FuelRemainingOnLast = Math.Round(
-                CurrentCard.FuelRemainingOnFirst + CurrentCard.FuelRefueledMonth - TotalActual, 3);
+            CurrentCard.FuelRemainingOnLast =
+                CurrentCard.FuelRemainingOnFirst + CurrentCard.FuelRefueledMonth - TotalActual;
 
             double coefficient = SelectedVehicle != null && SelectedVehicle.FuelNorms != null
                 ? SelectedVehicle.FuelNorms.ReductionCoefficient : 0.35;
-            ReducedMileage = Math.Round(totalKm + totalShiftMisc * coefficient, 0);
+            ReducedMileage = totalKm + totalShiftMisc * coefficient;
 
             Savings = CalculationService.CalculateSavings(TotalActual, TotalNorm);
             Overspend = CalculationService.CalculateOverspend(TotalActual, TotalNorm);

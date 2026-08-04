@@ -25,6 +25,11 @@ namespace AVTOKarta.Views
             Close();
         }
 
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            DialogResult = false;
+        }
+
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
             var vm = DataContext as VehicleViewModel;

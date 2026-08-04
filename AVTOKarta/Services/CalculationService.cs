@@ -22,7 +22,7 @@ namespace AVTOKarta.Services
             consumption += record.ShiftChangeMinutes * norms.ConsumptionPerMinShiftChange;
             consumption += record.MiscWorkMinutes * norms.ConsumptionPerMinMisc;
 
-            return Math.Round(consumption, 2);
+            return consumption;
         }
 
         public static double CalculateActualConsumption(MonthlyCard card, List<DailyRecord> allRecords, FuelNorm norms)
@@ -33,7 +33,7 @@ namespace AVTOKarta.Services
                 rec.NormConsumption = CalculateNormConsumption(rec, norms);
                 totalNorm += rec.NormConsumption;
             }
-            return Math.Round(totalNorm, 2);
+            return totalNorm;
         }
 
         public static double CalculateFuelRemainingOnLast(MonthlyCard card)
@@ -41,7 +41,7 @@ namespace AVTOKarta.Services
             double totalActual = card.Records != null
                 ? card.Records.Sum(r => r.ActualConsumption)
                 : 0;
-            return Math.Round(card.FuelRemainingOnFirst + card.FuelRefueledMonth - totalActual, 3);
+            return card.FuelRemainingOnFirst + card.FuelRefueledMonth - totalActual;
         }
 
         public static void RecalculateAllRecords(MonthlyCard card, FuelNorm norms)

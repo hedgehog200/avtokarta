@@ -14,6 +14,19 @@
     <Window.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
         <converters:DoubleStringConverter x:Key="DoubleStr"/>
+
+        <!-- DataGrid: wrapping column headers so full header text is visible -->
+        <Style x:Key="CardGridHeaderStyle" TargetType="DataGridColumnHeader"
+               BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="ContentTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" TextWrapping="Wrap" TextAlignment="Center"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid x:Name="RootGrid">
@@ -69,6 +82,9 @@
 
         <!-- ===== CONTENT AREA ===== -->
         <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
             <!-- DriverList -->
             <views:DriverListView DataContext="{Binding DriverListVm}"
                                   Visibility="{Binding DataContext.IsDriverListMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}"
@@ -147,203 +163,240 @@
 
             <!-- Card screen -->
             <DockPanel Visibility="{Binding IsCardMode, Converter={StaticResource BoolToVis}}" Panel.ZIndex="4">
-                <Border DockPanel.Dock="Top" Margin="16,12,16,0" Padding="16,12"
-                        Style="{StaticResource CardBorderShadow}">
-                    <StackPanel>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock FontSize="16" FontWeight="Bold" VerticalAlignment="Center">
-                                <Run Text="ЭКСПЛУАТАЦИОННАЯ КАРТОЧКА"/>
-                            </TextBlock>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="0,0,16,16">
+                        <Border Margin="16,12,16,0" Padding="16,12"
+                                Style="{StaticResource CardBorderShadow}">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock FontSize="16" FontWeight="Bold" VerticalAlignment="Center">
+                                        <Run Text="ЭКСПЛУАТАЦИОННАЯ КАРТОЧКА"/>
+                                    </TextBlock>
 
-                            <TextBlock Grid.Column="1" Text="Месяц:" VerticalAlignment="Center"
-                                       Margin="16,0,4,0" Foreground="{StaticResource TextSecondaryBrush}"/>
-                            <ComboBox Grid.Column="2" ItemsSource="{Binding MonthNames}"
-                                      SelectedIndex="{Binding SelectedMonthIndex}"
-                                      Width="130" Margin="0,0,12,0"
-                                      ItemContainerStyle="{StaticResource ComboBoxItemStyle}"/>
+                                    <TextBlock Grid.Column="1" Text="Месяц:" VerticalAlignment="Center"
+                                               Margin="16,0,4,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <ComboBox Grid.Column="2" ItemsSource="{Binding MonthNames}"
+                                              SelectedIndex="{Binding SelectedMonthIndex}"
+                                              Width="130" Margin="0,0,12,0"
+                                              ItemContainerStyle="{StaticResource ComboBoxItemStyle}"/>
 
-                            <TextBlock Grid.Column="3" Text="Год:" VerticalAlignment="Center"
-                                       Margin="0,0,4,0" Foreground="{StaticResource TextSecondaryBrush}"/>
-                            <TextBox Grid.Column="4" Text="{Binding SelectedYear, UpdateSourceTrigger=PropertyChanged}"
-                                     Width="60"/>
-                        </Grid>
+                                    <TextBlock Grid.Column="3" Text="Год:" VerticalAlignment="Center"
+                                               Margin="0,0,4,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBox Grid.Column="4" Text="{Binding SelectedYear, UpdateSourceTrigger=PropertyChanged}"
+                                             Width="60"/>
+                                </Grid>
 
-                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                            <TextBlock Text="Авто:" FontSize="12" VerticalAlignment="Center"
-                                       Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,6,0"/>
-                            <ComboBox FontSize="12"
-                                      ItemsSource="{Binding Vehicles}"
-                                      SelectedItem="{Binding CardVehicle}"
-                                      Width="180" HorizontalAlignment="Left"
-                                      ItemContainerStyle="{StaticResource ComboBoxItemStyle}">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding CardNumber}" FontWeight="SemiBold"/>
-                                            <TextBlock FontSize="10" Foreground="{StaticResource TextSecondaryBrush}">
-                                                <Run Text="{Binding Make, Mode=OneWay}"/>
-                                                <Run Text=" | "/>
-                                                <Run Text="{Binding LicensePlate, Mode=OneWay}"/>
-                                            </TextBlock>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-                        </StackPanel>
-                        <TextBlock Margin="0,4,0,0" FontSize="12"
-                                   Foreground="{StaticResource TextSecondaryBrush}">
-                            <Run Text="Марка: "/><Run Text="{Binding SelectedVehicleMake, Mode=OneWay}" FontWeight="SemiBold"/>
-                            <Run Text="   Тип: "/><Run Text="{Binding SelectedVehicleType, Mode=OneWay}" FontWeight="SemiBold"/>
-                        </TextBlock>
+                                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                    <TextBlock Text="Авто:" FontSize="12" VerticalAlignment="Center"
+                                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,6,0"/>
+                                    <ComboBox FontSize="12"
+                                              ItemsSource="{Binding Vehicles}"
+                                              SelectedItem="{Binding CardVehicle}"
+                                              Width="180" HorizontalAlignment="Left"
+                                              ItemContainerStyle="{StaticResource ComboBoxItemStyle}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding CardNumber}" FontWeight="SemiBold"/>
+                                                    <TextBlock FontSize="10" Foreground="{StaticResource TextSecondaryBrush}">
+                                                        <Run Text="{Binding Make, Mode=OneWay}"/>
+                                                        <Run Text=" | "/>
+                                                        <Run Text="{Binding LicensePlate, Mode=OneWay}"/>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </StackPanel>
+                                <TextBlock Margin="0,4,0,0" FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}">
+                                    <Run Text="Марка: "/><Run Text="{Binding SelectedVehicleMake, Mode=OneWay}" FontWeight="SemiBold"/>
+                                    <Run Text="   Тип: "/><Run Text="{Binding SelectedVehicleType, Mode=OneWay}" FontWeight="SemiBold"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Margin="16,8,16,0" Padding="16"
+                                Style="{StaticResource CardBorderShadow}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition/>
+                                    <RowDefinition/>
+                                    <RowDefinition/>
+                                    <RowDefinition/>
+                                </Grid.RowDefinitions>
+
+                                <Label Grid.Row="0" Grid.Column="0" Content="Пробег шасси на 1-е:"/>
+                                <TextBox Grid.Row="0" Grid.Column="1"
+                                         Text="{Binding CurrentCard.ChassisMileageOnFirst, Converter={StaticResource DoubleStr}}" Margin="2,4"
+                                         IsReadOnly="True" Background="{StaticResource PrimaryLightBrush}"/>
+                                <Label Grid.Row="0" Grid.Column="2" Content="Приведённый пробег:"/>
+                                <TextBox Grid.Row="0" Grid.Column="3"
+                                         Text="{Binding ReducedMileage, Converter={StaticResource DoubleStr}}" Margin="2,4"
+                                         IsReadOnly="True" Background="{StaticResource PrimaryLightBrush}"/>
+
+                                <Label Grid.Row="1" Grid.Column="0" Content="Остаток топлива на 1-е:"/>
+                                <TextBox Grid.Row="1" Grid.Column="1"
+                                         Text="{Binding CurrentCard.FuelRemainingOnFirst, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource DoubleStr}}" Margin="2,4"/>
+                                <Label Grid.Row="1" Grid.Column="2" Content="Заправлено за месяц (приход):"/>
+                                <TextBox Grid.Row="1" Grid.Column="3"
+                                         Text="{Binding CurrentCard.FuelRefueledMonth, Converter={StaticResource DoubleStr}}" Margin="2,4"
+                                         IsReadOnly="True" Background="{StaticResource PrimaryLightBrush}"/>
+
+                                <Label Grid.Row="2" Grid.Column="0" Content="Расход топлива за месяц:"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" IsReadOnly="True"
+                                         Text="{Binding TotalActual, Converter={StaticResource DoubleStr}}" Margin="2,4"
+                                         Background="{StaticResource PrimaryLightBrush}"/>
+                                <Label Grid.Row="2" Grid.Column="2" Content="Остаток на конец:"/>
+                                <TextBox Grid.Row="2" Grid.Column="3" IsReadOnly="True"
+                                         Text="{Binding CurrentCard.FuelRemainingOnLast, Converter={StaticResource DoubleStr}}" Margin="2,4"
+                                         Background="{StaticResource PrimaryLightBrush}"/>
+
+                                <Label Grid.Row="3" Grid.Column="0" Content="Уровень топлива (см):"/>
+                                <TextBox Grid.Row="3" Grid.Column="1"
+                                         Text="{Binding CurrentCard.FuelLevelCm, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource DoubleStr}}" Margin="2,4"/>
+                                <Label Grid.Row="3" Grid.Column="2" Content="Способ поступления:"/>
+                                <ComboBox Grid.Row="3" Grid.Column="3"
+                                          SelectedIndex="{Binding DeliveryTypeIndex, Mode=TwoWay}"
+                                          Margin="2,4" MinWidth="200">
+                                    <ComboBoxItem Content="централизованно"/>
+                                    <ComboBoxItem Content="по расчёту своего РЦ"/>
+                                    <ComboBoxItem Content="по расчёту других РЦ"/>
+                                    <ComboBoxItem Content="закуплено на местах"/>
+                                    <ComboBoxItem Content="прочий приход"/>
+                                </ComboBox>
+                            </Grid>
+                        </Border>
+
+                        <Border Margin="16,8,16,0" Padding="12"
+                                Style="{StaticResource CardBorderShadow}">
+<DataGrid ItemsSource="{Binding Records}"
+                                              SelectedItem="{Binding SelectedRecord}"
+                                              CanUserAddRows="False"
+                                              FontSize="11" RowHeaderWidth="0"
+                                              AutoGenerateColumns="False"
+                                              EnableRowVirtualization="True"
+                                              VirtualizingPanel.IsVirtualizing="True"
+                                              VirtualizingPanel.VirtualizationMode="Recycling"
+                                              MinHeight="220"
+                                              ColumnHeaderStyle="{StaticResource CardGridHeaderStyle}"
+                                              ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                              ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                              CanUserResizeRows="True">
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Header="№ пут. листа" Width="75" IsReadOnly="True">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding TripSheetNumber}" TextWrapping="Wrap"
+                                                           FontSize="11" Padding="2" VerticalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="Дата" Binding="{Binding Date, StringFormat=d.M.yyyy}" Width="80" IsReadOnly="True"/>
+                                    <DataGridTemplateColumn Header="Наименование и место работы автомобиля" Width="250" IsReadOnly="True">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding WorkDescription}" TextWrapping="Wrap"
+                                                           FontSize="11" Padding="2"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Header="Примечание" Width="180" IsReadOnly="True">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Comments}" TextWrapping="Wrap"
+                                                           FontSize="11" Padding="2"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="Выезд" Binding="{Binding DepartureTimeDisplay}" Width="55" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Возврат" Binding="{Binding ReturnTimeDisplay}" Width="55" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Спидометр, км" Binding="{Binding OdometerBeforeDeparture, StringFormat=F3}" Width="80" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Пробег км" Binding="{Binding DistanceKm, StringFormat=F3}" Width="60" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="С насосом" Binding="{Binding TimeWithPumpMinutes, StringFormat=F3}" Width="60" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="На холостом (мин)" Binding="{Binding TimeWithoutPumpMinutes, StringFormat=F3}" Width="70" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Смена, мин." Binding="{Binding ShiftChangeMinutes, StringFormat=F3}" Width="60" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Прочие (мин)" Binding="{Binding MiscWorkMinutes, StringFormat=F3}" Width="60" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Приход (заправка)" Binding="{Binding FuelRefueled, StringFormat=F3}" Width="80" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Расход (факт)" Binding="{Binding ActualConsumption, StringFormat=F3}" Width="80" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="По норме" Binding="{Binding NormConsumption, StringFormat=F3}" Width="60" IsReadOnly="True"/>
+                                    <DataGridTemplateColumn Header="Дежурный караул" Width="90" IsReadOnly="True">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding SquadNumber}" TextWrapping="Wrap"
+                                                           FontSize="11" Padding="2" VerticalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Header="Водитель" Width="150" IsReadOnly="True">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding DriverName}" TextWrapping="Wrap"
+                                                           FontSize="11" Padding="2" VerticalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Border>
+
+                        <Border Margin="16,8,16,0" Padding="16"
+                                Style="{StaticResource CardBorderShadow}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                    <Button Content="+ Добавить запись" Command="{Binding AddRecordCommand}"
+                                            Style="{StaticResource SuccessButton}" Padding="12,7" Margin="0,0,4,0"/>
+                                    <Button Content="Редактировать" Command="{Binding EditRecordCommand}"
+                                            Padding="12,7" Margin="4,0"/>
+                                    <Button Content="Удалить" Command="{Binding DeleteRecordCommand}"
+                                            Style="{StaticResource DangerButton}" Padding="12,7" Margin="4,0,0,0"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                    <Button Content="Сохранить" Command="{Binding SaveCardCommand}"
+                                            Style="{StaticResource SuccessButton}" Padding="12,7"/>
+                                    <Button Content="Экспорт в Excel" Command="{Binding ExportExcelCommand}"
+                                            Padding="12,7"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <Border Margin="16,8,16,0" Padding="16"
+                                Style="{StaticResource CardBorderShadow}">
+                            <DockPanel MaxHeight="150">
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,4">
+                                    <TextBlock Text="История карточек" FontSize="12" FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                    <Button Content="Открыть" Command="{Binding OpenHistoryCardCommand}"
+                                            Padding="10,4" FontSize="11" Margin="8,0,0,0"/>
+                                </StackPanel>
+                                <ListBox ItemsSource="{Binding CardHistory}"
+                                         SelectedItem="{Binding SelectedCardHistoryItem}"
+                                         BorderThickness="0" Background="Transparent"
+                                         DisplayMemberPath="MonthYearDisplay"/>
+                            </DockPanel>
+                        </Border>
                     </StackPanel>
-                </Border>
-
-                <Border DockPanel.Dock="Top" Margin="16,8,16,0" Padding="16"
-                        Style="{StaticResource CardBorderShadow}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition/>
-                            <RowDefinition/>
-                            <RowDefinition/>
-                            <RowDefinition/>
-                        </Grid.RowDefinitions>
-
-                        <Label Grid.Row="0" Grid.Column="0" Content="Пробег шасси на 1-е:"/>
-                        <TextBox Grid.Row="0" Grid.Column="1"
-                                 Text="{Binding CurrentCard.ChassisMileageOnFirst, Converter={StaticResource DoubleStr}}" Margin="2,4"
-                                 IsReadOnly="True" Background="{StaticResource PrimaryLightBrush}"/>
-                        <Label Grid.Row="0" Grid.Column="2" Content="Приведённый пробег:"/>
-                        <TextBox Grid.Row="0" Grid.Column="3"
-                                 Text="{Binding ReducedMileage, Converter={StaticResource DoubleStr}}" Margin="2,4"
-                                 IsReadOnly="True" Background="{StaticResource PrimaryLightBrush}"/>
-
-                        <Label Grid.Row="1" Grid.Column="0" Content="Остаток топлива на 1-е:"/>
-                        <TextBox Grid.Row="1" Grid.Column="1"
-                                 Text="{Binding CurrentCard.FuelRemainingOnFirst, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource DoubleStr}}" Margin="2,4"/>
-                        <Label Grid.Row="1" Grid.Column="2" Content="Заправлено за месяц:"/>
-                        <TextBox Grid.Row="1" Grid.Column="3"
-                                 Text="{Binding CurrentCard.FuelRefueledMonth, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource DoubleStr}}" Margin="2,4"/>
-
-                        <Label Grid.Row="2" Grid.Column="0" Content="Остаток на конец:"/>
-                        <TextBox Grid.Row="2" Grid.Column="1" IsReadOnly="True"
-                                 Text="{Binding CurrentCard.FuelRemainingOnLast, Converter={StaticResource DoubleStr}}" Margin="2,4"
-                                 Background="{StaticResource PrimaryLightBrush}"/>
-                        <Label Grid.Row="2" Grid.Column="2" Content="Уровень топлива (см):"/>
-                        <TextBox Grid.Row="2" Grid.Column="3"
-                                 Text="{Binding CurrentCard.FuelLevelCm, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource DoubleStr}}" Margin="2,4"/>
-
-                        <Label Grid.Row="3" Grid.Column="0" Content="Способ поступления:"/>
-                        <ComboBox Grid.Row="3" Grid.Column="1"
-                                  SelectedIndex="{Binding DeliveryTypeIndex, Mode=TwoWay}"
-                                  Margin="2,4" MinWidth="200">
-                            <ComboBoxItem Content="централизованно"/>
-                            <ComboBoxItem Content="по расчёту своего РЦ"/>
-                            <ComboBoxItem Content="по расчёту других РЦ"/>
-                            <ComboBoxItem Content="закуплено на местах"/>
-                            <ComboBoxItem Content="прочий приход"/>
-                        </ComboBox>
-                    </Grid>
-                </Border>
-
-                <Border DockPanel.Dock="Bottom" Margin="16,8,16,8" Padding="16"
-                        Style="{StaticResource CardBorderShadow}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel Grid.Column="0" Orientation="Horizontal">
-                            <Button Content="+ Добавить запись" Command="{Binding AddRecordCommand}"
-                                    Style="{StaticResource SuccessButton}" Padding="12,7" Margin="0,0,4,0"/>
-                            <Button Content="Редактировать" Command="{Binding EditRecordCommand}"
-                                    Padding="12,7" Margin="4,0"/>
-                            <Button Content="Удалить" Command="{Binding DeleteRecordCommand}"
-                                    Style="{StaticResource DangerButton}" Padding="12,7" Margin="4,0,0,0"/>
-                        </StackPanel>
-
-                        <StackPanel Grid.Column="2" Orientation="Horizontal">
-                            <Button Content="Сохранить" Command="{Binding SaveCardCommand}"
-                                    Style="{StaticResource SuccessButton}" Padding="12,7"/>
-                            <Button Content="Экспорт в Excel" Command="{Binding ExportExcelCommand}"
-                                    Padding="12,7"/>
-                        </StackPanel>
-                    </Grid>
-                </Border>
-
-                <Border DockPanel.Dock="Bottom" Margin="16,0,16,4" Padding="16"
-                        Style="{StaticResource CardBorderShadow}">
-                    <DockPanel MaxHeight="150">
-                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,4">
-                            <TextBlock Text="История карточек" FontSize="12" FontWeight="SemiBold"
-                                       Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                            <Button Content="Открыть" Command="{Binding OpenHistoryCardCommand}"
-                                    Padding="10,4" FontSize="11" Margin="8,0,0,0"/>
-                        </StackPanel>
-                        <ListBox ItemsSource="{Binding CardHistory}"
-                                 SelectedItem="{Binding SelectedCardHistoryItem}"
-                                 BorderThickness="0" Background="Transparent"
-                                 DisplayMemberPath="MonthYearDisplay"/>
-                    </DockPanel>
-                </Border>
-
-                <DataGrid Grid.Column="0" ItemsSource="{Binding Records}"
-                          SelectedItem="{Binding SelectedRecord}"
-                          Margin="16,0,16,0" CanUserAddRows="False"
-                          FontSize="11" RowHeaderWidth="0"
-                          AutoGenerateColumns="False"
-                          EnableRowVirtualization="False"
-                          CanUserResizeRows="True">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="№ пут. листа" Binding="{Binding TripSheetNumber}" Width="65" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="Дата" Binding="{Binding Date, StringFormat=d.M.yyyy}" Width="80" IsReadOnly="True"/>
-                        <DataGridTemplateColumn Header="Наименование и место работы автомобиля" Width="220">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="120">
-                                        <TextBlock Text="{Binding WorkDescription}" TextWrapping="Wrap" FontSize="11" Padding="2"/>
-                                    </ScrollViewer>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="Примечание" Width="160">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="120">
-                                        <TextBlock Text="{Binding Comments}" TextWrapping="Wrap" FontSize="11" Padding="2"/>
-                                    </ScrollViewer>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="Выезд" Binding="{Binding DepartureTimeDisplay}" Width="55" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="Возврат" Binding="{Binding ReturnTimeDisplay}" Width="55" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="Спидометр, км" Binding="{Binding OdometerBeforeDeparture, StringFormat=F3}" Width="80" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="Пробег км" Binding="{Binding DistanceKm, StringFormat=F3}" Width="60" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="С насосом" Binding="{Binding TimeWithPumpMinutes, StringFormat=F3}" Width="60" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="На холостом (мин)" Binding="{Binding TimeWithoutPumpMinutes, StringFormat=F3}" Width="60" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="Смена, мин." Binding="{Binding ShiftChangeMinutes, StringFormat=F3}" Width="60" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="Прочие (мин)" Binding="{Binding MiscWorkMinutes, StringFormat=F3}" Width="55" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="Расход" Binding="{Binding FuelRefueled, StringFormat=F3}" Width="55" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="Факт" Binding="{Binding ActualConsumption, StringFormat=F3}" Width="60" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="По норме" Binding="{Binding NormConsumption, StringFormat=F3}" Width="60" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="Дежурный караул" Binding="{Binding SquadNumber}" Width="80" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="Водитель" Binding="{Binding DriverName}" Width="120" IsReadOnly="True"/>
-                    </DataGrid.Columns>
-                </DataGrid>
+                </ScrollViewer>
             </DockPanel>
 
             <!-- Settings -->

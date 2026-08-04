@@ -255,10 +255,7 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" VerticalAlignment="Center"
-                               Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"
-                               Text="Изменения внесены"/>
-                    <Button Grid.Column="1" Content="Отмена" Command="{Binding CancelCommand}" MinWidth="100" Margin="0,0,8,0"
+                    <Button Grid.Column="1" Content="Отмена" Click="CancelButton_Click" MinWidth="100" Margin="0,0,8,0"
                             Style="{StaticResource GhostButton}" Foreground="{StaticResource TextSecondaryBrush}"/>
                     <Button Grid.Column="2" Content="Сохранить" MinWidth="120"
                             Style="{StaticResource PrimaryButton}" Click="SaveButton_Click" Padding="20,10"

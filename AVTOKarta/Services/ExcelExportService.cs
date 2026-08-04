@@ -29,7 +29,7 @@ namespace AVTOKarta.Services
                 var ws = workbook.Worksheets.Add("Эксплуатационная карточка");
 
                 WriteHeader(ws, card, vehicle);
-                WriteInfoRows(ws, card, vehicle);
+                WriteInfoRows(ws, card, vehicle, records);
                 WriteTableHeader(ws);
                 WriteRecords(ws, records);
                 WriteSummary(ws, records, vehicle.FuelNorms, card);
@@ -126,7 +126,7 @@ namespace AVTOKarta.Services
                 bold: true, fontSize: 18, hAlign: XLAlignmentHorizontalValues.Center);
         }
 
-        private void WriteInfoRows(IXLWorksheet ws, MonthlyCard card, Vehicle vehicle)
+        private void WriteInfoRows(IXLWorksheet ws, MonthlyCard card, Vehicle vehicle, List<DailyRecord> records)
         {
             ws.Row(2).Height = 16.2;
             ws.Row(3).Height = 16.2;
@@ -203,7 +203,8 @@ namespace AVTOKarta.Services
             SetCell(ws, 6, 1, "Заправлено топлива в автомобиль за отчетный месяц", fontSize: 12);
 
             ws.Range(6, 7, 6, 11).Merge();
-            SetCellNum(ws, 6, 7, card.FuelRefueledMonth, bold: true, fontSize: 12, format: "0.000");
+            double refueledMonth = records != null ? records.Sum(r => r.FuelRefueled) : card.FuelRefueledMonth;
+            SetCellNum(ws, 6, 7, refueledMonth, bold: true, fontSize: 12, format: "0.000");
 
             ws.Range(6, 12, 6, 13).Merge();
             SetCell(ws, 6, 12, "литры", fontSize: 12);
@@ -336,7 +337,7 @@ namespace AVTOKarta.Services
             // Row 17: Column numbers
             for (int i = 1; i <= 20; i++)
             {
-                SetCell(ws, 17, i, i.ToString(), fontSize: 10, fontName: "Arial Cyr",
+                SetCell(ws, 17, i, i.ToString(), fontSize: 10, fontName: "Times New Roman",
                     hAlign: XLAlignmentHorizontalValues.Center);
             }
         }
@@ -637,12 +638,12 @@ namespace AVTOKarta.Services
             row = 107;
             SetCell(ws, row, 2, "Учебный выезд", fontSize: 12);
             ws.Range(row, 2, row, 2).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            SetCellNum(ws, row, 7, byTripType[TripType.Training], bold: true, fontSize: 12, fontName: "Trebuchet MS", format: "0.000");
+            SetCellNum(ws, row, 7, byTripType[TripType.Training], bold: true, fontSize: 12, fontName: "Times New Roman", format: "0.000");
             ws.Range(row, 7, row, 7).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
             SetCell(ws, row, 8, "км.", fontSize: 12);
             ws.Range(row, 8, row, 8).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
             ws.Range(row, 9, row, 10).Merge();
-            SetCell(ws, row, 9, String.Format("{0:0.000}", fuelByTripType[TripType.Training]), bold: true, fontSize: 12, fontName: "Trebuchet MS");
+            SetCellNum(ws, row, 9, fuelByTripType[TripType.Training], bold: true, fontSize: 12, format: "0.000");
             ws.Range(row, 9, row, 10).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
             SetCell(ws, row, 11, "л.", fontSize: 12);
             ws.Range(row, 11, row, 11).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
@@ -650,12 +651,12 @@ namespace AVTOKarta.Services
             row = 108;
             SetCell(ws, row, 2, "Пожар", fontSize: 12);
             ws.Range(row, 2, row, 2).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            SetCellNum(ws, row, 7, byTripType[TripType.Fire], bold: true, fontSize: 12, fontName: "Trebuchet MS", format: "0.000");
+            SetCellNum(ws, row, 7, byTripType[TripType.Fire], bold: true, fontSize: 12, fontName: "Times New Roman", format: "0.000");
             ws.Range(row, 7, row, 7).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
             SetCell(ws, row, 8, "км.", fontSize: 12);
             ws.Range(row, 8, row, 8).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
             ws.Range(row, 9, row, 10).Merge();
-            SetCell(ws, row, 9, String.Format("{0:0.000}", fuelByTripType[TripType.Fire]), bold: true, fontSize: 12, fontName: "Trebuchet MS");
+            SetCellNum(ws, row, 9, fuelByTripType[TripType.Fire], bold: true, fontSize: 12, format: "0.000");
             ws.Range(row, 9, row, 10).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
             SetCell(ws, row, 11, "л.", fontSize: 12);
             ws.Range(row, 11, row, 11).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
@@ -663,12 +664,12 @@ namespace AVTOKarta.Services
             row = 109;
             SetCell(ws, row, 2, "Прочий пробег", fontSize: 12);
             ws.Range(row, 2, row, 2).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            SetCellNum(ws, row, 7, byTripType[TripType.Other], bold: true, fontSize: 12, fontName: "Trebuchet MS", format: "0.000");
+            SetCellNum(ws, row, 7, byTripType[TripType.Other], bold: true, fontSize: 12, fontName: "Times New Roman", format: "0.000");
             ws.Range(row, 7, row, 7).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
             SetCell(ws, row, 8, "км.", fontSize: 12);
             ws.Range(row, 8, row, 8).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
             ws.Range(row, 9, row, 10).Merge();
-            SetCell(ws, row, 9, String.Format("{0:0.000}", fuelByTripType[TripType.Other]), bold: true, fontSize: 12, fontName: "Trebuchet MS");
+            SetCellNum(ws, row, 9, fuelByTripType[TripType.Other], bold: true, fontSize: 12, format: "0.000");
             ws.Range(row, 9, row, 10).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
             SetCell(ws, row, 11, "л.", fontSize: 12);
             ws.Range(row, 11, row, 11).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
@@ -676,12 +677,12 @@ namespace AVTOKarta.Services
             row = 110;
             SetCell(ws, row, 2, "Ложно", fontSize: 12);
             ws.Range(row, 2, row, 2).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            SetCellNum(ws, row, 7, byTripType[TripType.FalseAlarm], bold: true, fontSize: 12, fontName: "Trebuchet MS", format: "0.000");
+            SetCellNum(ws, row, 7, byTripType[TripType.FalseAlarm], bold: true, fontSize: 12, fontName: "Times New Roman", format: "0.000");
             ws.Range(row, 7, row, 7).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
             SetCell(ws, row, 8, "км.", fontSize: 12);
             ws.Range(row, 8, row, 8).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
             ws.Range(row, 9, row, 10).Merge();
-            SetCell(ws, row, 9, String.Format("{0:0.000}", fuelByTripType[TripType.FalseAlarm]), bold: true, fontSize: 12, fontName: "Trebuchet MS");
+            SetCellNum(ws, row, 9, fuelByTripType[TripType.FalseAlarm], bold: true, fontSize: 12, format: "0.000");
             ws.Range(row, 9, row, 10).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
             SetCell(ws, row, 11, "л.", fontSize: 12);
             ws.Range(row, 11, row, 11).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
@@ -693,7 +694,7 @@ namespace AVTOKarta.Services
             // Col 7: total distance = SUM(H18:H97)
             var f111_7 = ws.Cell(row, 7);
             f111_7.FormulaA1 = "ROUND(SUM(H18:H97),0)";
-            f111_7.Style.Font.FontName = "Trebuchet MS";
+            f111_7.Style.Font.FontName = "Times New Roman";
             f111_7.Style.Font.FontSize = 12;
             f111_7.Style.Font.Bold = true;
             f111_7.Style.NumberFormat.Format = "0.000";
@@ -707,7 +708,7 @@ namespace AVTOKarta.Services
             ws.Range(row, 9, row, 10).Merge();
             var f111_9 = ws.Cell(row, 9);
             f111_9.FormulaA1 = "ROUND(SUM(Q18:Q97),3)";
-            f111_9.Style.Font.FontName = "Trebuchet MS";
+            f111_9.Style.Font.FontName = "Times New Roman";
             f111_9.Style.Font.FontSize = 12;
             f111_9.Style.Font.Bold = true;
             f111_9.Style.NumberFormat.Format = "0.000";
@@ -720,14 +721,14 @@ namespace AVTOKarta.Services
             // Row 112: старший водитель
             row = 112;
             ws.Row(row).Height = 16.2;
-            SetCell(ws, row, 2, "старший водитель", fontSize: 10, fontName: "Trebuchet MS");
+            SetCell(ws, row, 2, "старший водитель", fontSize: 10, fontName: "Times New Roman");
 
             // Row 113: заправлено топлива
             row = 113;
             ws.Row(row).Height = 16.2;
             ws.Range(row, 5, row, 8).Merge();
             SetCell(ws, row, 5, "Заправлено топлива", fontSize: 12);
-            SetCellNum(ws, row, 9, card.FuelRefueledMonth, fontSize: 12, format: "0.000");
+            SetCellNum(ws, row, 9, records != null ? records.Sum(r => r.FuelRefueled) : card.FuelRefueledMonth, fontSize: 12, format: "0.000");
             SetCell(ws, row, 10, "лит.", fontSize: 12);
 
             // Rows 114-115: empty
@@ -737,8 +738,8 @@ namespace AVTOKarta.Services
             // Row 116: подписи начальника и старшего водителя
             row = 116;
             ws.Row(row).Height = 15.6;
-            SetCell(ws, row, 2, "Начальник части _______________", fontSize: 10, fontName: "Arial Cyr");
-            SetCell(ws, row, 6, "Ст. водитель _______________          _____________ ФИО", fontSize: 10, fontName: "Arial Cyr");
+            SetCell(ws, row, 2, "Начальник части _______________", fontSize: 10, fontName: "Times New Roman");
+            SetCell(ws, row, 6, "Ст. водитель _______________          _____________ ФИО", fontSize: 10, fontName: "Times New Roman");
 
             // ---- Norm table: rows 118-126, cols B-D ----
 

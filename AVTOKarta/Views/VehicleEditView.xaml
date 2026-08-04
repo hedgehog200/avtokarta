@@ -24,7 +24,7 @@
             <!-- Buttons -->
             <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,1,0,0" Padding="16,12">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="Отмена" Command="{Binding CancelCommand}" MinWidth="100" Margin="0,0,8,0"
+                    <Button Content="Отмена" Click="CancelButton_Click" MinWidth="100" Margin="0,0,8,0"
                             Style="{StaticResource GhostButton}" Foreground="{StaticResource TextSecondaryBrush}"/>
                     <Button Content="Сохранить" MinWidth="100"
                             Style="{StaticResource PrimaryButton}" Click="SaveButton_Click"/>
@@ -67,9 +67,14 @@
                                Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                     <ComboBox ItemsSource="{Binding EngineTypes}"
                               SelectedItem="{Binding SelectedEngineItem}"
-                              DisplayMemberPath="Name"
                               Margin="0,0,0,12" Height="36"
-                              ItemContainerStyle="{StaticResource ComboBoxItemStyle}"/>
+                              ItemContainerStyle="{StaticResource ComboBoxItemStyle}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
 
                     <TextBlock Text="Номер карточки:" FontWeight="SemiBold" FontSize="13"
                                Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>

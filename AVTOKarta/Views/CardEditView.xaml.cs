@@ -39,6 +39,11 @@ namespace AVTOKarta.Views
             DialogResult = false;
         }
 
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            DialogResult = false;
+        }
+
         private void Overlay_Click(object sender, MouseButtonEventArgs e)
         {
             DialogResult = false;

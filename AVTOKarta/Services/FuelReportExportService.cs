@@ -146,7 +146,7 @@ namespace AVTOKarta.Services
                     Card = card,
                     Records = records,
                     TotalFuelConsumption = Math.Round(totalConsumption, 3),
-                    ReducedMileage = Math.Round(reducedMileage, 0),
+                    ReducedMileage = reducedMileage,
                     StartFuel = card.FuelRemainingOnFirst,
                     EndFuel = card.FuelRemainingOnLast,
                     Refueled = card.FuelRefueledMonth,
@@ -792,7 +792,7 @@ namespace AVTOKarta.Services
             }
 
             double oilStart = allData.Sum(v => v.TotalMotorOil + v.TotalTransOil);
-            double oilConsumed = allData.Sum(v => v.TotalMotorOil);
+            double oilConsumed = allData.Sum(v => v.TotalMotorOil + v.TotalTransOil);
             double specConsumed = allData.Sum(v => v.TotalSpecLiquid);
             double plasticTotal = allData.Sum(v => v.TotalPlasticLub);
             bool hasMisData = allMotorBrands.Count > 0 || allTransBrands.Count > 0 || oilStart > 0 || oilConsumed > 0;
