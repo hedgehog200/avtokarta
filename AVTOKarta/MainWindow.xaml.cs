@@ -1,7 +1,9 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
@@ -13,25 +15,35 @@ namespace AVTOKarta
     {
         private bool _isDrawerOpen;
 
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+        private const uint WM_SETICON = 0x0080;
+        private const int ICON_BIG = 1;
+        private const int ICON_SMALL = 0;
+
         public MainWindow()
         {
             InitializeComponent();
             DataContext = new MainViewModel();
 
-            // Set icon with 32px for proper taskbar display
-            var iconUri = new Uri("pack://application:,,,/AVTOKarta;component/app.ico", UriKind.Absolute);
-            var bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.UriSource = iconUri;
-            bitmap.DecodePixelWidth = 32;
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.EndInit();
-            bitmap.Freeze();
-            Icon = bitmap;
+            Loaded += MainWindow_Loaded;
 
             ((MainViewModel)DataContext).PropertyChanged += OnViewModelPropertyChanged;
 
             DrawerPanel.RenderTransform = new TranslateTransform(-280, 0);
+        }
+
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            var helper = new WindowInteropHelper(this);
+            IntPtr hwnd = helper.Handle;
+
+            var iconUri = new Uri("pack://application:,,,/AVTOKarta;component/app.ico", UriKind.Absolute);
+            var icon = new System.Drawing.Icon(Application.GetResourceStream(iconUri).Stream);
+
+            SendMessage(hwnd, WM_SETICON, (IntPtr)ICON_BIG, icon.Handle);
+            SendMessage(hwnd, WM_SETICON, (IntPtr)ICON_SMALL, icon.Handle);
         }
 
         private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
