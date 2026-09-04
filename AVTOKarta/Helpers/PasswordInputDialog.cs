@@ -120,7 +120,7 @@ namespace AVTOKarta.Helpers
             DockPanel.SetDock(footer, Dock.Bottom);
             dockPanel.Children.Add(footer);
 
-            var content = new DockPanel
+            var contentPanel = new DockPanel
             {
                 Margin = new Thickness(20, 16, 20, 16)
             };
@@ -134,10 +134,17 @@ namespace AVTOKarta.Helpers
                 Margin = new Thickness(0, 0, 0, 16)
             };
             DockPanel.SetDock(msgBlock, Dock.Top);
-            content.Children.Add(msgBlock);
-            content.Children.Add(passwordBox);
+            contentPanel.Children.Add(msgBlock);
+            contentPanel.Children.Add(passwordBox);
 
-            dockPanel.Children.Add(content);
+            var scrollViewer = new ScrollViewer
+            {
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                Content = contentPanel
+            };
+
+            dockPanel.Children.Add(scrollViewer);
             outerBorder.Child = dockPanel;
             window.Content = outerBorder;
 

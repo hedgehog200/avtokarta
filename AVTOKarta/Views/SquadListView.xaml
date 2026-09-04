@@ -3,20 +3,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:hc="https://handyorg.github.io/handycontrol"
              xml:lang="ru-RU">
-    <UserControl.Resources>
-        <Style x:Key="FieldCard" TargetType="Border">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="CornerRadius" Value="12"/>
-            <Setter Property="Padding" Value="20"/>
-            <Setter Property="Margin" Value="0"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.06" Color="#000000" Direction="270"/>
-                </Setter.Value>
-            </Setter>
-        </Style>
-    </UserControl.Resources>
 
     <DockPanel>
         <!-- ============ HEADER ============ -->
@@ -30,7 +16,7 @@
                 <Border Grid.Column="0" Width="42" Height="42" CornerRadius="12"
                         Background="{StaticResource PrimaryLightBrush}" Margin="0,0,14,0"
                         VerticalAlignment="Center">
-                    <TextBlock Text="&#x263A;" FontSize="20" Foreground="{StaticResource PrimaryBrush}"
+                    <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="{StaticResource PrimaryBrush}"
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -70,11 +56,11 @@
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                    <Button Content="&#x270E;" Style="{StaticResource IconButton}"
+                                    <Button Content="&#xE70F;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource IconButton}"
                                             Command="{Binding DataContext.EditSquadCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                             CommandParameter="{Binding}" FontSize="14" Padding="6"
                                             Foreground="{StaticResource PrimaryBrush}" ToolTip="Редактировать"/>
-                                    <Button Content="&#x2716;" Style="{StaticResource IconButton}"
+                                    <Button Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource IconButton}"
                                             Command="{Binding DataContext.DeleteSquadCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                             CommandParameter="{Binding}" FontSize="12" Padding="6"
                                             Foreground="{StaticResource DangerBrush}" ToolTip="Удалить"/>

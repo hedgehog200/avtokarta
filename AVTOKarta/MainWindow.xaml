@@ -112,8 +112,10 @@
                         </Grid.ColumnDefinitions>
                         <Border Width="38" Height="38" CornerRadius="10" Background="#10B981" Margin="0,0,12,0"
                                 VerticalAlignment="Center">
-                            <TextBlock Text="&#x25CF;" FontSize="18" Foreground="White"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Path Data="M3,17 V13 L5,9 H19 L21,13 V17 M7,20 A1.5,1.5 0 1,0 7.001,20 M17,20 A1.5,1.5 0 1,0 17.001,20 M5,17 H19"
+                                  Stroke="White" StrokeThickness="1.5" Stretch="Uniform" Width="20" Height="20"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <TextBlock Grid.Column="1" Text="Автомобили" FontSize="18" FontWeight="Bold"
                                    Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
@@ -144,11 +146,11 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                            <Button Content="&#x270E;" Style="{StaticResource IconButton}"
+                                            <Button Content="&#xE70F;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource IconButton}"
                                                     Command="{Binding DataContext.EditVehicleCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                                     CommandParameter="{Binding}" FontSize="13" Padding="5"
                                                     Foreground="{StaticResource PrimaryBrush}"/>
-                                            <Button Content="&#x2716;" Style="{StaticResource IconButton}"
+                                            <Button Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource IconButton}"
                                                     Command="{Binding DataContext.DeleteVehicleCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                                     CommandParameter="{Binding}" FontSize="11" Padding="5"
                                                     Foreground="{StaticResource DangerBrush}"/>
