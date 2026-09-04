@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 using AVTOKarta.ViewModels;
 
 namespace AVTOKarta
@@ -16,6 +17,17 @@ namespace AVTOKarta
         {
             InitializeComponent();
             DataContext = new MainViewModel();
+
+            // Set icon with 32px for proper taskbar display
+            var iconUri = new Uri("pack://application:,,,/AVTOKarta;component/app.ico", UriKind.Absolute);
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.UriSource = iconUri;
+            bitmap.DecodePixelWidth = 32;
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            Icon = bitmap;
 
             ((MainViewModel)DataContext).PropertyChanged += OnViewModelPropertyChanged;
 

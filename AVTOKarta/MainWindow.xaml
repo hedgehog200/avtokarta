@@ -9,7 +9,6 @@
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized"
         KeyDown="Window_KeyDown"
-        Icon="app.ico"
         Background="{StaticResource BackgroundBrush}">
     <Window.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
