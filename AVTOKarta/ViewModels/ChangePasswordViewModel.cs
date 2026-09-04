@@ -4,6 +4,7 @@
 
 using System;
 using System.Linq;
+using System.Collections.Generic;
 using System.Windows;
 using AVTOKarta.Helpers;
 using AVTOKarta.Services;
@@ -16,6 +17,7 @@ namespace AVTOKarta.ViewModels
         private string _newPassword;
         private string _confirmPassword;
         private string _errorMessage;
+        private bool _isSetMode;
 
         public RelayCommand ConfirmCommand { get; }
         public RelayCommand CancelCommand { get; }
@@ -23,12 +25,26 @@ namespace AVTOKarta.ViewModels
         public bool? DialogResult { get; private set; }
         public string NewPassword { get; private set; }
         public SettingsService ResultSettingsService { get; private set; }
+        public bool IsSetMode
+        {
+            get { return _isSetMode; }
+            private set { SetProperty(ref _isSetMode, value); }
+        }
+        public string HeaderText
+        {
+            get { return IsSetMode ? "Установка пароля" : "Смена пароля"; }
+        }
+        public string SaveButtonText
+        {
+            get { return IsSetMode ? "Установить" : "Сменить"; }
+        }
 
         private readonly SettingsService _settingsService;
 
-        public ChangePasswordViewModel(SettingsService settingsService)
+        public ChangePasswordViewModel(SettingsService settingsService, bool isSetMode = false)
         {
             _settingsService = settingsService;
+            IsSetMode = isSetMode;
             ConfirmCommand = new RelayCommand(o => Confirm());
             CancelCommand = new RelayCommand(o => Cancel());
         }
@@ -59,9 +75,14 @@ namespace AVTOKarta.ViewModels
 
         private void Confirm()
         {
-            if (string.IsNullOrWhiteSpace(OldPassword) ||
-                string.IsNullOrWhiteSpace(NewPasswordStr) ||
+            if (string.IsNullOrWhiteSpace(NewPasswordStr) ||
                 string.IsNullOrWhiteSpace(ConfirmPassword))
+            {
+                ErrorMessage = "Заполните все поля";
+                return;
+            }
+
+            if (!IsSetMode && string.IsNullOrWhiteSpace(OldPassword))
             {
                 ErrorMessage = "Заполните все поля";
                 return;
@@ -85,7 +106,7 @@ namespace AVTOKarta.ViewModels
                 return;
             }
 
-            if (!_settingsService.ValidatePassword(OldPassword))
+            if (!IsSetMode && !_settingsService.ValidatePassword(OldPassword))
             {
                 ErrorMessage = "Неверный текущий пароль";
                 ClearPasswords();
@@ -94,14 +115,29 @@ namespace AVTOKarta.ViewModels
 
             try
             {
-                _settingsService.SavePasswordChange(OldPassword, NewPasswordStr);
+                List<string> errors;
+                if (IsSetMode)
+                {
+                    errors = _settingsService.SetPassword(NewPasswordStr);
+                }
+                else
+                {
+                    errors = _settingsService.SavePasswordChange(OldPassword, NewPasswordStr);
+                }
+
+                if (errors.Count > 0)
+                {
+                    ErrorMessage = "Ошибка: " + string.Join("; ", errors);
+                    return;
+                }
+
                 NewPassword = NewPasswordStr;
                 ResultSettingsService = new SettingsService(NewPasswordStr);
                 DialogResult = true;
             }
             catch (Exception ex)
             {
-                ErrorMessage = "Ошибка смены пароля: " + ex.Message;
+                ErrorMessage = "Ошибка: " + ex.Message;
                 ClearPasswords();
             }
         }

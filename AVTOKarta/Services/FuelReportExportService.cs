@@ -338,6 +338,16 @@ namespace AVTOKarta.Services
             cell.Style.Alignment.Vertical = vAlign ?? XLAlignmentVerticalValues.Bottom;
         }
 
+        private string FuelFormat(bool isDiesel)
+        {
+            return isDiesel ? "#,##0.000" : "#,##0.0000";
+        }
+
+        private string FuelFormat4(bool isDiesel)
+        {
+            return isDiesel ? "0.000" : "0.0000";
+        }
+
         private void SetFormula(IXLWorksheet ws, int row, int col, string formula, bool bold = false,
             double fontSize = 11, string format = "#,##0.000",
             XLAlignmentVerticalValues? vAlign = null)
@@ -694,22 +704,23 @@ namespace AVTOKarta.Services
             int row = 14;
 
             // Автобен. Всего
+            string gasFmt = "#,##0.0000";
             SetCell(ws, row, 1, "Автобен. Всего", wrap: true);
             SetCell(ws, row, 2, "л.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            SetCellNum(ws, row, 3, gasStart, fontSize: 10);
-            SetFormula(ws, row, 4, string.Format("=SUM(E{0}:J{0})", row), fontSize: 10);
-            SetCellNum(ws, row, 5, gasRefuelCentralized, fontSize: 10);
-            SetCellNum(ws, row, 6, gasRefuelOwnRC, fontSize: 10);
-            SetCellNum(ws, row, 7, gasRefuelOtherRC, fontSize: 10);
-            SetCellNum(ws, row, 8, gasRefuelLocal, fontSize: 10);
-            SetCellNum(ws, row, 10, gasRefuelOther, fontSize: 10);
-            SetCellNum(ws, row, 11, gasYTD + gasConsumed, fontSize: 10);
-            SetFormula(ws, row, 12, string.Format("=SUM(M{0}:P{0})", row), fontSize: 10);
-            SetCellNum(ws, row, 13, gasConsumed, fontSize: 10);
-            SetFormula(ws, row, 17, string.Format("=K{0}", row), fontSize: 10);
-            SetFormula(ws, row, 18, string.Format("=C{0}+D{0}-L{0}", row), fontSize: 10);
-            SetFormula(ws, row, 19, string.Format("=R{0}*{1}", row, gasTankRatio.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)), fontSize: 10);
-            SetFormula(ws, row, 20, string.Format("=R{0}-S{0}", row), fontSize: 10);
+            SetCellNum(ws, row, 3, gasStart, fontSize: 10, format: gasFmt);
+            SetFormula(ws, row, 4, string.Format("=SUM(E{0}:J{0})", row), fontSize: 10, format: gasFmt);
+            SetCellNum(ws, row, 5, gasRefuelCentralized, fontSize: 10, format: gasFmt);
+            SetCellNum(ws, row, 6, gasRefuelOwnRC, fontSize: 10, format: gasFmt);
+            SetCellNum(ws, row, 7, gasRefuelOtherRC, fontSize: 10, format: gasFmt);
+            SetCellNum(ws, row, 8, gasRefuelLocal, fontSize: 10, format: gasFmt);
+            SetCellNum(ws, row, 10, gasRefuelOther, fontSize: 10, format: gasFmt);
+            SetCellNum(ws, row, 11, gasYTD + gasConsumed, fontSize: 10, format: gasFmt);
+            SetFormula(ws, row, 12, string.Format("=SUM(M{0}:P{0})", row), fontSize: 10, format: gasFmt);
+            SetCellNum(ws, row, 13, gasConsumed, fontSize: 10, format: gasFmt);
+            SetFormula(ws, row, 17, string.Format("=K{0}", row), fontSize: 10, format: gasFmt);
+            SetFormula(ws, row, 18, string.Format("=C{0}+D{0}-L{0}", row), fontSize: 10, format: gasFmt);
+            SetFormula(ws, row, 19, string.Format("=R{0}*{1}", row, gasTankRatio.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture)), fontSize: 10, format: gasFmt);
+            SetFormula(ws, row, 20, string.Format("=R{0}-S{0}", row), fontSize: 10, format: gasFmt);
             row++;
 
             // АИ-95
@@ -720,20 +731,20 @@ namespace AVTOKarta.Services
             // АИ-92
             SetCell(ws, row, 1, "АИ-92", wrap: true);
             SetCell(ws, row, 2, "л.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            SetCellNum(ws, row, 3, gasStart, fontSize: 10);
-            SetFormula(ws, row, 4, string.Format("=SUM(E{0}:J{0})", row), fontSize: 10);
-            SetCellNum(ws, row, 5, gasRefuelCentralized, fontSize: 10);
-            SetCellNum(ws, row, 6, gasRefuelOwnRC, fontSize: 10);
-            SetCellNum(ws, row, 7, gasRefuelOtherRC, fontSize: 10);
-            SetCellNum(ws, row, 8, gasRefuelLocal, fontSize: 10);
-            SetCellNum(ws, row, 10, gasRefuelOther, fontSize: 10);
-            SetCellNum(ws, row, 11, gasYTD + gasConsumed, fontSize: 10);
-            SetFormula(ws, row, 12, string.Format("=SUM(M{0}:P{0})", row), fontSize: 10);
-            SetCellNum(ws, row, 13, gasConsumed, fontSize: 10);
-            SetFormula(ws, row, 17, string.Format("=K{0}", row), fontSize: 10);
-            SetFormula(ws, row, 18, string.Format("=C{0}+D{0}-L{0}", row), fontSize: 10);
-            SetFormula(ws, row, 19, string.Format("=R{0}*{1}", row, gasTankRatio.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)), fontSize: 10);
-            SetFormula(ws, row, 20, string.Format("=R{0}-S{0}", row), fontSize: 10);
+            SetCellNum(ws, row, 3, gasStart, fontSize: 10, format: gasFmt);
+            SetFormula(ws, row, 4, string.Format("=SUM(E{0}:J{0})", row), fontSize: 10, format: gasFmt);
+            SetCellNum(ws, row, 5, gasRefuelCentralized, fontSize: 10, format: gasFmt);
+            SetCellNum(ws, row, 6, gasRefuelOwnRC, fontSize: 10, format: gasFmt);
+            SetCellNum(ws, row, 7, gasRefuelOtherRC, fontSize: 10, format: gasFmt);
+            SetCellNum(ws, row, 8, gasRefuelLocal, fontSize: 10, format: gasFmt);
+            SetCellNum(ws, row, 10, gasRefuelOther, fontSize: 10, format: gasFmt);
+            SetCellNum(ws, row, 11, gasYTD + gasConsumed, fontSize: 10, format: gasFmt);
+            SetFormula(ws, row, 12, string.Format("=SUM(M{0}:P{0})", row), fontSize: 10, format: gasFmt);
+            SetCellNum(ws, row, 13, gasConsumed, fontSize: 10, format: gasFmt);
+            SetFormula(ws, row, 17, string.Format("=K{0}", row), fontSize: 10, format: gasFmt);
+            SetFormula(ws, row, 18, string.Format("=C{0}+D{0}-L{0}", row), fontSize: 10, format: gasFmt);
+            SetFormula(ws, row, 19, string.Format("=R{0}*{1}", row, gasTankRatio.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture)), fontSize: 10, format: gasFmt);
+            SetFormula(ws, row, 20, string.Format("=R{0}-S{0}", row), fontSize: 10, format: gasFmt);
             row++;
 
             // Д/т Всего
@@ -1115,19 +1126,20 @@ namespace AVTOKarta.Services
                 SetCell(ws, row, 3, vd.Vehicle.LicensePlate ?? "", true, 9, hAlign: XLAlignmentHorizontalValues.Center);
                 SetCell(ws, row, 4, vd.IsDiesel ? "ДТ" : "аи-92", fontSize: 9, hAlign: XLAlignmentHorizontalValues.Center);
 
-                SetCellNum(ws, row, 5, vd.TotalFuelConsumption, fontSize: 10, vAlign: XLAlignmentVerticalValues.Center);
-                SetCellNum(ws, row, 6, vd.MainActivityFuel, fontSize: 10);
-                SetCellNum(ws, row, 7, vd.EmergencyFuel, fontSize: 10);
-                SetCellNum(ws, row, 8, vd.FireCallsFuel, fontSize: 10);
-                SetCellNum(ws, row, 9, vd.IgnitionCallsFuel, fontSize: 10);
-                SetCellNum(ws, row, 10, vd.FalseAlarmFuel, fontSize: 10);
-                SetCellNum(ws, row, 11, vd.EtoFuel, fontSize: 10);
-                SetCellNum(ws, row, 12, vd.RescueDtpFuel, fontSize: 10);
-                SetCellNum(ws, row, 13, vd.HeatingDutyFuel, fontSize: 10);
-                SetCellNum(ws, row, 14, vd.TrainingPumpFuel + vd.TrainingNoPumpFuel, fontSize: 10);
-                SetCellNum(ws, row, 15, vd.LiteraryEventsFuel, fontSize: 10);
-                SetCellNum(ws, row, 16, vd.ReducedMileage, fontSize: 10, format: "0.000");
-                SetCellNum(ws, row, 17, vd.Refueled, fontSize: 10);
+                string fmt = FuelFormat(vd.IsDiesel);
+                SetCellNum(ws, row, 5, vd.TotalFuelConsumption, fontSize: 10, format: fmt, vAlign: XLAlignmentVerticalValues.Center);
+                SetCellNum(ws, row, 6, vd.MainActivityFuel, fontSize: 10, format: fmt);
+                SetCellNum(ws, row, 7, vd.EmergencyFuel, fontSize: 10, format: fmt);
+                SetCellNum(ws, row, 8, vd.FireCallsFuel, fontSize: 10, format: fmt);
+                SetCellNum(ws, row, 9, vd.IgnitionCallsFuel, fontSize: 10, format: fmt);
+                SetCellNum(ws, row, 10, vd.FalseAlarmFuel, fontSize: 10, format: fmt);
+                SetCellNum(ws, row, 11, vd.EtoFuel, fontSize: 10, format: fmt);
+                SetCellNum(ws, row, 12, vd.RescueDtpFuel, fontSize: 10, format: fmt);
+                SetCellNum(ws, row, 13, vd.HeatingDutyFuel, fontSize: 10, format: fmt);
+                SetCellNum(ws, row, 14, vd.TrainingPumpFuel + vd.TrainingNoPumpFuel, fontSize: 10, format: fmt);
+                SetCellNum(ws, row, 15, vd.LiteraryEventsFuel, fontSize: 10, format: fmt);
+                SetCellNum(ws, row, 16, vd.ReducedMileage, fontSize: 10, format: FuelFormat4(vd.IsDiesel));
+                SetCellNum(ws, row, 17, vd.Refueled, fontSize: 10, format: fmt);
                 row++;
             }
 
@@ -1326,29 +1338,29 @@ namespace AVTOKarta.Services
                 SetCell(ws, row, 1, num.ToString(), fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center);
                 SetCell(ws, row, 2, (vd.Vehicle.Make ?? "") + " " + (vd.Vehicle.Type ?? ""), hAlign: XLAlignmentHorizontalValues.Left);
                 SetCell(ws, row, 3, vd.Vehicle.LicensePlate ?? "", hAlign: XLAlignmentHorizontalValues.Center);
-                SetCellNum(ws, row, 4, vd.StartFuel, format: "0.000");
-                SetCellNum(ws, row, 5, vd.Refueled, format: "0.000");
+                SetCellNum(ws, row, 4, vd.StartFuel, format: "0.0000");
+                SetCellNum(ws, row, 5, vd.Refueled, format: "0.0000");
 
                 SetCellNum(ws, row, 8, vd.MainWorkPumpMin, format: "0.000");
-                SetCellNum(ws, row, 9, vd.MainWorkPumpFuel);
+                SetCellNum(ws, row, 9, vd.MainWorkPumpFuel, format: "0.0000");
                 SetCellNum(ws, row, 10, vd.MainWorkNoPumpMin, format: "0.000");
-                SetCellNum(ws, row, 11, vd.MainWorkNoPumpFuel);
+                SetCellNum(ws, row, 11, vd.MainWorkNoPumpFuel, format: "0.0000");
                 SetCellNum(ws, row, 12, vd.TrainingPumpMin, format: "0.000");
-                SetCellNum(ws, row, 13, vd.TrainingPumpFuel);
+                SetCellNum(ws, row, 13, vd.TrainingPumpFuel, format: "0.0000");
                 SetCellNum(ws, row, 14, vd.TrainingNoPumpMin, format: "0.000");
-                SetCellNum(ws, row, 15, vd.TrainingNoPumpFuel);
+                SetCellNum(ws, row, 15, vd.TrainingNoPumpFuel, format: "0.0000");
                 SetCellNum(ws, row, 16, vd.EtoMin, format: "0.000");
-                SetCellNum(ws, row, 17, vd.EtoFuel);
+                SetCellNum(ws, row, 17, vd.EtoFuel, format: "0.0000");
 
                 SetCellNum(ws, row, 18, vd.OdometerStart, format: "0.000");
                 SetCellNum(ws, row, 19, vd.OdometerEnd, format: "0.000");
 
                 string r = row.ToString();
                 SetFormula(ws, row, 6, string.Format("=H{0}+J{0}+L{0}+N{0}+P{0}", r), fontSize: 11, format: "0.000");
-                SetFormula(ws, row, 7, string.Format("=I{0}+K{0}+M{0}+O{0}+Q{0}", r));
+                SetFormula(ws, row, 7, string.Format("=I{0}+K{0}+M{0}+O{0}+Q{0}", r), fontSize: 11, format: "0.0000");
                 SetFormula(ws, row, 20, string.Format("=S{0}-R{0}", r), fontSize: 11, format: "0.000");
                 SetCellNum(ws, row, 21, vd.ReducedMileage, format: "0.000");
-                SetCellNum(ws, row, 22, vd.TotalFuelConsumption);
+                SetCellNum(ws, row, 22, vd.TotalFuelConsumption, format: "0.0000");
                 SetCellNum(ws, row, 23, vd.EndFuel, format: "0.000");
 
                 row++;
@@ -1361,24 +1373,24 @@ namespace AVTOKarta.Services
                 SetCell(ws, row, 1, "ИТОГО:");
                 string gs = gasStartRow.ToString();
                 string ge = (row - 1).ToString();
-                SetFormula(ws, row, 4, string.Format("=SUM(D{0}:D{1})", gs, ge), true);
-                SetFormula(ws, row, 5, string.Format("=SUM(E{0}:E{1})", gs, ge), true, 11, "0");
+                SetFormula(ws, row, 4, string.Format("=SUM(D{0}:D{1})", gs, ge), true, 11, "0.0000");
+                SetFormula(ws, row, 5, string.Format("=SUM(E{0}:E{1})", gs, ge), true, 11, "0.0000");
                 SetFormula(ws, row, 6, string.Format("=SUM(F{0}:F{1})", gs, ge), true, 11, "0");
-                SetFormula(ws, row, 7, string.Format("=SUM(G{0}:G{1})", gs, ge), true);
+                SetFormula(ws, row, 7, string.Format("=SUM(G{0}:G{1})", gs, ge), true, 11, "0.0000");
                 SetFormula(ws, row, 8, string.Format("=SUM(H{0}:H{1})", gs, ge), true, 11, "0");
-                SetFormula(ws, row, 9, string.Format("=SUM(I{0}:I{1})", gs, ge), true);
+                SetFormula(ws, row, 9, string.Format("=SUM(I{0}:I{1})", gs, ge), true, 11, "0.0000");
                 SetFormula(ws, row, 10, string.Format("=SUM(J{0}:J{1})", gs, ge), true, 11, "0");
-                SetFormula(ws, row, 11, string.Format("=SUM(K{0}:K{1})", gs, ge), true);
+                SetFormula(ws, row, 11, string.Format("=SUM(K{0}:K{1})", gs, ge), true, 11, "0.0000");
                 SetFormula(ws, row, 12, string.Format("=SUM(L{0}:L{1})", gs, ge), true, 11, "0");
-                SetFormula(ws, row, 13, string.Format("=SUM(M{0}:M{1})", gs, ge), true, 11, "0");
+                SetFormula(ws, row, 13, string.Format("=SUM(M{0}:M{1})", gs, ge), true, 11, "0.0000");
                 SetFormula(ws, row, 14, string.Format("=SUM(N{0}:N{1})", gs, ge), true, 11, "0");
-                SetFormula(ws, row, 15, string.Format("=SUM(O{0}:O{1})", gs, ge), true, 11, "0");
+                SetFormula(ws, row, 15, string.Format("=SUM(O{0}:O{1})", gs, ge), true, 11, "0.0000");
                 SetFormula(ws, row, 16, string.Format("=SUM(P{0}:P{1})", gs, ge), true, 11, "0");
-                SetFormula(ws, row, 17, string.Format("=SUM(Q{0}:Q{1})", gs, ge), true);
+                SetFormula(ws, row, 17, string.Format("=SUM(Q{0}:Q{1})", gs, ge), true, 11, "0.0000");
                 SetFormula(ws, row, 20, string.Format("=SUM(T{0}:T{1})", gs, ge), true, 11, "0");
                 SetFormula(ws, row, 21, string.Format("=SUM(U{0}:U{1})", gs, ge), true, 11, "0");
-                SetFormula(ws, row, 22, string.Format("=SUM(V{0}:V{1})", gs, ge), true);
-                SetFormula(ws, row, 23, string.Format("=SUM(W{0}:W{1})", gs, ge), true);
+                SetFormula(ws, row, 22, string.Format("=SUM(V{0}:V{1})", gs, ge), true, 11, "0.0000");
+                SetFormula(ws, row, 23, string.Format("=SUM(W{0}:W{1})", gs, ge), true, 11, "0.0000");
 
                 var gRange = ws.Range(gasStartRow, 1, row, 23);
                 gRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
@@ -1543,7 +1555,7 @@ namespace AVTOKarta.Services
                 SetCell(ws, dataRow, 1, num.ToString(), fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center);
                 SetCell(ws, dataRow, 2, (vd.Vehicle.Make ?? "") + " " + (vd.Vehicle.Type ?? ""), true, 9, hAlign: XLAlignmentHorizontalValues.Left, wrap: true);
                 SetCell(ws, dataRow, 3, vd.Vehicle.LicensePlate ?? "", true, 9, hAlign: XLAlignmentHorizontalValues.Center);
-                SetCellNum(ws, dataRow, 4, vd.TotalFuelConsumption, fontSize: 12);
+                SetCellNum(ws, dataRow, 4, vd.TotalFuelConsumption, fontSize: 12, format: FuelFormat(vd.IsDiesel));
 
                 string motorBrand = (vd.Vehicle.FuelNorms.MotorOilBrand ?? "").Trim();
                 string transBrand = (vd.Vehicle.FuelNorms.TransmissionOilBrand ?? "").Trim();

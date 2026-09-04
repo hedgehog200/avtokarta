@@ -132,7 +132,7 @@
                     <TextBlock Text="ЗАЩИТА ДАННЫХ" FontSize="10" FontWeight="Bold"
                                Foreground="{StaticResource TextTertiaryBrush}" Margin="0,0,0,10"/>
 
-                    <TextBlock Text="Пароль шифрования:" Style="{StaticResource FormLabel}" Margin="0,0,0,4"/>
+                    <TextBlock Text="Пароль шифрования (необязательно):" Style="{StaticResource FormLabel}" Margin="0,0,0,4"/>
                     <hc:PasswordBox x:Name="PasswordBox1" Height="36" Margin="0,0,0,10"
                                     Padding="10,7" FontSize="13"/>
 

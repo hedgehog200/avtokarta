@@ -3,6 +3,7 @@
 // Лицензия: см. файл LICENSE в корне проекта.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -255,7 +256,7 @@ namespace AVTOKarta.Services
 
         public string DownloadUpdate(string downloadUrl, Action<int> progressCallback)
         {
-            string tempDir = GetTempDir();
+            string tempDir = ResolveUpdateDir();
             if (!Directory.Exists(tempDir))
                 Directory.CreateDirectory(tempDir);
             string fileName = Path.GetFileName(new Uri(downloadUrl).AbsolutePath);
@@ -354,8 +355,19 @@ namespace AVTOKarta.Services
 
         public void ApplyUpdate(string downloadedFilePath)
         {
+            if (!File.Exists(downloadedFilePath))
+            {
+                string found = FindUpdateFile(Path.GetFileName(downloadedFilePath));
+                if (found != null)
+                    downloadedFilePath = found;
+            }
+
+            string tempDir = Path.GetDirectoryName(downloadedFilePath);
+            if (string.IsNullOrEmpty(tempDir) || !Directory.Exists(tempDir))
+                tempDir = ResolveUpdateDir();
+
             string appDir = AppDomain.CurrentDomain.BaseDirectory;
-            string updaterBat = Path.Combine(GetTempDir(), "update.bat");
+            string updaterBat = Path.Combine(tempDir, "update.bat");
             string logPath = GetLogPath();
             string escapedLogPath = EscapeBatPath(logPath);
 
@@ -365,7 +377,7 @@ namespace AVTOKarta.Services
             string batContent;
             if (isZip)
             {
-                string extractDir = Path.Combine(GetTempDir(), "extracted");
+                string extractDir = Path.Combine(tempDir, "extracted");
 
                 batContent =
                     "@echo off\r\n" +
@@ -392,13 +404,13 @@ namespace AVTOKarta.Services
                     "  exit /b\r\n" +
                     ")\r\n" +
 
-                    "rmdir /s /q \"" + EscapeBatPath(GetTempDir()) + "\" 2>nul\r\n" +
+                    "rmdir /s /q \"" + EscapeBatPath(tempDir) + "\" 2>nul\r\n" +
                     "start \"\" \"" + EscapeBatPath(Path.Combine(appDir, "AVTOKarta.exe")) + "\"\r\n" +
                     "del \"%~f0\"\r\n";
             }
             else if (isExe)
             {
-                string installLog = Path.Combine(GetTempDir(), "install.log");
+                string installLog = Path.Combine(tempDir, "install.log");
 
                 batContent =
                     "@echo off\r\n" +
@@ -417,7 +429,7 @@ namespace AVTOKarta.Services
                     "  exit /b\r\n" +
                     ")\r\n" +
 
-                    "rmdir /s /q \"" + EscapeBatPath(GetTempDir()) + "\" 2>nul\r\n" +
+                    "rmdir /s /q \"" + EscapeBatPath(tempDir) + "\" 2>nul\r\n" +
                     "start \"\" \"" + EscapeBatPath(Path.Combine(appDir, "AVTOKarta.exe")) + "\"\r\n" +
                     "del \"%~f0\"\r\n";
             }
@@ -495,7 +507,7 @@ namespace AVTOKarta.Services
 
                 Log("Скачивание обновления: " + result.RemoteVersion);
 
-                string tempDir = GetTempDir();
+                string tempDir = ResolveUpdateDir();
                 CleanupTemp(tempDir);
                 Directory.CreateDirectory(tempDir);
 
@@ -544,6 +556,146 @@ namespace AVTOKarta.Services
                     _updateMutex = null;
                 }
             }
+        }
+
+        private static string[] CandidateUpdateDirs()
+        {
+            var dirs = new List<string>();
+            Action<string> add = p =>
+            {
+                if (string.IsNullOrWhiteSpace(p)) return;
+                foreach (string d in dirs)
+                {
+                    if (string.Equals(d, p, StringComparison.OrdinalIgnoreCase))
+                        return;
+                }
+                dirs.Add(p);
+            };
+
+            add(GetTempDir());
+
+            string envTemp = Environment.GetEnvironmentVariable("TEMP");
+            if (!string.IsNullOrWhiteSpace(envTemp))
+                add(Path.Combine(envTemp, "AVTOKarta_Update"));
+
+            string envTmp = Environment.GetEnvironmentVariable("TMP");
+            if (!string.IsNullOrWhiteSpace(envTmp))
+                add(Path.Combine(envTmp, "AVTOKarta_Update"));
+
+            string localApp = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (!string.IsNullOrWhiteSpace(localApp))
+                add(Path.Combine(localApp, "Temp", "AVTOKarta_Update"));
+
+            string profile = Environment.GetEnvironmentVariable("USERPROFILE");
+            if (!string.IsNullOrWhiteSpace(profile))
+                add(Path.Combine(profile, "AppData", "Local", "Temp", "AVTOKarta_Update"));
+
+            string winDir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+            if (!string.IsNullOrWhiteSpace(winDir))
+                add(Path.Combine(winDir, "Temp", "AVTOKarta_Update"));
+
+            return dirs.ToArray();
+        }
+
+        private static string[] RawTempDirs()
+        {
+            var dirs = new List<string>();
+            Action<string> add = p =>
+            {
+                if (string.IsNullOrWhiteSpace(p)) return;
+                foreach (string d in dirs)
+                {
+                    if (string.Equals(d, p, StringComparison.OrdinalIgnoreCase))
+                        return;
+                }
+                dirs.Add(p);
+            };
+
+            add(Path.GetTempPath());
+            add(Environment.GetEnvironmentVariable("TEMP"));
+            add(Environment.GetEnvironmentVariable("TMP"));
+
+            string localApp = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (!string.IsNullOrWhiteSpace(localApp))
+                add(Path.Combine(localApp, "Temp"));
+
+            string profile = Environment.GetEnvironmentVariable("USERPROFILE");
+            if (!string.IsNullOrWhiteSpace(profile))
+                add(Path.Combine(profile, "AppData", "Local", "Temp"));
+
+            return dirs.ToArray();
+        }
+
+        public static string ResolveUpdateDir()
+        {
+            foreach (string dir in CandidateUpdateDirs())
+            {
+                if (!Directory.Exists(dir))
+                    continue;
+                try
+                {
+                    string probe = Path.Combine(dir, ".avtokarta_wtest");
+                    using (var fs = new FileStream(probe, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                    {
+                    }
+                    File.Delete(probe);
+                    return dir;
+                }
+                catch
+                {
+                }
+            }
+            return GetTempDir();
+        }
+
+        public static string FindUpdateFile(string assetName)
+        {
+            foreach (string dir in CandidateUpdateDirs())
+            {
+                if (!Directory.Exists(dir))
+                    continue;
+                string found = ScanForPackage(dir, assetName);
+                if (found != null)
+                    return found;
+            }
+
+            if (!string.IsNullOrWhiteSpace(assetName))
+            {
+                foreach (string dir in RawTempDirs())
+                {
+                    if (!Directory.Exists(dir))
+                        continue;
+                    string candidate = Path.Combine(dir, assetName);
+                    if (File.Exists(candidate))
+                        return candidate;
+                }
+            }
+
+            return null;
+        }
+
+        private static string ScanForPackage(string dir, string assetName)
+        {
+            string[] patterns = string.IsNullOrWhiteSpace(assetName)
+                ? new[] { "*.zip", "*.exe" }
+                : new[] { assetName, "*.zip", "*.exe" };
+
+            foreach (string pattern in patterns)
+            {
+                try
+                {
+                    foreach (string f in Directory.GetFiles(dir, pattern, SearchOption.TopDirectoryOnly))
+                    {
+                        if (f.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
+                            f.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                            return f;
+                    }
+                }
+                catch
+                {
+                }
+            }
+            return null;
         }
 
         private static string GetTempDir()

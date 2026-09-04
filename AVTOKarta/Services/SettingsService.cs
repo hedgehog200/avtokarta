@@ -20,6 +20,7 @@ namespace AVTOKarta.Services
 
         private readonly EncryptionService _encryption;
         private const string PasswordKeyFile = "password.key";
+        public const string DefaultPassword = "AVTOKarta_Default_2026";
 
         private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("AVTOKartaEntropy2026");
 
@@ -91,6 +92,15 @@ namespace AVTOKarta.Services
                 File.Delete(hashPath);
         }
 
+        public List<string> SetPassword(string newPassword)
+        {
+            if (HasStoredPassword())
+                return new List<string> { "Пароль уже установлен. Используйте смену пароля." };
+
+            string oldPassword = DefaultPassword;
+            return SavePasswordChange(oldPassword, newPassword);
+        }
+
         public string LoadPassword()
         {
             return LoadPasswordStatic();
@@ -99,6 +109,18 @@ namespace AVTOKarta.Services
         public bool HasStoredPassword()
         {
             return HasStoredPasswordStatic();
+        }
+
+        public string GetEffectivePassword()
+        {
+            string stored = LoadPassword();
+            return string.IsNullOrEmpty(stored) ? DefaultPassword : stored;
+        }
+
+        public static string GetEffectivePasswordStatic()
+        {
+            string stored = LoadPasswordStatic();
+            return string.IsNullOrEmpty(stored) ? DefaultPassword : stored;
         }
 
         public bool ValidatePassword(string password)

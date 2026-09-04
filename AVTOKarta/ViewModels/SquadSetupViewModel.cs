@@ -5,6 +5,7 @@
 using System.Linq;
 using AVTOKarta.Helpers;
 using AVTOKarta.Models;
+using AVTOKarta.Services;
 
 namespace AVTOKarta.ViewModels
 {
@@ -105,13 +106,7 @@ namespace AVTOKarta.ViewModels
         {
             return !string.IsNullOrWhiteSpace(Name)
                 && !string.IsNullOrWhiteSpace(ChiefName)
-                && !string.IsNullOrWhiteSpace(SeniorDriverName)
-                && !string.IsNullOrWhiteSpace(Password)
-                && Password == ConfirmPassword
-                && Password.Length >= 8
-                && Password.Any(char.IsUpper)
-                && Password.Any(char.IsLower)
-                && Password.Any(char.IsDigit);
+                && !string.IsNullOrWhiteSpace(SeniorDriverName);
         }
 
         private void Confirm()
@@ -122,13 +117,17 @@ namespace AVTOKarta.ViewModels
                 return;
             }
 
-            if (Password.Length < 8)
+            if (string.IsNullOrEmpty(Password))
+            {
+                Password = SettingsService.DefaultPassword;
+                ConfirmPassword = SettingsService.DefaultPassword;
+            }
+            else if (Password.Length < 8)
             {
                 ErrorMessage = "Пароль должен быть не менее 8 символов";
                 return;
             }
-
-            if (!Password.Any(char.IsUpper) || !Password.Any(char.IsLower) || !Password.Any(char.IsDigit))
+            else if (!Password.Any(char.IsUpper) || !Password.Any(char.IsLower) || !Password.Any(char.IsDigit))
             {
                 ErrorMessage = "Пароль должен содержать заглавные, строчные буквы и цифры";
                 return;

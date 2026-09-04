@@ -81,6 +81,7 @@ namespace AVTOKarta.ViewModels
         public RelayCommand DeleteRecordCommand { get; }
         public RelayCommand SaveSettingsCommand { get; }
         public RelayCommand ChangePasswordCommand { get; }
+        public RelayCommand SetPasswordCommand { get; }
         public RelayCommand AddSquadCommand { get; }
         public RelayCommand EditSquadCommand { get; }
         public RelayCommand DeleteSquadCommand { get; }
@@ -117,6 +118,7 @@ namespace AVTOKarta.ViewModels
             DeleteRecordCommand = new RelayCommand(o => DeleteRecord(), o => SelectedRecord != null);
             SaveSettingsCommand = new RelayCommand(o => SaveSettings());
             ChangePasswordCommand = new RelayCommand(o => ChangePassword());
+            SetPasswordCommand = new RelayCommand(o => SetPassword());
             AddSquadCommand = new RelayCommand(o => AddSquad());
             EditSquadCommand = new RelayCommand(o => EditSquad(), o => SelectedSquad != null);
             DeleteSquadCommand = new RelayCommand(o => DeleteSquad(), o => SelectedSquad != null);
@@ -140,18 +142,14 @@ namespace AVTOKarta.ViewModels
         {
             try
             {
-                string password = null;
+                string password = SettingsService.GetEffectivePasswordStatic();
 
-                if (SettingsService.HasStoredPasswordStatic())
-                {
-                    password = SettingsService.LoadPasswordStatic();
-                }
-                else
+                if (!SettingsService.HasStoredPasswordStatic())
                 {
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         IsSetupMode = true;
-                        StatusMessage = "Требуется настройка части и пароля";
+                        StatusMessage = "Требуется настройка части";
                     });
                     return;
                 }
@@ -176,6 +174,7 @@ namespace AVTOKarta.ViewModels
 
                     RefreshFilteredVehicles();
 
+                    OnPropertyChanged("HasPassword");
                     IsSetupMode = false;
                     IsVehicleMode = true;
                     OnPropertyChanged("Squads");
@@ -405,6 +404,11 @@ namespace AVTOKarta.ViewModels
         {
             get { return _statusMessage; }
             set { SetProperty(ref _statusMessage, value); }
+        }
+
+        public bool HasPassword
+        {
+            get { return SettingsService.HasStoredPasswordStatic(); }
         }
 
         public List<string> MonthNames
@@ -639,6 +643,7 @@ namespace AVTOKarta.ViewModels
             IsWarehouseMode = false;
             IsDriverListMode = false;
             CurrentScreenIndex = 3;
+            OnPropertyChanged("HasPassword");
         }
 
         private void ShowFuelReport()
@@ -703,9 +708,13 @@ namespace AVTOKarta.ViewModels
 
         public void CompleteSetup(string password, Squad squad)
         {
-            _settingsService = new SettingsService(password);
-            _settingsService.SavePassword(password);
-            _dataService = new DataService(password, _settingsService.DataPath);
+            string effectivePassword = string.IsNullOrEmpty(password)
+                ? SettingsService.DefaultPassword
+                : password;
+
+            _settingsService = new SettingsService(effectivePassword);
+            _settingsService.SavePassword(effectivePassword);
+            _dataService = new DataService(effectivePassword, _settingsService.DataPath);
             _cacheService = new CacheService();
 
             _squads.Add(squad);
@@ -718,6 +727,7 @@ namespace AVTOKarta.ViewModels
 
             _cacheService.StartAutoSave(SaveAll, 60000);
 
+            OnPropertyChanged("HasPassword");
             IsSetupMode = false;
             IsSquadListMode = true;
             UpdateSquadInfo();
@@ -1184,7 +1194,7 @@ namespace AVTOKarta.ViewModels
 
                 if (dialog.ShowDialog() == true)
                 {
-                    string password = _settingsService.LoadPassword();
+                    string password = _settingsService.GetEffectivePassword();
                     var transferService = new DataTransferService(password, _settingsService.DataPath);
                     transferService.ExportToFile(dialog.FileName, password);
 
@@ -1222,10 +1232,14 @@ namespace AVTOKarta.ViewModels
 
                 string sourcePassword = PasswordInputDialog.Show(
                     "Пароль источника",
-                    "Введите пароль, который был установлен на ПК-источнике\n(при выгрузке данных):");
+                    "Введите пароль, который был установлен на ПК-источнике\n(при выгрузке данных).\n" +
+                    "Оставьте пустым, если пароль не устанавливается:");
 
                 if (sourcePassword == null)
                     return;
+
+                if (string.IsNullOrEmpty(sourcePassword))
+                    sourcePassword = SettingsService.DefaultPassword;
 
                 var confirmResult = MessageBox.Show(
                     "ВНИМАНИЕ: Текущие данные будут заменены!\n\n" +
@@ -1238,7 +1252,7 @@ namespace AVTOKarta.ViewModels
 
                 StatusMessage = "Создание резервной копии...";
 
-                string localPassword = _settingsService.LoadPassword();
+                string localPassword = _settingsService.GetEffectivePassword();
                 var transferService = new DataTransferService(localPassword, _settingsService.DataPath);
 
                 string backupPath = transferService.CreateBackup(localPassword);
@@ -1416,6 +1430,20 @@ namespace AVTOKarta.ViewModels
                 _settingsService = vm.ResultSettingsService;
                 _dataService = new DataService(vm.NewPassword, _settingsService.DataPath);
                 StatusMessage = "Пароль изменён. Данные перешифрованы.";
+            }
+        }
+
+        private void SetPassword()
+        {
+            if (_settingsService == null) return;
+
+            var vm = new ChangePasswordViewModel(_settingsService, isSetMode: true);
+            var dialog = new Views.ChangePasswordView { DataContext = vm };
+            if (dialog.ShowDialog() == true)
+            {
+                _settingsService = vm.ResultSettingsService;
+                _dataService = new DataService(vm.NewPassword, _settingsService.DataPath);
+                StatusMessage = "Пароль установлен. Данные перешифрованы.";
             }
         }
 
