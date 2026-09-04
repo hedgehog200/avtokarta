@@ -164,8 +164,8 @@
                 <Border Grid.Column="0" Width="42" Height="42" CornerRadius="12"
                         Background="{StaticResource PrimaryLightBrush}" Margin="0,0,14,0"
                         VerticalAlignment="Center">
-                    <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="{StaticResource PrimaryBrush}"
-                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock Text="&#xF043;" FontFamily="{StaticResource FontAwesomeSolid}" FontSize="20" Foreground="{StaticResource PrimaryBrush}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <TextBlock Text="Склад ГСМ" FontSize="18" FontWeight="Bold"
@@ -429,7 +429,7 @@
                 <Button Grid.Column="1" Command="{Binding WarehouseVm.DeleteCommand}"
                         Style="{StaticResource DangerButton}" Padding="14,7" FontSize="12">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="&#xF2ED;" FontFamily="{StaticResource FontAwesomeSolid}" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
                         <TextBlock Text="Удалить выбранное" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
@@ -465,7 +465,7 @@
                     <DataGridTemplateColumn Header="" Width="42" IsReadOnly="True">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Button Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource IconButton}"
+                                <Button Content="&#xF2ED;" FontFamily="{StaticResource FontAwesomeSolid}" Style="{StaticResource IconButton}"
                                         Command="{Binding DataContext.WarehouseVm.RemoveCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                         CommandParameter="{Binding}" FontSize="10" Padding="4"
                                         Foreground="{StaticResource DangerBrush}"

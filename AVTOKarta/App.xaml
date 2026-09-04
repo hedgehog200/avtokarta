@@ -13,6 +13,9 @@
 
             <converters:SquadIdToNumberConverter x:Key="SquadIdToNumberConverter"/>
 
+            <!-- ==================== FONTS ==================== -->
+            <FontFamily x:Key="FontAwesomeSolid">/Fonts/#Font Awesome 6 Solid</FontFamily>
+
             <!-- ==================== COLOR PALETTE ==================== -->
             <SolidColorBrush x:Key="PrimaryBrush" Color="#2563EB"/>
             <SolidColorBrush x:Key="PrimaryDarkBrush" Color="#1D4ED8"/>
@@ -698,9 +701,9 @@
 
             <!-- ==================== MODAL CLOSE BUTTON ==================== -->
             <Style x:Key="ModalCloseButton" TargetType="Button">
-                <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+                <Setter Property="FontFamily" Value="{StaticResource FontAwesomeSolid}"/>
                 <Setter Property="FontSize" Value="12"/>
-                <Setter Property="Content" Value="&#xE8BB;"/>
+                <Setter Property="Content" Value="&#xF00D;"/>
                 <Setter Property="HorizontalAlignment" Value="Right"/>
                 <Setter Property="Background" Value="Transparent"/>
                 <Setter Property="Foreground" Value="White"/>

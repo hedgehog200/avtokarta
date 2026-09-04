@@ -215,6 +215,7 @@
   <ItemGroup>
     <None Include="packages.config" />
     <Resource Include="app.ico" />
+    <Resource Include="Fonts\fa-solid-900.ttf" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

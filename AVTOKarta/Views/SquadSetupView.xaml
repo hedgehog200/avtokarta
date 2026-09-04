@@ -25,7 +25,7 @@
                         <Border Grid.Column="0" Width="42" Height="42" CornerRadius="12"
                                 Background="{StaticResource PrimaryLightBrush}" Margin="0,0,14,0"
                                 VerticalAlignment="Center">
-                            <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="{StaticResource PrimaryBrush}"
+                            <TextBlock Text="&#xF013;" FontFamily="{StaticResource FontAwesomeSolid}" FontSize="20" Foreground="{StaticResource PrimaryBrush}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">

@@ -16,7 +16,7 @@
                 <Border Grid.Column="0" Width="42" Height="42" CornerRadius="12"
                         Background="{StaticResource PrimaryLightBrush}" Margin="0,0,14,0"
                         VerticalAlignment="Center">
-                    <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="{StaticResource PrimaryBrush}"
+                    <TextBlock Text="&#xF1AD;" FontFamily="{StaticResource FontAwesomeSolid}" FontSize="20" Foreground="{StaticResource PrimaryBrush}"
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -56,11 +56,11 @@
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                    <Button Content="&#xE70F;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource IconButton}"
+                                    <Button Content="&#xF044;" FontFamily="{StaticResource FontAwesomeSolid}" Style="{StaticResource IconButton}"
                                             Command="{Binding DataContext.EditSquadCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                             CommandParameter="{Binding}" FontSize="14" Padding="6"
                                             Foreground="{StaticResource PrimaryBrush}" ToolTip="Редактировать"/>
-                                    <Button Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource IconButton}"
+                                    <Button Content="&#xF2ED;" FontFamily="{StaticResource FontAwesomeSolid}" Style="{StaticResource IconButton}"
                                             Command="{Binding DataContext.DeleteSquadCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                             CommandParameter="{Binding}" FontSize="12" Padding="6"
                                             Foreground="{StaticResource DangerBrush}" ToolTip="Удалить"/>
