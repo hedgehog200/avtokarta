@@ -14,7 +14,7 @@
             <converters:SquadIdToNumberConverter x:Key="SquadIdToNumberConverter"/>
 
             <!-- ==================== FONTS ==================== -->
-            <FontFamily x:Key="FontAwesomeSolid">/Fonts/#Font Awesome 6 Solid</FontFamily>
+            <FontFamily x:Key="FontAwesomeSolid">/Fonts/#Font Awesome 6 Free Solid</FontFamily>
 
             <!-- ==================== COLOR PALETTE ==================== -->
             <SolidColorBrush x:Key="PrimaryBrush" Color="#2563EB"/>
