@@ -119,8 +119,8 @@ namespace AVTOKarta.ViewModels
 
             if (string.IsNullOrEmpty(Password))
             {
-                Password = SettingsService.DefaultPassword;
-                ConfirmPassword = SettingsService.DefaultPassword;
+                Password = SettingsService.GetEffectivePasswordStatic();
+                ConfirmPassword = Password;
             }
             else if (Password.Length < 8)
             {

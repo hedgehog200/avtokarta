@@ -17,3 +17,7 @@ Output/
 *.xlsx
 opencode.json
 пароль.txt
+installer.key
+LicGen.key
+LicGen.pub.xml
+*.lic

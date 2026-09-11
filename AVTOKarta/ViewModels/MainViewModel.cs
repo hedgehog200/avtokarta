@@ -12,16 +12,18 @@ using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using AVTOKarta.Helpers;
+using AVTOKarta.Licensing;
 using AVTOKarta.Models;
 using AVTOKarta.Services;
 
 namespace AVTOKarta.ViewModels
 {
-    public class MainViewModel : BaseViewModel
+    public class MainViewModel : BaseViewModel, IDisposable
     {
         private DataService _dataService;
         private SettingsService _settingsService;
         private CacheService _cacheService;
+        private bool _disposed;
 
         private ObservableCollection<Squad> _squads;
         private Squad _selectedSquad;
@@ -111,21 +113,21 @@ namespace AVTOKarta.ViewModels
             NewCardCommand = new RelayCommand(o => NewCard());
             OpenCardCommand = new RelayCommand(o => OpenCard(), o => SelectedVehicle != null);
             SaveCardCommand = new RelayCommand(o => SaveCard());
-            ExportExcelCommand = new RelayCommand(o => ExportToExcel(), o => CurrentCard != null);
-            ExportFuelReportCommand = new RelayCommand(o => ExportFuelReport(), o => SelectedSquad != null);
+            ExportExcelCommand = new RelayCommand(o => ExportToExcel(), o => CurrentCard != null && LicenseService.HasFeature(LicenseFeatures.ExportExcel));
+            ExportFuelReportCommand = new RelayCommand(o => ExportFuelReport(), o => SelectedSquad != null && LicenseService.HasFeature(LicenseFeatures.ExportExcel));
             AddRecordCommand = new RelayCommand(o => AddRecord(), o => CurrentCard != null);
             EditRecordCommand = new RelayCommand(o => EditRecord(), o => SelectedRecord != null);
             DeleteRecordCommand = new RelayCommand(o => DeleteRecord(), o => SelectedRecord != null);
             SaveSettingsCommand = new RelayCommand(o => SaveSettings());
             ChangePasswordCommand = new RelayCommand(o => ChangePassword());
             SetPasswordCommand = new RelayCommand(o => SetPassword());
-            AddSquadCommand = new RelayCommand(o => AddSquad());
+            AddSquadCommand = new RelayCommand(o => AddSquad(), o => LicenseService.HasFeature(LicenseFeatures.MultiSquad));
             EditSquadCommand = new RelayCommand(o => EditSquad(), o => SelectedSquad != null);
             DeleteSquadCommand = new RelayCommand(o => DeleteSquad(), o => SelectedSquad != null);
             OpenHistoryCardCommand = new RelayCommand(o => OpenHistoryCard(SelectedCardHistoryItem), o => SelectedCardHistoryItem != null);
             ExportDataCommand = new RelayCommand(o => ExportData(), o => _dataService != null);
             ImportDataCommand = new RelayCommand(o => ImportData(), o => _dataService != null);
-            WarehouseCommand = new RelayCommand(o => ShowWarehouse(), o => _dataService != null && _selectedSquad != null);
+            WarehouseCommand = new RelayCommand(o => ShowWarehouse(), o => _dataService != null && _selectedSquad != null && LicenseService.HasFeature(LicenseFeatures.Warehouse));
             DriverListCommand = new RelayCommand(o => ShowDriverList(), o => _dataService != null);
 
             _selectedMonthIndex = DateTime.Now.Month - 1;
@@ -146,11 +148,11 @@ namespace AVTOKarta.ViewModels
 
                 if (!SettingsService.HasStoredPasswordStatic())
                 {
-                    Application.Current.Dispatcher.Invoke(() =>
+                    Application.Current.Dispatcher.BeginInvoke((Action)(() =>
                     {
                         IsSetupMode = true;
                         StatusMessage = "Требуется настройка части";
-                    });
+                    }));
                     return;
                 }
 
@@ -161,7 +163,7 @@ namespace AVTOKarta.ViewModels
                 var squadsList = _dataService.LoadSquads();
                 var vehiclesList = _dataService.LoadVehicles();
 
-                Application.Current.Dispatcher.Invoke(() =>
+                Application.Current.Dispatcher.BeginInvoke((Action)(() =>
                 {
                     _squads.Clear();
                     foreach (var s in squadsList)
@@ -182,7 +184,7 @@ namespace AVTOKarta.ViewModels
                         SelectedSquad = _squads[0];
                     UpdateSquadInfo();
                     StatusMessage = "Загружено: " + squadsList.Count + " частей, " + _vehicles.Count + " автомобилей";
-                });
+                }));
 
                 _cacheService.StartAutoSave(SaveAll, 60000);
 
@@ -196,10 +198,10 @@ namespace AVTOKarta.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine("Init error: " + ex);
-                Application.Current.Dispatcher.Invoke(() =>
+                Application.Current.Dispatcher.BeginInvoke((Action)(() =>
                 {
                     StatusMessage = "Ошибка инициализации. Проверьте целостность данных.";
-                });
+                }));
             }
         }
 
@@ -230,6 +232,27 @@ namespace AVTOKarta.ViewModels
         {
             OnPropertyChanged("SquadName");
             OnPropertyChanged("SquadNumber");
+        }
+
+        public void RefreshLicenseGates()
+        {
+            WarehouseCommand.RaiseCanExecuteChanged();
+            ExportExcelCommand.RaiseCanExecuteChanged();
+            ExportFuelReportCommand.RaiseCanExecuteChanged();
+            AddSquadCommand.RaiseCanExecuteChanged();
+        }
+
+        private bool EnsureFeature(LicenseFeatures feature)
+        {
+            if (LicenseService.HasFeature(feature)) return true;
+
+            StatusMessage = "Функция недоступна в вашей лицензии.";
+            MessageBox.Show(
+                "Эта функция не входит в вашу лицензию.\n\n" +
+                "Необходим модуль: «" + LicenseFeaturesHelper.DisplayName(feature) + "».\n" +
+                "Обратитесь к производителю для обновления лицензии.",
+                "Доступ ограничен", MessageBoxButton.OK, MessageBoxImage.Information);
+            return false;
         }
 
         private void SyncConverterSquads()
@@ -661,6 +684,8 @@ namespace AVTOKarta.ViewModels
 
         private void ShowWarehouse()
         {
+            if (!EnsureFeature(LicenseFeatures.Warehouse)) return;
+
             IsSetupMode = false;
             IsVehicleMode = false;
             IsCardMode = false;
@@ -709,7 +734,7 @@ namespace AVTOKarta.ViewModels
         public void CompleteSetup(string password, Squad squad)
         {
             string effectivePassword = string.IsNullOrEmpty(password)
-                ? SettingsService.DefaultPassword
+                ? SettingsService.GetEffectivePasswordStatic()
                 : password;
 
             _settingsService = new SettingsService(effectivePassword);
@@ -736,6 +761,8 @@ namespace AVTOKarta.ViewModels
 
         private void AddSquad()
         {
+            if (!EnsureFeature(LicenseFeatures.MultiSquad)) return;
+
             if (_dataService == null)
             {
                 StatusMessage = "Данные не инициализированы. Перезапустите приложение.";
@@ -1049,21 +1076,30 @@ namespace AVTOKarta.ViewModels
                 var squadsCopy = new List<Squad>(_squads);
                 _dataService.SaveSquadsAsync(squadsCopy);
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("SaveAll squads failed: " + ex.Message);
+            }
 
             try
             {
                 var vehiclesCopy = new List<Vehicle>(_allVehicles);
                 _dataService.SaveVehiclesAsync(vehiclesCopy);
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("SaveAll vehicles failed: " + ex.Message);
+            }
 
             try
             {
                 if (_driverListVm != null)
                     _dataService.SaveDriversAsync(new List<Driver>(_driverListVm.Drivers));
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("SaveAll drivers failed: " + ex.Message);
+            }
 
             SyncConverterSquads();
 
@@ -1091,12 +1127,16 @@ namespace AVTOKarta.ViewModels
                     };
                     _dataService.SaveCardAsync(cardCopy, year, monthIdx);
                 }
-                catch (Exception) { }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("SaveAll card failed: " + ex.Message);
+                }
             }
         }
 
         private void ExportToExcel()
         {
+            if (!EnsureFeature(LicenseFeatures.ExportExcel)) return;
             if (CurrentCard == null || SelectedVehicle == null) return;
 
             try
@@ -1123,6 +1163,7 @@ namespace AVTOKarta.ViewModels
 
         private void ExportFuelReport()
         {
+            if (!EnsureFeature(LicenseFeatures.ExportExcel)) return;
             if (SelectedSquad == null || _dataService == null) return;
 
             try
@@ -1194,15 +1235,40 @@ namespace AVTOKarta.ViewModels
 
                 if (dialog.ShowDialog() == true)
                 {
-                    string password = _settingsService.GetEffectivePassword();
-                    var transferService = new DataTransferService(password, _settingsService.DataPath);
-                    transferService.ExportToFile(dialog.FileName, password);
+                    string exportPassword = PasswordInputDialog.Show(
+                        "Пароль выгрузки",
+                        "Введите пароль для защиты файла выгрузки.\n\n" +
+                        "Оставьте пустым, чтобы выгрузить данные БЕЗ пароля:");
+                    if (exportPassword == null)
+                        return;
+
+                    if (string.IsNullOrEmpty(exportPassword))
+                    {
+                        MessageBoxResult warn = MessageBox.Show(
+                            "Внимание! Пароль не задан — файл выгрузки НЕ будет защищён.\n\n" +
+                            "Данные (части, автомобили, карточки) сможет прочитать любой, " +
+                            "кому попадёт этот файл.\n\n" +
+                            "Рекомендуется вернуться и ввести надёжный пароль.\n\n" +
+                            "Продолжить выгрузку без пароля?",
+                            "Файл не защищён", MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+                        if (warn != MessageBoxResult.Yes)
+                            return;
+                    }
+
+                    using (var transferService = new DataTransferService(_settingsService.GetEffectivePassword(), _settingsService.DataPath))
+                    {
+                        transferService.ExportToFile(dialog.FileName, exportPassword);
+                    }
 
                     StatusMessage = "Данные выгружены: " + dialog.FileName;
+                    string passwordNote = string.IsNullOrEmpty(exportPassword)
+                        ? "Файл выгружен БЕЗ пароля. На другом ПК при загрузке "
+                          + "поле «Пароль источника» можно оставить пустым."
+                        : "Файл зашифрован паролем. На другом ПК при загрузке потребуется ввести этот пароль.";
                     MessageBox.Show(
                         "Данные успешно выгружены в файл:\n" + dialog.FileName +
-                        "\n\nФайл зашифрован паролем. На другом ПК при загрузке потребуется ввести этот пароль.\n\n" +
-                        "Скопируйте файл на другой ПК и используйте «Загрузка данных».",
+                        "\n\n" + passwordNote +
+                        "\n\nСкопируйте файл на другой ПК и используйте «Загрузка данных».",
                         "Выгрузка данных", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
@@ -1232,14 +1298,11 @@ namespace AVTOKarta.ViewModels
 
                 string sourcePassword = PasswordInputDialog.Show(
                     "Пароль источника",
-                    "Введите пароль, который был установлен на ПК-источнике\n(при выгрузке данных).\n" +
-                    "Оставьте пустым, если пароль не устанавливается:");
+                    "Введите пароль, который был установлен на ПК-источнике\n(при выгрузке данных).\n\n" +
+                    "Оставьте пустым, если файл выгружен без пароля:");
 
                 if (sourcePassword == null)
                     return;
-
-                if (string.IsNullOrEmpty(sourcePassword))
-                    sourcePassword = SettingsService.DefaultPassword;
 
                 var confirmResult = MessageBox.Show(
                     "ВНИМАНИЕ: Текущие данные будут заменены!\n\n" +
@@ -1253,13 +1316,19 @@ namespace AVTOKarta.ViewModels
                 StatusMessage = "Создание резервной копии...";
 
                 string localPassword = _settingsService.GetEffectivePassword();
-                var transferService = new DataTransferService(localPassword, _settingsService.DataPath);
+                string backupPath;
+                ImportResult result;
+                using (var transferService = new DataTransferService(localPassword, _settingsService.DataPath))
+                {
+                    backupPath = transferService.CreateBackup(localPassword);
+                    StatusMessage = "Бэкап создан: " + Path.GetFileName(backupPath);
 
-                string backupPath = transferService.CreateBackup(localPassword);
-                StatusMessage = "Бэкап создан: " + Path.GetFileName(backupPath);
+                    result = transferService.ImportFromFile(dialog.FileName, sourcePassword, _settingsService.DataPath, localPassword);
+                }
 
-                var result = transferService.ImportFromFile(dialog.FileName, sourcePassword, _settingsService.DataPath, localPassword);
-
+                _settingsService.Dispose();
+                _settingsService = new SettingsService(localPassword);
+                _dataService.Dispose();
                 _dataService = new DataService(localPassword, _settingsService.DataPath);
 
                 var squadsList = _dataService.LoadSquads();
@@ -1427,7 +1496,9 @@ namespace AVTOKarta.ViewModels
             var dialog = new Views.ChangePasswordView { DataContext = vm };
             if (dialog.ShowDialog() == true)
             {
+                _settingsService.Dispose();
                 _settingsService = vm.ResultSettingsService;
+                _dataService.Dispose();
                 _dataService = new DataService(vm.NewPassword, _settingsService.DataPath);
                 StatusMessage = "Пароль изменён. Данные перешифрованы.";
             }
@@ -1441,7 +1512,9 @@ namespace AVTOKarta.ViewModels
             var dialog = new Views.ChangePasswordView { DataContext = vm };
             if (dialog.ShowDialog() == true)
             {
+                _settingsService.Dispose();
                 _settingsService = vm.ResultSettingsService;
+                _dataService.Dispose();
                 _dataService = new DataService(vm.NewPassword, _settingsService.DataPath);
                 StatusMessage = "Пароль установлен. Данные перешифрованы.";
             }
@@ -1516,6 +1589,26 @@ namespace AVTOKarta.ViewModels
                 if (SelectedVehicle != null && CurrentCard != null)
                     OpenCard();
             }
+        }
+
+        public void Cleanup()
+        {
+            if (_disposed)
+                return;
+            try { _cacheService?.StopAutoSave(); } catch { }
+            _cacheService?.Dispose();
+            _cacheService = null;
+            _dataService?.Dispose();
+            _dataService = null;
+            _settingsService?.Dispose();
+            _settingsService = null;
+            _disposed = true;
+        }
+
+        public void Dispose()
+        {
+            Cleanup();
+            GC.SuppressFinalize(this);
         }
     }
 }

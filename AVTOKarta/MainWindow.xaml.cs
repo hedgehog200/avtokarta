@@ -7,13 +7,18 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
+using AVTOKarta.Licensing;
+using AVTOKarta.Security;
 using AVTOKarta.ViewModels;
+using AVTOKarta.Views;
 
 namespace AVTOKarta
 {
     public partial class MainWindow : Window
     {
         private bool _isDrawerOpen;
+        private DispatcherTimer _guardTimer;
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
@@ -28,6 +33,7 @@ namespace AVTOKarta
             DataContext = new MainViewModel();
 
             Loaded += MainWindow_Loaded;
+            Closing += MainWindow_Closing;
 
             ((MainViewModel)DataContext).PropertyChanged += OnViewModelPropertyChanged;
 
@@ -40,10 +46,74 @@ namespace AVTOKarta
             IntPtr hwnd = helper.Handle;
 
             var iconUri = new Uri("pack://application:,,,/AVTOKarta;component/app.ico", UriKind.Absolute);
-            var icon = new System.Drawing.Icon(Application.GetResourceStream(iconUri).Stream);
+            using (var stream = Application.GetResourceStream(iconUri).Stream)
+            using (var icon = new System.Drawing.Icon(stream))
+            {
+                SendMessage(hwnd, WM_SETICON, (IntPtr)ICON_BIG, icon.Handle);
+                SendMessage(hwnd, WM_SETICON, (IntPtr)ICON_SMALL, icon.Handle);
+            }
 
-            SendMessage(hwnd, WM_SETICON, (IntPtr)ICON_BIG, icon.Handle);
-            SendMessage(hwnd, WM_SETICON, (IntPtr)ICON_SMALL, icon.Handle);
+            EnsureLicense();
+            StartGuard();
+        }
+
+        private void StartGuard()
+        {
+            TamperGuard.TamperDetected += (s, args) =>
+            {
+                MessageBox.Show(
+                    "Обнаружено вмешательство в программу: программа изменена или запущена под отладчиком.\n\n" +
+                    "Доступ к расширенным функциям ограничен. " +
+                    "Восстановите оригинальные файлы программы и перезапустите её.",
+                    "Проверка целостности", MessageBoxButton.OK, MessageBoxImage.Warning);
+                RefreshLicenseGates();
+            };
+
+            _guardTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
+            _guardTimer.Tick += (s, args) =>
+            {
+                LicenseService.EnsureFresh();
+                if (TamperGuard.Refresh())
+                    RefreshLicenseGates();
+            };
+            _guardTimer.Start();
+        }
+
+        private void EnsureLicense()
+        {
+            LicenseInfo info;
+            string message;
+            if (TamperGuard.IsTampered())
+            {
+                MessageBox.Show(
+                    "Программа изменена или работает под отладчиком.\n\n" +
+                    "Для продолжения работы восстановите оригинальные файлы " +
+                    "и запустите приложение без отладчика.",
+                    "Проверка целостности", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Application.Current.Shutdown();
+                return;
+            }
+
+            if (LicenseService.IsLicensed(out info, out message))
+            {
+                RefreshLicenseGates();
+                return;
+            }
+
+            var licenseView = new LicenseView(message) { Owner = this };
+            if (licenseView.ShowDialog() != true)
+            {
+                Application.Current.Shutdown();
+                return;
+            }
+
+            RefreshLicenseGates();
+        }
+
+        private void RefreshLicenseGates()
+        {
+            var vm = DataContext as MainViewModel;
+            vm?.RefreshLicenseGates();
         }
 
         private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -121,6 +191,14 @@ namespace AVTOKarta
             {
                 CloseDrawer();
                 e.Handled = true;
+            }
+        }
+
+        private void MainWindow_Closing(object sender, CancelEventArgs e)
+        {
+            using (var vm = DataContext as MainViewModel)
+            {
+                vm?.Cleanup();
             }
         }
 

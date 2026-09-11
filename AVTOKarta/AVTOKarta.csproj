@@ -130,6 +130,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="Views\LicenseView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
@@ -205,6 +209,19 @@
     <Compile Include="Views\DriverListView.xaml.cs">
       <DependentUpon>DriverListView.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Views\LicenseView.xaml.cs">
+      <DependentUpon>LicenseView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Licensing\LicenseService.cs" />
+    <Compile Include="Security\AntiDebug.cs" />
+    <Compile Include="Security\IntegrityChecker.cs" />
+    <Compile Include="Security\TamperGuard.cs" />
+    <Compile Include="..\Shared\LicenseInfo.cs">
+      <Link>Licensing\LicenseInfo.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\MachineCode.cs">
+      <Link>Licensing\MachineCode.cs</Link>
+    </Compile>
     <Compile Include="Converters\BoolToVisibilityConverter.cs" />
     <Compile Include="Converters\NullOrEmptyToVisibilityConverter.cs" />
     <Compile Include="Converters\IntStringConverter.cs" />
@@ -213,6 +230,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="App.config" />
     <None Include="packages.config" />
     <Resource Include="app.ico" />
     <Resource Include="Fonts\fa-solid-900.ttf" />

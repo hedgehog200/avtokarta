@@ -12,22 +12,47 @@ using System.Text;
 
 namespace AVTOKarta.Services
 {
-    public class SettingsService
+    public class SettingsService : IDisposable
     {
         private static readonly string AppDataPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "AVTOKarta", "Data");
 
         private readonly EncryptionService _encryption;
+        private bool _disposed;
         private const string PasswordKeyFile = "password.key";
-        public const string DefaultPassword = "AVTOKarta_Default_2026";
+        private const string DefaultPasswordFile = "default.key";
 
+        // Фиксированная энтропия DPAPI. Энтропия ОБЯЗАНА быть постоянной между
+        // запусками: случайная энтропия делает password.key/default.key нечитаемыми
+        // после перезапуска, приложение генерирует новый пароль, а все ранее
+        // зашифрованные данные (squads.json, vehicles.json, cards/*) становятся
+        // нерасшифровываемыми («Ошибка инициализации. Проверьте целостность данных.»).
+        // Значение совместимо с состоянием до рефакторинга (DPAPI), чтобы уже
+        // сохранённые ключи продолжали читаться.
         private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("AVTOKartaEntropy2026");
 
         public SettingsService(string password)
         {
             _encryption = new EncryptionService(password);
             EnsureDirectories();
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+            if (disposing)
+            {
+                _encryption?.Dispose();
+            }
+            _disposed = true;
         }
 
         private void EnsureDirectories()
@@ -53,7 +78,10 @@ namespace AVTOKarta.Services
                 acl.SetAccessRuleProtection(false, true);
                 di.SetAccessControl(acl);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("FixAclIfNeeded failed: " + ex.Message);
+            }
         }
 
         public string DataPath
@@ -79,13 +107,74 @@ namespace AVTOKarta.Services
             return password;
         }
 
+        private static string GetOrCreateDefaultPasswordStatic()
+        {
+            string defaultPath = Path.Combine(AppDataPath, DefaultPasswordFile);
+            if (File.Exists(defaultPath))
+            {
+                try
+                {
+                    byte[] encrypted = File.ReadAllBytes(defaultPath);
+                    byte[] decrypted = ProtectedData.Unprotect(encrypted, Entropy, DataProtectionScope.CurrentUser);
+                    string password = Encoding.UTF8.GetString(decrypted);
+Array.Clear(decrypted, 0, decrypted.Length);
+                    return password;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("LoadDefaultPassword failed: " + ex.Message);
+                }
+            }
+
+            string generated = GenerateRandomPassword();
+            try
+            {
+                string dir = Path.GetDirectoryName(defaultPath);
+                if (!Directory.Exists(dir))
+                    Directory.CreateDirectory(dir);
+
+                byte[] passwordBytes = Encoding.UTF8.GetBytes(generated);
+                byte[] encrypted2 = ProtectedData.Protect(passwordBytes, Entropy, DataProtectionScope.CurrentUser);
+                File.WriteAllBytes(defaultPath, encrypted2);
+                Array.Clear(passwordBytes, 0, passwordBytes.Length);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("SaveDefaultPassword failed: " + ex.Message);
+            }
+            return generated;
+        }
+
+        private static string GetOrCreateDefaultPassword()
+        {
+            return GetOrCreateDefaultPasswordStatic();
+        }
+
+        private static string GenerateRandomPassword()
+        {
+            byte[] random = new byte[24];
+            using (var rng = new RNGCryptoServiceProvider())
+                rng.GetBytes(random);
+            return Convert.ToBase64String(random);
+        }
+
         public void SavePassword(string password)
         {
             string dpapiPath = Path.Combine(AppDataPath, PasswordKeyFile);
             byte[] passwordBytes = Encoding.UTF8.GetBytes(password);
             byte[] encrypted = ProtectedData.Protect(passwordBytes, Entropy, DataProtectionScope.CurrentUser);
-            File.WriteAllBytes(dpapiPath, encrypted);
-            Array.Clear(passwordBytes, 0, passwordBytes.Length);
+            try
+            {
+                string dirPath = Path.GetDirectoryName(dpapiPath);
+                if (!Directory.Exists(dirPath))
+                    Directory.CreateDirectory(dirPath);
+                File.WriteAllBytes(dpapiPath, encrypted);
+            }
+            finally
+            {
+                Array.Clear(passwordBytes, 0, passwordBytes.Length);
+                Array.Clear(encrypted, 0, encrypted.Length);
+            }
 
             string hashPath = Path.Combine(AppDataPath, "password.hash");
             if (File.Exists(hashPath))
@@ -97,7 +186,7 @@ namespace AVTOKarta.Services
             if (HasStoredPassword())
                 return new List<string> { "Пароль уже установлен. Используйте смену пароля." };
 
-            string oldPassword = DefaultPassword;
+            string oldPassword = GetOrCreateDefaultPassword();
             return SavePasswordChange(oldPassword, newPassword);
         }
 
@@ -114,13 +203,13 @@ namespace AVTOKarta.Services
         public string GetEffectivePassword()
         {
             string stored = LoadPassword();
-            return string.IsNullOrEmpty(stored) ? DefaultPassword : stored;
+            return string.IsNullOrEmpty(stored) ? GetOrCreateDefaultPassword() : stored;
         }
 
         public static string GetEffectivePasswordStatic()
         {
             string stored = LoadPasswordStatic();
-            return string.IsNullOrEmpty(stored) ? DefaultPassword : stored;
+            return string.IsNullOrEmpty(stored) ? GetOrCreateDefaultPasswordStatic() : stored;
         }
 
         public bool ValidatePassword(string password)
@@ -225,7 +314,7 @@ namespace AVTOKarta.Services
             }
 
             try { File.WriteAllText(markerPath, DateTime.Now.ToString("o")); }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("MigrateMarker write failed: " + ex.Message); }
         }
 
         private void ReEncryptWithRollback(string filePath, string oldPassword, string newPassword,

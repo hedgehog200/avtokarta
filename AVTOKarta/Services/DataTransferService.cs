@@ -14,11 +14,12 @@ using AVTOKarta.Models;
 
 namespace AVTOKarta.Services
 {
-    public class DataTransferService
+    public class DataTransferService : IDisposable
     {
         private readonly string _dataPath;
         private readonly string _password;
         private readonly EncryptionService _localEncryption;
+        private bool _disposed;
         private const string MetadataFile = "metadata.json";
         private const string SquadsFile = "squads.json";
         private const string VehiclesFile = "vehicles.json";
@@ -34,13 +35,42 @@ namespace AVTOKarta.Services
             _localEncryption = new EncryptionService(password);
         }
 
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+            if (disposing)
+            {
+                _localEncryption?.Dispose();
+            }
+            _disposed = true;
+        }
+
         public void ExportToFile(string filePath, string password)
         {
             byte[] zipBytes = CreateZipBytes();
 
-            var exportEncryption = new EncryptionService(password);
-            byte[] encrypted = exportEncryption.Encrypt(zipBytes);
-            File.WriteAllBytes(filePath, encrypted);
+            using (var exportEncryption = new EncryptionService(password))
+            {
+                byte[] encrypted = exportEncryption.Encrypt(zipBytes);
+                try
+                {
+                    string dir = Path.GetDirectoryName(filePath);
+                    if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                        Directory.CreateDirectory(dir);
+                    File.WriteAllBytes(filePath, encrypted);
+                }
+                catch (Exception ex)
+                {
+                    throw new IOException("Не удалось сохранить файл экспорта: " + ex.Message, ex);
+                }
+            }
         }
 
         public ImportResult ImportFromFile(string archivePath, string sourcePassword, string targetDataPath, string localPassword)
@@ -48,17 +78,7 @@ namespace AVTOKarta.Services
             var result = new ImportResult();
 
             byte[] fileBytes = File.ReadAllBytes(archivePath);
-            var sourceEncryption = new EncryptionService(sourcePassword);
-            byte[] zipBytes;
-
-            try
-            {
-                zipBytes = sourceEncryption.Decrypt(fileBytes);
-            }
-            catch (CryptographicException)
-            {
-                throw new InvalidOperationException("Неверный пароль или файл повреждён.");
-            }
+            byte[] zipBytes = DecryptExport(fileBytes, sourcePassword, localPassword);
 
             using (var stream = new MemoryStream(zipBytes))
             using (var archive = new ZipArchive(stream, ZipArchiveMode.Read))
@@ -86,7 +106,8 @@ namespace AVTOKarta.Services
                     result.Metadata = JsonConvert.DeserializeObject<ExportMetadata>(metaJson);
                 }
 
-                var targetEncryption = new EncryptionService(localPassword);
+                using (var targetEncryption = new EncryptionService(localPassword))
+                {
 
                 var squadsEntry = archive.GetEntry(SquadsFile);
                 if (squadsEntry != null)
@@ -139,6 +160,8 @@ namespace AVTOKarta.Services
                         result.CardsImported++;
                     }
                 }
+                }
+
             }
 
             return result;
@@ -147,15 +170,24 @@ namespace AVTOKarta.Services
         public string CreateBackup(string password)
         {
             byte[] zipBytes = CreateBackupZipBytes();
-            var encryption = new EncryptionService(password);
-            byte[] encrypted = encryption.Encrypt(zipBytes);
+            using (var encryption = new EncryptionService(password))
+            {
+                byte[] encrypted = encryption.Encrypt(zipBytes);
 
-            string backupDir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string randomPart = Path.GetRandomFileName().Replace(".", "").Substring(0, 8);
-            string backupPath = Path.Combine(backupDir, "AVTOKarta_Backup_" + randomPart + ".avto");
-            File.WriteAllBytes(backupPath, encrypted);
+                string backupDir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                string randomPart = Path.GetRandomFileName().Replace(".", "").Substring(0, 8);
+                string backupPath = Path.Combine(backupDir, "AVTOKarta_Backup_" + randomPart + ".avto");
+                try
+                {
+                    File.WriteAllBytes(backupPath, encrypted);
+                }
+                catch (Exception ex)
+                {
+                    throw new IOException("Не удалось создать резервную копию: " + ex.Message, ex);
+                }
 
-            return backupPath;
+                return backupPath;
+            }
         }
 
         private byte[] CreateZipBytes()
@@ -167,7 +199,7 @@ namespace AVTOKarta.Services
                     var metadata = new ExportMetadata
                     {
                         ExportDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                        AppVersion = "1.2.2",
+                        AppVersion = "1.2.3",
                         SquadCount = 0,
                         VehicleCount = 0,
                         CardCount = 0
@@ -295,7 +327,7 @@ namespace AVTOKarta.Services
                     var metadata = new ExportMetadata
                     {
                         ExportDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                        AppVersion = "1.2.2",
+                        AppVersion = "1.2.3",
                         IsBackup = true
                     };
                     string metaJson = JsonConvert.SerializeObject(metadata, Formatting.Indented);
@@ -341,6 +373,37 @@ namespace AVTOKarta.Services
             }
         }
 
+        private static byte[] DecryptExport(byte[] fileBytes, string sourcePassword, string localPassword)
+        {
+            var candidates = new List<string>();
+            if (!string.IsNullOrEmpty(sourcePassword))
+            {
+                candidates.Add(sourcePassword);
+            }
+            else
+            {
+                candidates.Add(string.Empty);
+                if (!string.IsNullOrEmpty(localPassword))
+                    candidates.Add(localPassword);
+            }
+
+            foreach (string candidate in candidates)
+            {
+                try
+                {
+                    using (var sourceEncryption = new EncryptionService(candidate))
+                    {
+                        return sourceEncryption.Decrypt(fileBytes);
+                    }
+                }
+                catch (CryptographicException)
+                {
+                }
+            }
+
+            throw new InvalidOperationException("Неверный пароль или файл повреждён.");
+        }
+
         private string SanitizeImportedJson(string json)
         {
             var squads = JsonConvert.DeserializeObject<List<Squad>>(json);
@@ -373,14 +436,21 @@ namespace AVTOKarta.Services
         private static string SanitizeId(string id)
         {
             id = id.Replace("..", "_");
+            while (id.Contains(".."))
+                id = id.Replace("..", "_");
             foreach (char c in Path.GetInvalidFileNameChars())
                 id = id.Replace(c, '_');
+            if (id.Length > 0 && (id[0] == '/' || id[0] == '\\'))
+                id = id.Substring(1);
             return id;
         }
 
         private static string SanitizeText(string text)
         {
-            return text.Replace("..", "_");
+            text = text.Replace("..", "_");
+            while (text.Contains(".."))
+                text = text.Replace("..", "_");
+            return text;
         }
 
         private void EncryptAndWrite(string filePath, string json, EncryptionService encryption)
@@ -391,7 +461,18 @@ namespace AVTOKarta.Services
 
             byte[] jsonBytes = Encoding.UTF8.GetBytes(json);
             byte[] encrypted = encryption.Encrypt(jsonBytes);
-            File.WriteAllBytes(filePath, encrypted);
+            try
+            {
+                string tempPath = filePath + ".tmp";
+                File.WriteAllBytes(tempPath, encrypted);
+                File.Copy(tempPath, filePath, true);
+                try { File.Delete(tempPath); }
+                catch (Exception tempEx) { System.Diagnostics.Debug.WriteLine("Temp cleanup failed: " + tempEx.Message); }
+            }
+            catch (Exception ex)
+            {
+                throw new IOException("Не удалось записать файл данных: " + ex.Message, ex);
+            }
         }
     }
 

@@ -13,10 +13,12 @@ using AVTOKarta.Models;
 
 namespace AVTOKarta.Services
 {
-    public class DataService
+    public class DataService : IDisposable
     {
         private readonly EncryptionService _encryption;
         private readonly string _dataPath;
+        private readonly object _writeLock = new object();
+        private bool _disposed;
         private const string SquadsFile = "squads.json";
         private const string OldSquadFile = "squad.json";
         private const string DriversFile = "drivers.json";
@@ -27,6 +29,23 @@ namespace AVTOKarta.Services
             _dataPath = dataPath;
             EnsureDirectories();
             MigrateOldSquad();
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+            if (disposing)
+            {
+                _encryption?.Dispose();
+            }
+            _disposed = true;
         }
 
         private void EnsureDirectories()
@@ -74,7 +93,10 @@ namespace AVTOKarta.Services
         public void SaveSquads(List<Squad> squads)
         {
             string path = Path.Combine(_dataPath, SquadsFile);
-            WriteEncrypted(path, squads);
+            lock (_writeLock)
+            {
+                WriteEncrypted(path, squads);
+            }
         }
 
         public Task SaveSquadsAsync(List<Squad> squads)
@@ -90,13 +112,16 @@ namespace AVTOKarta.Services
 
         public void SaveSquad(Squad squad)
         {
-            var squads = LoadSquads();
-            int idx = squads.FindIndex(s => s.Id == squad.Id);
-            if (idx >= 0)
-                squads[idx] = squad;
-            else
-                squads.Add(squad);
-            SaveSquads(squads);
+            lock (_writeLock)
+            {
+                var squads = LoadSquads();
+                int idx = squads.FindIndex(s => s.Id == squad.Id);
+                if (idx >= 0)
+                    squads[idx] = squad;
+                else
+                    squads.Add(squad);
+                SaveSquads(squads);
+            }
         }
 
         public List<Vehicle> LoadVehicles()
@@ -111,7 +136,10 @@ namespace AVTOKarta.Services
         public void SaveVehicles(List<Vehicle> vehicles)
         {
             string path = Path.Combine(_dataPath, "vehicles.json");
-            WriteEncrypted(path, vehicles);
+            lock (_writeLock)
+            {
+                WriteEncrypted(path, vehicles);
+            }
         }
 
         public Task SaveVehiclesAsync(List<Vehicle> vehicles)
@@ -131,7 +159,10 @@ namespace AVTOKarta.Services
         public void SaveDrivers(List<Driver> drivers)
         {
             string path = Path.Combine(_dataPath, DriversFile);
-            WriteEncrypted(path, drivers);
+            lock (_writeLock)
+            {
+                WriteEncrypted(path, drivers);
+            }
         }
 
         public Task SaveDriversAsync(List<Driver> drivers)
@@ -151,7 +182,10 @@ namespace AVTOKarta.Services
         public void SaveCard(MonthlyCard card, int year, int month)
         {
             string path = GetCardPath(card.VehicleLicensePlate, year, month);
-            WriteEncrypted(path, card);
+            lock (_writeLock)
+            {
+                WriteEncrypted(path, card);
+            }
         }
 
         public Task SaveCardAsync(MonthlyCard card, int year, int month)
@@ -208,7 +242,10 @@ namespace AVTOKarta.Services
         public void SaveWarehouseItems(string squadId, List<WarehouseItem> items)
         {
             string path = GetWarehousePath(squadId);
-            WriteEncrypted(path, items);
+            lock (_writeLock)
+            {
+                WriteEncrypted(path, items);
+            }
         }
 
         private string GetWarehousePath(string squadId)
@@ -221,8 +258,15 @@ namespace AVTOKarta.Services
             string path = GetCardPath(licensePlate, year, month);
             if (File.Exists(path))
             {
-                string backupPath = path + ".bak";
-                File.Copy(path, backupPath, true);
+                try
+                {
+                    string backupPath = path + ".bak";
+                    File.Copy(path, backupPath, true);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("BackupCard failed: " + ex.Message);
+                }
             }
         }
 
@@ -270,7 +314,11 @@ namespace AVTOKarta.Services
             string json = JsonConvert.SerializeObject(data, Formatting.Indented, SafeJsonSettings);
             byte[] jsonBytes = Encoding.UTF8.GetBytes(json);
             byte[] encrypted = _encryption.Encrypt(jsonBytes);
-            File.WriteAllBytes(path, encrypted);
+
+            string tempPath = path + ".tmp";
+            File.WriteAllBytes(tempPath, encrypted);
+            File.Copy(tempPath, path, true);
+            try { File.Delete(tempPath); } catch { /* temp cleanup */ }
         }
     }
 }

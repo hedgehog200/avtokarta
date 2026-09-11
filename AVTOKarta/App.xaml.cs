@@ -7,6 +7,7 @@ using System.Globalization;
 using System.IO;
 using System.Threading;
 using System.Windows;
+using AVTOKarta.Security;
 
 namespace AVTOKarta
 {
@@ -24,12 +25,21 @@ namespace AVTOKarta
                 File.AppendAllText(Path.Combine(dir, "crash.log"),
                     DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " " + msg + Environment.NewLine);
             }
-            catch { }
+            catch (Exception logEx)
+            {
+                System.Diagnostics.Debug.WriteLine("Log failed: " + logEx.Message);
+            }
         }
 
         protected override void OnStartup(StartupEventArgs e)
         {
             Log("=== OnStartup START ===");
+
+#if DEBUG
+            // Dev-обход защиты: только в Debug-сборках, чтобы можно было отлаживать в VS.
+            // В Release (#else) защита работает всегда.
+            TamperGuard.SetDevBypass(true);
+#endif
 
             DispatcherUnhandledException += (s, args) =>
             {

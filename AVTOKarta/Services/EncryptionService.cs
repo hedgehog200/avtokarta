@@ -19,6 +19,8 @@ namespace AVTOKarta.Services
         private const int HmacSize = 32;
         private const int DerivedBytesLength = 80;
 
+        private const string OpenExportSeed = "AVTOKarta//open-export//2026";
+
         private byte[] _passwordBytes;
         private bool _disposed;
 
@@ -34,9 +36,7 @@ namespace AVTOKarta.Services
 
         public EncryptionService(string password)
         {
-            if (string.IsNullOrEmpty(password))
-                throw new ArgumentException("Password cannot be null or empty.");
-            _passwordBytes = Encoding.UTF8.GetBytes(password);
+            _passwordBytes = Encoding.UTF8.GetBytes(string.IsNullOrEmpty(password) ? OpenExportSeed : password);
         }
 
         public byte[] Encrypt(byte[] data)
@@ -161,9 +161,11 @@ namespace AVTOKarta.Services
             {
                 byte[] encryptedBytes = File.ReadAllBytes(filePath);
                 byte[] decryptedBytes = DecryptLegacyOrCurrent(oldPassword, encryptedBytes);
-                var newService = new EncryptionService(newPassword);
-                byte[] reEncryptedBytes = newService.Encrypt(decryptedBytes);
-                File.WriteAllBytes(filePath, reEncryptedBytes);
+                using (var newService = new EncryptionService(newPassword))
+                {
+                    byte[] reEncryptedBytes = newService.Encrypt(decryptedBytes);
+                    File.WriteAllBytes(filePath, reEncryptedBytes);
+                }
                 File.Delete(backupPath);
             }
             catch
@@ -183,8 +185,10 @@ namespace AVTOKarta.Services
 
             try
             {
-                var service = new EncryptionService(password);
-                service.Decrypt(raw);
+                using (var service = new EncryptionService(password))
+                {
+                    service.Decrypt(raw);
+                }
                 return;
             }
             catch (CryptographicException)
@@ -194,9 +198,11 @@ namespace AVTOKarta.Services
             try
             {
                 byte[] decrypted = DecryptLegacyOnly(password, raw);
-                var service = new EncryptionService(password);
-                byte[] reEncrypted = service.Encrypt(decrypted);
-                File.WriteAllBytes(filePath, reEncrypted);
+                using (var service = new EncryptionService(password))
+                {
+                    byte[] reEncrypted = service.Encrypt(decrypted);
+                    File.WriteAllBytes(filePath, reEncrypted);
+                }
             }
             catch (CryptographicException)
             {
@@ -284,8 +290,10 @@ namespace AVTOKarta.Services
             {
                 try
                 {
-                    var service = new EncryptionService(password);
-                    return service.Decrypt(encryptedData);
+                    using (var service = new EncryptionService(password))
+                    {
+                        return service.Decrypt(encryptedData);
+                    }
                 }
                 catch (CryptographicException)
                 {

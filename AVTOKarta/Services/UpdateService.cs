@@ -7,9 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
-using System.Net.Security;
 using System.Reflection;
-using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows;
@@ -25,17 +23,6 @@ namespace AVTOKarta.Services
         private const string LogFile = "updater.log";
         private static Mutex _updateMutex;
 
-        private static readonly byte[] _encPassword = new byte[] { 0x33, 0x33, 0x15, 0x3F, 0x08, 0x24, 0x04, 0x15, 0x27, 0x34, 0x1E, 0x02 };
-        private static readonly byte[] _xorKey = new byte[] { 0x41, 0x56, 0x54, 0x4F, 0x4B, 0x41, 0x52, 0x54, 0x41 };
-
-        private static string GetInstallerPassword()
-        {
-            char[] result = new char[_encPassword.Length];
-            for (int i = 0; i < _encPassword.Length; i++)
-                result[i] = (char)(_encPassword[i] ^ _xorKey[i % _xorKey.Length]);
-            return new string(result);
-        }
-
         static UpdateService()
         {
             try
@@ -49,53 +36,30 @@ namespace AVTOKarta.Services
                 try { ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12; }
                 catch { ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12; }
             }
-            ServicePointManager.ServerCertificateValidationCallback = ValidateCertificate;
-        }
-
-        private static bool ValidateCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
-        {
-            if (sslPolicyErrors == SslPolicyErrors.None)
-                return true;
-
-            try
-            {
-                if (chain != null)
-                {
-                    chain.ChainPolicy.RevocationFlag = X509RevocationFlag.EntireChain;
-                    chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-                    chain.ChainPolicy.UrlRetrievalTimeout = new TimeSpan(0, 0, 30);
-                    chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllFlags;
-                    bool valid = chain.Build(new X509Certificate2(certificate));
-                    if (valid)
-                        return true;
-                }
-            }
-            catch
-            {
-            }
-
-            if (chain != null)
-            {
-                foreach (var status in chain.ChainStatus)
-                {
-                    if (status.Status != X509ChainStatusFlags.NoError &&
-                        status.Status != X509ChainStatusFlags.RevocationStatusUnknown &&
-                        status.Status != X509ChainStatusFlags.OfflineRevocation &&
-                        status.Status != X509ChainStatusFlags.PartialChain &&
-                        status.Status != X509ChainStatusFlags.UntrustedRoot &&
-                        status.Status != X509ChainStatusFlags.Cyclic)
-                    {
-                        return false;
-                    }
-                }
-            }
-
-            return true;
         }
 
         public static Version GetCurrentVersion()
         {
             return Assembly.GetExecutingAssembly().GetName().Version;
+        }
+
+        private static string ReadInstallerPassword()
+        {
+            try
+            {
+                string keyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "installer.key");
+                if (File.Exists(keyPath))
+                {
+                    string password = File.ReadAllText(keyPath).Trim();
+                    if (!string.IsNullOrEmpty(password))
+                        return password;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("ReadInstallerPassword failed: " + ex.Message);
+            }
+            return "";
         }
 
         private static string GetLogPath()
@@ -410,6 +374,26 @@ namespace AVTOKarta.Services
             }
             else if (isExe)
             {
+                if (string.IsNullOrEmpty(ReadInstallerPassword()))
+                {
+                    Log("Обновление невозможно: отсутствует installer.key (установщик защищён паролем).");
+                    try
+                    {
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            MessageBox.Show(
+                                "Автоустановка обновления невозможна: не найден installer.key рядом с программой.\n" +
+                                "Скачайте установщик вручную и запустите его.",
+                                "Обновление", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Log("Ошибка уведомления: " + ex.Message);
+                    }
+                    return;
+                }
+
                 string installLog = Path.Combine(tempDir, "install.log");
 
                 batContent =
@@ -421,7 +405,7 @@ namespace AVTOKarta.Services
                     "timeout /t 1 /nobreak >nul\r\n" +
 
                     "echo [UPDATE] Running installer >> \"" + escapedLogPath + "\"\r\n" +
-                    "\"" + EscapeBatPath(downloadedFilePath) + "\" /SILENT /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /PASSWORD=" + GetInstallerPassword() + " /LOG=\"" + EscapeBatPath(installLog) + "\"\r\n" +
+                    "\"" + EscapeBatPath(downloadedFilePath) + "\" /SILENT /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /PASSWORD=" + ReadInstallerPassword() + " /LOG=\"" + EscapeBatPath(installLog) + "\"\r\n" +
                     "if errorlevel 1 (\r\n" +
                     "  echo [UPDATE] Installer failed >> \"" + escapedLogPath + "\"\r\n" +
                     "  start \"\" \"" + EscapeBatPath(Path.Combine(appDir, "AVTOKarta.exe")) + "\" 2>nul\r\n" +
@@ -490,18 +474,47 @@ namespace AVTOKarta.Services
                 string notes = result.ReleaseNotes ?? "";
 
                 bool confirmed = false;
-                Application.Current.Dispatcher.Invoke(() =>
+                try
                 {
-                    var dlg = new Views.UpdateNotificationWindow(
-                        result.RemoteVersion, result.CurrentVersion, notes);
-                    dlg.Owner = Application.Current.MainWindow;
-                    var answer = dlg.ShowDialog();
-                    confirmed = answer == true;
-                });
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        var dlg = new Views.UpdateNotificationWindow(
+                            result.RemoteVersion, result.CurrentVersion, notes);
+                        dlg.Owner = Application.Current.MainWindow;
+                        var answer = dlg.ShowDialog();
+                        confirmed = answer == true;
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Log("Окно обновления недоступно: " + ex.Message);
+                }
 
                 if (!confirmed)
                 {
                     Log("Обновление отклонено пользователем");
+                    return;
+                }
+
+                if (result.DownloadUrl.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+                    && string.IsNullOrEmpty(ReadInstallerPassword()))
+                {
+                    Log("Обновление недоступно: отсутствует installer.key рядом с программой.");
+                    try
+                    {
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            MessageBox.Show(
+                                "Доступно обновление до версии " + result.RemoteVersion + ".\n\n" +
+                                "Автообновление на этом компьютере недоступно (не найден installer.key).\n" +
+                                "Скачайте установщик вручную со страницы релизов и запустите его.",
+                                "Обновление", MessageBoxButton.OK, MessageBoxImage.Information);
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Log("Не удалось показать уведомление об обновлении: " + ex.Message);
+                    }
                     return;
                 }
 

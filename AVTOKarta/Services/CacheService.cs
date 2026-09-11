@@ -9,11 +9,12 @@ using System.Threading.Tasks;
 
 namespace AVTOKarta.Services
 {
-    public class CacheService
+    public class CacheService : IDisposable
     {
         private Timer _autoSaveTimer;
         private Action _saveAction;
         private bool _isDirty;
+        private bool _disposed;
         private readonly object _lock = new object();
 
         public event Action AutoSaved;
@@ -31,8 +32,28 @@ namespace AVTOKarta.Services
 
         public void StopAutoSave()
         {
-            _autoSaveTimer?.Dispose();
-            _autoSaveTimer = null;
+            lock (_lock)
+            {
+                _autoSaveTimer?.Dispose();
+                _autoSaveTimer = null;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+            if (disposing)
+            {
+                StopAutoSave();
+            }
+            _disposed = true;
         }
 
         private void AutoSaveCallback(object state)
