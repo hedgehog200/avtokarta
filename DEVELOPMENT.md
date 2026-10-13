@@ -3,7 +3,7 @@
 > Назначение: карта проекта «что где лежит», как собирать, как устроена защита/лицензирование
 > и что было сделано — чтобы можно было продолжать **ручную** разработку без повторного изучения.
 >
-> Дата обновления документа: **14.10.2026** (последний тег: `v1.2.4`).
+> Дата обновления документа: **14.10.2026** (последний тег: `v1.2.5`).
 
 ---
 
@@ -16,7 +16,7 @@
 - Отчёты: Excel (карточка месяца + сводный отчёт по ГСМ).
 - Экспорт/импорт данных в файл `.avto` (ZIP + AES-256, опционально с паролем).
 - Лицензирование (офлайн, RSA-подпись файла `license.lic`) и защита от вмешательства (`tamper.sig`).
-- Самообновление с GitHub Releases (с `installer.key`).
+- Самообновление с GitHub Releases (пароль установщика `installer.key` необязателен).
 
 ## 2. Стек и инструменты
 
@@ -55,13 +55,13 @@ C:\project\mchs gsm\
 ├── packages\                     # NuGet-пакеты (в .gitignore)
 ├── доп.информация\               # исходные документы заказчика (docx/xls) — НЕ код
 ├── README.md                     # обзор функционала для пользователя
-├── RELEASE_v1.2.1.md … v1.2.4.md # заметки к релизам
+├── RELEASE_v1.2.1.md … v1.2.5.md # заметки к релизам
 ├── avtokarta.crproj              # профиль обфускации ConfuserEx (в репозитории!)
 ├── DEVELOPMENT.md                # ЭТА документация
 ├── nuget.exe, opencode.json, пароль.txt, .serena\ (памяти проекта)
 ```
 
-Git: ветка `master`, теги `v1.1.0` … `v1.2.4`. Удалённые репозитории: `origin` (полный, `hedgehog200/avtocartaZ`) и `release` (публичный, `hedgehog200/avtokarta`; в `master` только `README.md`, релизы — теги).
+Git: ветка `master`, теги `v1.1.0` … `v1.2.5`. Удалённые репозитории: `origin` (полный, `hedgehog200/avtocartaZ`) и `release` (публичный, `hedgehog200/avtokarta`; в `master` только `README.md`, релизы — теги).
 
 ## 4. Архитектура приложения
 
@@ -142,7 +142,7 @@ UserControl (встраиваются в MainWindow): `SquadSetupView`, `SquadLi
 | `ExcelExportService.cs` | месячная карточка → `.xlsx` |
 | `FuelReportExportService.cs` | сводный отчёт по ГСМ → `.xlsx` |
 | `DataTransferService.cs` | `ExportToFile(path, password)`, `ImportFromFile(...)`, `CreateBackup`; `ExportMetadata`, `ImportResult`; содержит `AppVersion` (версия!) |
-| `UpdateService.cs` | GitHub API `hedgehog200/avtokarta` releases/latest; `CheckForUpdate/DownloadUpdate/ValidateDownload/ApplyUpdate/AutoUpdate`; лог `updater.log`; **требует `installer.key` рядом с exe** (без него — уведомление вместо тихой установки) |
+| `UpdateService.cs` | GitHub API `hedgehog200/avtokarta` releases/latest; `CheckForUpdate/DownloadUpdate/ValidateDownload/ApplyUpdate/AutoUpdate`; лог `updater.log`; `installer.key` рядом с exe — **необязателен**: если есть, тихая установка идёт с `/PASSWORD=`; если нет — установщик запускается без пароля |
 
 ### 5.5 `AVTOKarta\Helpers\` и `Converters\`
 
@@ -277,23 +277,25 @@ MSBuild: `C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\
 iscc AVTOKarta_setup.iss     # → Output\AVTOKarta_vX.Y.Z_setup.exe
 ```
 Установщик **обязан** копировать `tamper.sig` (прописано в `.iss`) — без него установленная копия не стартует (выход 0).
+Пароль установки (`Password=`/`Encryption=`) **не используется**: защита обеспечивается лицензией и манифестом целостности.
 
 ### Чек-лист повышения версии
 1. `AVTOKarta\Properties\AssemblyInfo.cs` — `AssemblyVersion`/`AssemblyFileVersion`
-2. `AVTOKarta\MainWindow.xaml` — заголовок окна (`... v1.2.4 - WebARTup - Studio: Technologies`)
-3. `AVTOKarta\Services\DataTransferService.cs` — `AppVersion`
+2. `AVTOKarta\MainWindow.xaml` — заголовок окна (`... v1.2.5 - WebARTup - Studio: Technologies`)
+3. `AVTOKarta\Services\DataTransferService.cs` — `AppVersion` (берётся из сборки автоматически — менять не нужно)
 4. `AVTOKarta_setup.iss` — `MyAppVersion` / `VersionInfoVersion`
 5. Сборка → `build-release.ps1` → `iscc` → `git tag vX.Y.Z` → релиз в GitHub
-   (для автообновления рядом с exe должен быть `installer.key`)
+   (`installer.key` рядом с exe необязателен — нужен только если установщик защищён паролем)
 
 ### Самообновление
 `UpdateService`: GitHub API `https://api.github.com/repos/hedgehog200/avtokarta/releases/latest`,
-лог `updater.log` в папке данных, мьютекс от параллельных обновлений. Без `installer.key`
-показывает уведомление, что автоустановка недоступна.
+лог `updater.log` в папке данных, мьютекс от параллельных обновлений. `installer.key` рядом с exe
+необязателен: если файл есть — к тихой установке добавляется `/PASSWORD=`, иначе установщик
+запускается без пароля (текущий установщик пароля не требует).
 
 ## 9. Текущее состояние Git (14.10.2026)
 
-- Последний тег: **v1.2.4** «PROTECTION, ускорение крипто (CNG), асинхронный экспорт/импорт, обфускация».
+- Последний тег: **v1.2.5** «автообновление без `installer.key`; установщик без пароля».
 - Ветка `master` синхронизирована с `origin` (полный репозиторий разработки).
 - Публикация: код — push в `origin`; релизный тег — push в `release` (`hedgehog200/avtokarta`).
 - **Не отслевается намеренно (не коммитим)**: `LicGen\Licenses\` (база выданных лицензий, коды машин),
@@ -311,8 +313,9 @@ iscc AVTOKarta_setup.iss     # → Output\AVTOKarta_vX.Y.Z_setup.exe
 | v1.2.2 | UI-редизайн: Lucide-style иконки → Font Awesome 6 Solid, общие стили, скроллбары, hover; многосоставная ICO (16–256), иконка задачи через Win32 `WM_SETICON` |
 | v1.2.3 | **Лицензирование** (RSA `license.lic`, экран активации, фичи-гейты), **манифест целостности `tamper.sig`**, **LicGen GUI** (база выданных, выпуск в клики), предупреждение об экспорте без пароля, постоянная энептопия DPAPI, конвейер `build-release.ps1`, обфускация ConfuserEx |
 | v1.2.4 | Смена `#if DEBUG` → символ `PROTECTION` (Release\|x86), сборка без защиты через `/p:NoProtection=true` (§7.2); ускорение PBKDF2 через Windows CNG (формат `.avto` не меняется); асинхронные экспорт/импорт с индикатором прогресса; исправление имени файла склада при импорте; удаление остаточных файлов при откате импорта; `AppVersion` из сборки; честный текст диалога импорта (слияние карточек); восстановление обфускации (`avtokarta.crproj` в репо) и надёжности `build-release.ps1` |
+| v1.2.5 | Установщик **без пароля** (`Password=`/`Encryption=` убраны); автообновление больше **не требует `installer.key`** — `/PASSWORD=` добавляется только если файл есть (§8) |
 
-Детали релизов — в `RELEASE_v1.2.1.md` … `RELEASE_v1.2.4.md`, `README.md`.
+Детали релизов — в `RELEASE_v1.2.1.md` … `RELEASE_v1.2.5.md`, `README.md`.
 
 ## 11. Ловушки при ручной доработке
 

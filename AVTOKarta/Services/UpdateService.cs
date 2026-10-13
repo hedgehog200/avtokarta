@@ -374,25 +374,12 @@ namespace AVTOKarta.Services
             }
             else if (isExe)
             {
-                if (string.IsNullOrEmpty(ReadInstallerPassword()))
-                {
-                    Log("Обновление невозможно: отсутствует installer.key (установщик защищён паролем).");
-                    try
-                    {
-                        Application.Current.Dispatcher.Invoke(() =>
-                        {
-                            MessageBox.Show(
-                                "Автоустановка обновления невозможна: не найден installer.key рядом с программой.\n" +
-                                "Скачайте установщик вручную и запустите его.",
-                                "Обновление", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        Log("Ошибка уведомления: " + ex.Message);
-                    }
-                    return;
-                }
+                // Пароль установщика необязателен: если рядом есть installer.key —
+                // передаём /PASSWORD, иначе запускаем установщик как есть (без пароля).
+                string installerPassword = ReadInstallerPassword();
+                string passwordArg = string.IsNullOrEmpty(installerPassword)
+                    ? ""
+                    : " /PASSWORD=" + installerPassword;
 
                 string installLog = Path.Combine(tempDir, "install.log");
 
@@ -405,7 +392,7 @@ namespace AVTOKarta.Services
                     "timeout /t 1 /nobreak >nul\r\n" +
 
                     "echo [UPDATE] Running installer >> \"" + escapedLogPath + "\"\r\n" +
-                    "\"" + EscapeBatPath(downloadedFilePath) + "\" /SILENT /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /PASSWORD=" + ReadInstallerPassword() + " /LOG=\"" + EscapeBatPath(installLog) + "\"\r\n" +
+                    "\"" + EscapeBatPath(downloadedFilePath) + "\" /SILENT /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-" + passwordArg + " /LOG=\"" + EscapeBatPath(installLog) + "\"\r\n" +
                     "if errorlevel 1 (\r\n" +
                     "  echo [UPDATE] Installer failed >> \"" + escapedLogPath + "\"\r\n" +
                     "  start \"\" \"" + EscapeBatPath(Path.Combine(appDir, "AVTOKarta.exe")) + "\" 2>nul\r\n" +
@@ -493,28 +480,6 @@ namespace AVTOKarta.Services
                 if (!confirmed)
                 {
                     Log("Обновление отклонено пользователем");
-                    return;
-                }
-
-                if (result.DownloadUrl.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
-                    && string.IsNullOrEmpty(ReadInstallerPassword()))
-                {
-                    Log("Обновление недоступно: отсутствует installer.key рядом с программой.");
-                    try
-                    {
-                        Application.Current.Dispatcher.Invoke(() =>
-                        {
-                            MessageBox.Show(
-                                "Доступно обновление до версии " + result.RemoteVersion + ".\n\n" +
-                                "Автообновление на этом компьютере недоступно (не найден installer.key).\n" +
-                                "Скачайте установщик вручную со страницы релизов и запустите его.",
-                                "Обновление", MessageBoxButton.OK, MessageBoxImage.Information);
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        Log("Не удалось показать уведомление об обновлении: " + ex.Message);
-                    }
                     return;
                 }
 
