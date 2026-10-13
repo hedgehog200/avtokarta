@@ -25,6 +25,9 @@ namespace AVTOKarta.Models
         public string SquadId { get; set; }
         public EngineType Engine { get; set; }
 
+        /// <summary>Используется ли мочевина (AdBlue) — влияет на расчёт спецжидкостей.</summary>
+        public bool UsesAdBlue { get; set; }
+
         public string EngineDisplay
         {
             get { return Engine == EngineType.Gasoline ? "Бензин" : "Дизель"; }

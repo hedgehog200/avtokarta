@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Linq;
 using System.Windows;
 using AVTOKarta.Helpers;
 using AVTOKarta.Models;
@@ -30,14 +31,24 @@ namespace AVTOKarta.ViewModels
         private double _timeWithoutPumpMinutes;
         private double _shiftChangeMinutes;
         private double _miscWorkMinutes;
+        private double _parkingHours;
+        private double _cargoTons;
         private double _fuelRefueled;
+        private double _fuelAtDeparture;
+        private double _fuelAtReturn;
         private double _normConsumption;
         private double _actualConsumption;
+        private double _calcActual;
+        private double _calcEconomy;
+        private double _calcOverspend;
+        private bool _hasFuelReadings;
         private string _comments;
         private string _squadNumber;
         private string _driverName;
         private int _tripSheetNumber;
         private FuelNorm _fuelNorms;
+        private Squad _squad;
+        private bool _suppressSurchargeEvents;
         private List<string> _workDescriptions;
         private List<string> _driverNames;
 
@@ -47,10 +58,14 @@ namespace AVTOKarta.ViewModels
         public DailyRecord EditingRecord { get; }
         public bool? DialogResult { get; private set; }
 
-        public CardViewModel(DailyRecord record, FuelNorm fuelNorms, List<string> driverNames = null, double previousOdometer = 0)
+        /// <summary>Список надбавок, доступных для выбора в записи.</summary>
+        public ObservableCollection<SurchargeOption> SurchargeOptions { get; }
+
+        public CardViewModel(DailyRecord record, FuelNorm fuelNorms, List<string> driverNames = null, double previousOdometer = 0, Squad squad = null)
         {
             EditingRecord = record;
             _fuelNorms = fuelNorms;
+            _squad = squad;
             _previousOdometer = previousOdometer;
 
             _date = record.Date;
@@ -67,7 +82,11 @@ namespace AVTOKarta.ViewModels
             _timeWithoutPumpMinutes = record.TimeWithoutPumpMinutes;
             _shiftChangeMinutes = record.ShiftChangeMinutes;
             _miscWorkMinutes = record.MiscWorkMinutes;
+            _parkingHours = record.ParkingHours;
+            _cargoTons = record.CargoTons;
             _fuelRefueled = record.FuelRefueled;
+            _fuelAtDeparture = record.FuelAtDeparture;
+            _fuelAtReturn = record.FuelAtReturn;
             _normConsumption = record.NormConsumption;
             _actualConsumption = record.ActualConsumption;
             _comments = record.Comments;
@@ -93,14 +112,115 @@ namespace AVTOKarta.ViewModels
                 "Перегон"
             };
 
+            SurchargeOptions = new ObservableCollection<SurchargeOption>();
+            BuildSurchargeOptions(record);
+
+            // Отметить зимнюю надбавку автоматически, если она действует и ещё не выбрана.
+            RefreshWinterAutoSelection();
+
             ConfirmCommand = new RelayCommand(o => Confirm());
             CancelCommand = new RelayCommand(o => Cancel());
+
+            Recalculate();
+        }
+
+        private void BuildSurchargeOptions(DailyRecord record)
+        {
+            var applied = record.EnsureSurcharges();
+
+            // Зимняя надбавка — отдельный авто-элемент (задаётся на уровне части).
+            if (_squad != null && _squad.WinterSurchargePercent != 0)
+            {
+                var winter = new SurchargeOption(new Surcharge("Зимняя", _squad.WinterSurchargePercent,
+                    true, true, SurchargeCatalog.ClimateGroup));
+                AddSurchargeOption(winter, applied);
+            }
+
+            foreach (var s in SurchargeCatalog.GetForSquad(_squad))
+                AddSurchargeOption(new SurchargeOption(s), applied);
+
+            // Сохраняем надбавки, применённые к записи, но отсутствующие в текущем справочнике,
+            // чтобы при редактировании они не потерялись.
+            foreach (var a in applied)
+            {
+                if (a == null)
+                    continue;
+                bool found = SurchargeOptions.Any(o =>
+                    o.Name == a.Name && Math.Abs(o.Percent - a.Percent) < 0.001);
+                if (!found)
+                {
+                    var extra = new SurchargeOption(a) { IsSelected = true };
+                    extra.SelectionChanged += () => OnSurchargeChanged(extra);
+                    SurchargeOptions.Add(extra);
+                }
+            }
+        }
+
+        private void AddSurchargeOption(SurchargeOption option, List<Surcharge> applied)
+        {
+            option.IsSelected = applied.Any(a =>
+                a != null && a.Name == option.Name && Math.Abs(a.Percent - option.Percent) < 0.001);
+            // Подписываемся после установки начального значения, чтобы не пересчитывать зря.
+            option.SelectionChanged += () => OnSurchargeChanged(option);
+            SurchargeOptions.Add(option);
+        }
+
+        /// <summary>
+        /// Обработка переключения надбавки: снимает взаимоисключающие надбавки той же
+        /// группы (например, «Зимняя» ↔ «Кондиционер»/«Климат-контроль») и пересчитывает норму.
+        /// </summary>
+        private void OnSurchargeChanged(SurchargeOption option)
+        {
+            if (_suppressSurchargeEvents)
+                return;
+
+            if (option.IsSelected && !string.IsNullOrEmpty(option.ExclusiveGroup))
+            {
+                _suppressSurchargeEvents = true;
+                try
+                {
+                    foreach (var other in SurchargeOptions)
+                    {
+                        if (!ReferenceEquals(other, option) && other.IsSelected &&
+                            !string.IsNullOrEmpty(other.ExclusiveGroup) &&
+                            string.Equals(other.ExclusiveGroup, option.ExclusiveGroup, StringComparison.Ordinal))
+                        {
+                            other.IsSelected = false;
+                        }
+                    }
+                }
+                finally
+                {
+                    _suppressSurchargeEvents = false;
+                }
+            }
+
+            Recalculate();
+        }
+
+        private void RefreshWinterAutoSelection()
+        {
+            if (_squad == null || _squad.WinterSurchargePercent == 0)
+                return;
+
+            var winterOpt = SurchargeOptions.FirstOrDefault(o => o.Name == "Зимняя");
+            if (winterOpt == null)
+                return;
+
+            winterOpt.IsSelected = CalculationService.IsWinterDate(Date, _squad);
         }
 
         public DateTime Date
         {
             get { return _date; }
-            set { SetProperty(ref _date, value); }
+            set
+            {
+                if (SetProperty(ref _date, value))
+                {
+                    RefreshWinterAutoSelection();
+                    Recalculate();
+                }
+            }
         }
 
         public string WorkDescription
@@ -151,7 +271,7 @@ namespace AVTOKarta.ViewModels
             {
                 SetProperty(ref _distanceKm, value);
                 OdometerBeforeDeparture = _previousOdometer;
-                RecalculateNorm();
+                Recalculate();
             }
         }
 
@@ -161,7 +281,7 @@ namespace AVTOKarta.ViewModels
             set
             {
                 SetProperty(ref _timeWithPumpMinutes, value);
-                RecalculateNorm();
+                Recalculate();
             }
         }
 
@@ -171,7 +291,7 @@ namespace AVTOKarta.ViewModels
             set
             {
                 SetProperty(ref _timeWithoutPumpMinutes, value);
-                RecalculateNorm();
+                Recalculate();
             }
         }
 
@@ -181,7 +301,7 @@ namespace AVTOKarta.ViewModels
             set
             {
                 SetProperty(ref _shiftChangeMinutes, value);
-                RecalculateNorm();
+                Recalculate();
             }
         }
 
@@ -191,14 +311,78 @@ namespace AVTOKarta.ViewModels
             set
             {
                 SetProperty(ref _miscWorkMinutes, value);
-                RecalculateNorm();
+                Recalculate();
+            }
+        }
+
+        /// <summary>Время стоянки/прогрева с работающим двигателем, ч (пп. 16–17).</summary>
+        public double ParkingHours
+        {
+            get { return _parkingHours; }
+            set
+            {
+                SetProperty(ref _parkingHours, value);
+                Recalculate();
+            }
+        }
+
+        /// <summary>Масса груза/прицепа при движении, т (п. 20).</summary>
+        public double CargoTons
+        {
+            get { return _cargoTons; }
+            set
+            {
+                SetProperty(ref _cargoTons, value);
+                Recalculate();
             }
         }
 
         public double FuelRefueled
         {
             get { return _fuelRefueled; }
-            set { SetProperty(ref _fuelRefueled, value); }
+            set { SetProperty(ref _fuelRefueled, value); RecaclulatePreview(); }
+        }
+
+        /// <summary>Наличие ГСМ перед выездом (остаток при выезде), л.</summary>
+        public double FuelAtDeparture
+        {
+            get { return _fuelAtDeparture; }
+            set { SetProperty(ref _fuelAtDeparture, value); RecaclulatePreview(); }
+        }
+
+        /// <summary>Наличие ГСМ при постановке на стоянку (остаток при возвращении), л.</summary>
+        public double FuelAtReturn
+        {
+            get { return _fuelAtReturn; }
+            set { SetProperty(ref _fuelAtReturn, value); RecaclulatePreview(); }
+        }
+
+        /// <summary>Израсходовано по остаткам (факт), л (вычисляется).</summary>
+        public double ActualConsumptionCalc
+        {
+            get { return _calcActual; }
+            private set { SetProperty(ref _calcActual, value); }
+        }
+
+        /// <summary>Экономия (вычисляется предварительно).</summary>
+        public double EconomyCalc
+        {
+            get { return _calcEconomy; }
+            private set { SetProperty(ref _calcEconomy, value); }
+        }
+
+        /// <summary>Перерасход (вычисляется предварительно).</summary>
+        public double OverspendCalc
+        {
+            get { return _calcOverspend; }
+            private set { SetProperty(ref _calcOverspend, value); }
+        }
+
+        /// <summary>Введены ли показания остатков.</summary>
+        public bool HasFuelReadings
+        {
+            get { return _hasFuelReadings; }
+            private set { SetProperty(ref _hasFuelReadings, value); }
         }
 
         public double NormConsumption
@@ -333,7 +517,19 @@ namespace AVTOKarta.ViewModels
             get { return _driverNames; }
         }
 
-        private void RecalculateNorm()
+        private List<Surcharge> BuildSurcharges()
+        {
+            var list = new List<Surcharge>();
+            foreach (var opt in SurchargeOptions)
+            {
+                if (opt.IsSelected)
+                    list.Add(opt.ToSurcharge());
+            }
+            return list;
+        }
+
+        /// <summary>Пересчитывает норму расхода (с надбавками) и предпросмотр факта.</summary>
+        private void Recalculate()
         {
             var tempRecord = new DailyRecord
             {
@@ -341,9 +537,24 @@ namespace AVTOKarta.ViewModels
                 TimeWithPumpMinutes = TimeWithPumpMinutes,
                 TimeWithoutPumpMinutes = TimeWithoutPumpMinutes,
                 ShiftChangeMinutes = ShiftChangeMinutes,
-                MiscWorkMinutes = MiscWorkMinutes
+                MiscWorkMinutes = MiscWorkMinutes,
+                ParkingHours = ParkingHours,
+                CargoTons = CargoTons
             };
+            tempRecord.Surcharges = BuildSurcharges();
             NormConsumption = CalculationService.CalculateNormConsumption(tempRecord, _fuelNorms);
+            RecaclulatePreview();
+        }
+
+        private void RecaclulatePreview()
+        {
+            bool hasReadings = FuelAtDeparture != 0 || FuelAtReturn != 0;
+            HasFuelReadings = hasReadings;
+
+            double actual = hasReadings ? FuelAtDeparture + FuelRefueled - FuelAtReturn : 0;
+            ActualConsumptionCalc = actual;
+            EconomyCalc = hasReadings ? Math.Max(0, NormConsumption - actual) : 0;
+            OverspendCalc = hasReadings ? Math.Max(0, actual - NormConsumption) : 0;
         }
 
         private void Confirm()
@@ -375,9 +586,14 @@ namespace AVTOKarta.ViewModels
             EditingRecord.TimeWithoutPumpMinutes = TimeWithoutPumpMinutes;
             EditingRecord.ShiftChangeMinutes = ShiftChangeMinutes;
             EditingRecord.MiscWorkMinutes = MiscWorkMinutes;
+            EditingRecord.ParkingHours = ParkingHours;
+            EditingRecord.CargoTons = CargoTons;
             EditingRecord.FuelRefueled = FuelRefueled;
+            EditingRecord.FuelAtDeparture = FuelAtDeparture;
+            EditingRecord.FuelAtReturn = FuelAtReturn;
+            EditingRecord.Surcharges = BuildSurcharges();
             EditingRecord.NormConsumption = NormConsumption;
-            EditingRecord.ActualConsumption = ActualConsumption;
+            EditingRecord.ActualConsumption = CalculationService.CalculateActualConsumption(EditingRecord);
             EditingRecord.Comments = Comments;
             EditingRecord.SquadNumber = SquadNumber;
             EditingRecord.DriverName = DriverName;

@@ -1609,13 +1609,13 @@ namespace AVTOKarta.ViewModels
             };
 
             record.NormConsumption = CalculationService.CalculateNormConsumption(record, SelectedVehicle.FuelNorms);
-            record.ActualConsumption = record.NormConsumption;
-            var vm = new CardViewModel(record, SelectedVehicle.FuelNorms, _dataService?.LoadDrivers().Select(d => d.FullName).OrderBy(n => n).ToList(), prevOdometer);
+            record.ActualConsumption = CalculationService.CalculateActualConsumption(record);
+            var vm = new CardViewModel(record, SelectedVehicle.FuelNorms, _dataService?.LoadDrivers().Select(d => d.FullName).OrderBy(n => n).ToList(), prevOdometer, SelectedSquad);
             var dialog = new Views.CardEditView { DataContext = vm };
             if (dialog.ShowDialog() == true)
             {
                 record.NormConsumption = CalculationService.CalculateNormConsumption(record, SelectedVehicle.FuelNorms);
-                record.ActualConsumption = record.NormConsumption;
+                record.ActualConsumption = CalculationService.CalculateActualConsumption(record);
                 Records.Add(record);
                 CurrentCard.Records = new List<DailyRecord>(Records);
                 UpdateTotals();
@@ -1639,12 +1639,12 @@ namespace AVTOKarta.ViewModels
                 prevOdometer = CalculatePreviousOdometer();
             }
 
-            var vm = new CardViewModel(SelectedRecord, SelectedVehicle.FuelNorms, _dataService?.LoadDrivers().Select(d => d.FullName).OrderBy(n => n).ToList(), prevOdometer);
+            var vm = new CardViewModel(SelectedRecord, SelectedVehicle.FuelNorms, _dataService?.LoadDrivers().Select(d => d.FullName).OrderBy(n => n).ToList(), prevOdometer, SelectedSquad);
             var dialog = new Views.CardEditView { DataContext = vm };
             if (dialog.ShowDialog() == true)
             {
                 SelectedRecord.NormConsumption = CalculationService.CalculateNormConsumption(SelectedRecord, SelectedVehicle.FuelNorms);
-                SelectedRecord.ActualConsumption = SelectedRecord.NormConsumption;
+                SelectedRecord.ActualConsumption = CalculationService.CalculateActualConsumption(SelectedRecord);
                 CurrentCard.Records = new List<DailyRecord>(Records);
                 UpdateTotals();
                 SaveCard();
@@ -1747,16 +1747,45 @@ namespace AVTOKarta.ViewModels
             TotalNorm = 0;
             double totalKm = 0;
             double totalShiftMisc = 0;
+            DailyRecord lastReading = null;
+
+            var norms = SelectedVehicle != null ? SelectedVehicle.FuelNorms : null;
+
             foreach (var r in Records)
             {
-                TotalActual += r.ActualConsumption;
+                r.NormConsumption = CalculationService.CalculateNormConsumption(r, norms);
+
+                bool hasReadings = CalculationService.HasFuelReadings(r);
+                // Показывания остатков нет — принимаем факт равным норме (как в прежней версии).
+                r.ActualConsumption = hasReadings
+                    ? CalculationService.CalculateActualConsumption(r)
+                    : r.NormConsumption;
+
                 TotalNorm += r.NormConsumption;
+                TotalActual += r.ActualConsumption;
                 totalKm += r.DistanceKm;
                 totalShiftMisc += r.ShiftChangeMinutes + r.MiscWorkMinutes;
+
+                if (hasReadings &&
+                    (lastReading == null ||
+                     r.Date > lastReading.Date ||
+                     (r.Date == lastReading.Date && r.Id > lastReading.Id)))
+                {
+                    lastReading = r;
+                }
             }
 
-            CurrentCard.FuelRemainingOnLast =
-                CurrentCard.FuelRemainingOnFirst + CurrentCard.FuelRefueledMonth - TotalActual;
+            if (lastReading != null)
+            {
+                // Остаток на конец = наличие при постановке на стоянку последнего выезда с показаниями.
+                CurrentCard.FuelRemainingOnLast = lastReading.FuelAtReturn;
+            }
+            else
+            {
+                // Показаний нет — вычисляем остаток на конец из факта (как в прежней версии).
+                CurrentCard.FuelRemainingOnLast =
+                    CurrentCard.FuelRemainingOnFirst + CurrentCard.FuelRefueledMonth - TotalActual;
+            }
 
             double coefficient = SelectedVehicle != null && SelectedVehicle.FuelNorms != null
                 ? SelectedVehicle.FuelNorms.ReductionCoefficient : 0.35;

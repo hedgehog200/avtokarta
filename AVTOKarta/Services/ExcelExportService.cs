@@ -78,6 +78,14 @@ namespace AVTOKarta.Services
             ws.Column(18).Width = 8.11;
             ws.Column(19).Width = 8.11;
             ws.Column(20).Width = 7.0;
+
+            // Служебные столбцы — скрываем:
+            // U, V — коэффициенты надбавок (к пробегу / к насосу);
+            // W — время стоянки/прогрева (ч); X — масса груза/прицепа (т).
+            ws.Column(21).Hide();
+            ws.Column(22).Hide();
+            ws.Column(23).Hide();
+            ws.Column(24).Hide();
         }
 
         private void ApplyTableBorders(IXLWorksheet ws)
@@ -399,9 +407,23 @@ namespace AVTOKarta.Services
                 // Fuel fact
                 SetCellNum(ws, row, 16, rec.ActualConsumption, fontSize: 10, format: _fuelFormat);
 
-                // Fuel norm formula: H*A5 + I*C5 + J*D5 + L*E5 + M*F5
+                // Коэффициенты надбавок (скрытые служебные столбцы U/V):
+                // к пробегу — все надбавки, к работе насоса — только помеченные (п. 21).
+                double distFactor = 1.0 + CalculationService.SumDistanceSurchargePercent(rec.Surcharges) / 100.0;
+                double pumpFactor = 1.0 + CalculationService.SumPumpSurchargePercent(rec.Surcharges) / 100.0;
+                SetCellNum(ws, row, 21, distFactor, fontSize: 10, format: "0.0000");
+                SetCellNum(ws, row, 22, pumpFactor, fontSize: 10, format: "0.0000");
+
+                // Скрытые служебные столбцы W (стоянка/прогрев, ч) и X (масса груза, т).
+                SetCellNum(ws, row, 23, rec.ParkingHours, fontSize: 10, format: "0.000");
+                SetCellNum(ws, row, 24, rec.CargoTons, fontSize: 10, format: "0.000");
+
+                // Fuel norm formula:
+                // H*$D$120*U + I*$D$122*V + J*$D$123 + L*$D$124 + M*$D$125 + W*$D$121 + H/100*$D$127*X
                 var cell17 = ws.Cell(row, 17);
-                cell17.FormulaA1 = String.Format("H{0}*$D$120+I{0}*$D$122+J{0}*$D$123+L{0}*$D$124+M{0}*$D$125", row);
+                cell17.FormulaA1 = String.Format(
+                    "H{0}*$D$120*U{0}+I{0}*$D$122*V{0}+J{0}*$D$123+L{0}*$D$124+M{0}*$D$125" +
+                    "+W{0}*$D$121+H{0}/100*$D$127*X{0}", row);
                 cell17.Style.Font.FontName = "Times New Roman";
                 cell17.Style.Font.FontSize = 10;
                 cell17.Style.NumberFormat.Format = _fuelFormat;
@@ -419,9 +441,13 @@ namespace AVTOKarta.Services
             {
                 // Empty row — still add norm formula for col 17 so summary formulas work
                 SetCellNum(ws, r, 16, 0, fontSize: 10, format: _fuelFormat);
+                SetCellNum(ws, r, 21, 1.0, fontSize: 10, format: "0.0000");
+                SetCellNum(ws, r, 22, 1.0, fontSize: 10, format: "0.0000");
 
                 var emptyCell17 = ws.Cell(r, 17);
-                emptyCell17.FormulaA1 = String.Format("H{0}*$D$120+I{0}*$D$122+J{0}*$D$123+L{0}*$D$124+M{0}*$D$125", r);
+                emptyCell17.FormulaA1 = String.Format(
+                    "H{0}*$D$120*U{0}+I{0}*$D$122*V{0}+J{0}*$D$123+L{0}*$D$124+M{0}*$D$125" +
+                    "+W{0}*$D$121+H{0}/100*$D$127*X{0}", r);
                 emptyCell17.Style.Font.FontName = "Times New Roman";
                 emptyCell17.Style.Font.FontSize = 10;
                 emptyCell17.Style.NumberFormat.Format = _fuelFormat;
@@ -516,10 +542,10 @@ namespace AVTOKarta.Services
             SetCell(ws, row, 7, "0", bold: true, fontSize: 12);
             SetCell(ws, row, 8, ";", bold: true, fontSize: 12);
 
-            // Col 9-10: Пробег = SUM(H18:H97)*$D$120
+            // Col 9-10: Пробег = SUMPRODUCT(H;U)*$D$120 + доп. расход на груз (SUMPRODUCT(H;X)*$D$127/100)
             ws.Range(row, 9, row, 10).Merge();
             var fEl9 = ws.Cell(row, 9);
-            fEl9.FormulaA1 = "ROUND(SUM(H18:H97)*$D$120,4)";
+            fEl9.FormulaA1 = "ROUND(SUMPRODUCT(H18:H97,U18:U97)*$D$120+SUMPRODUCT(H18:H97,X18:X97)*$D$127/100,4)";
             fEl9.Style.Font.FontName = "Times New Roman";
             fEl9.Style.Font.FontSize = 12;
             fEl9.Style.Font.Bold = true;
@@ -528,10 +554,10 @@ namespace AVTOKarta.Services
 
             SetCell(ws, row, 11, ";", bold: true, fontSize: 12);
 
-            // Col 12-13: С насосом = SUM(I18:I97)*$D$122
+            // Col 12-13: С насосом = SUMPRODUCT(I;V)*$D$122 (с учётом надбавок к насосу)
             ws.Range(row, 12, row, 13).Merge();
             var fEl12 = ws.Cell(row, 12);
-            fEl12.FormulaA1 = "ROUND(SUM(I18:I97)*$D$122,4)";
+            fEl12.FormulaA1 = "ROUND(SUMPRODUCT(I18:I97,V18:V97)*$D$122,4)";
             fEl12.Style.Font.FontName = "Times New Roman";
             fEl12.Style.Font.FontSize = 12;
             fEl12.Style.Font.Bold = true;
@@ -540,10 +566,10 @@ namespace AVTOKarta.Services
 
             SetCell(ws, row, 14, ";", bold: true, fontSize: 12);
 
-            // Col 15-16: Без насоса = SUM(J18:J97)*$D$123
+            // Col 15-16: Без насоса = SUM(J18:J97)*$D$123 + стоянка/прогрев (SUMPRODUCT(W)*$D$121)
             ws.Range(row, 15, row, 16).Merge();
             var fEl15 = ws.Cell(row, 15);
-            fEl15.FormulaA1 = "ROUND(SUM(J18:J97)*$D$123,4)";
+            fEl15.FormulaA1 = "ROUND(SUM(J18:J97)*$D$123+SUMPRODUCT(W18:W97)*$D$121,4)";
             fEl15.Style.Font.FontName = "Times New Roman";
             fEl15.Style.Font.FontSize = 12;
             fEl15.Style.Font.Bold = true;
@@ -760,9 +786,9 @@ namespace AVTOKarta.Services
             SetCell(ws, 120, 5, "л/км", fontSize: 10);
 
             ws.Row(121).Height = 15.6;
-            SetCell(ws, 121, 2, "Расход на 1 км с насосом", fontSize: 10);
-            SetCellNum(ws, 121, 4, norms.ConsumptionPerKmWithPump, bold: true, fontSize: 10, format: _fuelFormat);
-            SetCell(ws, 121, 5, "л/км", fontSize: 10);
+            SetCell(ws, 121, 2, "Расход на стоянке/прогреве с двигателем", fontSize: 10);
+            SetCellNum(ws, 121, 4, norms.ConsumptionPerHourParking, bold: true, fontSize: 10, format: _fuelFormat);
+            SetCell(ws, 121, 5, "л/час", fontSize: 10);
 
             ws.Row(122).Height = 15.6;
             SetCell(ws, 122, 2, "Расход при работе с насосом", fontSize: 10);
@@ -789,8 +815,13 @@ namespace AVTOKarta.Services
             SetCellNum(ws, 126, 4, norms.ReductionCoefficient, bold: true, fontSize: 10, format: "0.000");
             SetCell(ws, 126, 5, "", fontSize: 10);
 
+            ws.Row(127).Height = 15.6;
+            SetCell(ws, 127, 2, "Доп. расход на 1 т груза/прицепа", fontSize: 10);
+            SetCellNum(ws, 127, 4, norms.ConsumptionPerTonPer100Km, bold: true, fontSize: 10, format: _fuelFormat);
+            SetCell(ws, 127, 5, "л/100 км·т", fontSize: 10);
+
             // Borders on norm table
-            var normRange = ws.Range(119, 2, 126, 5);
+            var normRange = ws.Range(119, 2, 127, 5);
             normRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
             normRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
         }

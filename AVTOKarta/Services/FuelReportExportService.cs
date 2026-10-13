@@ -41,6 +41,7 @@ namespace AVTOKarta.Services
             public double TotalTransOil;
             public double TotalSpecLiquid;
             public double TotalPlasticLub;
+            public double AdBlue;
 
             public double MainWorkPumpMin;
             public double MainWorkPumpFuel;
@@ -132,13 +133,19 @@ namespace AVTOKarta.Services
                 double totalSpecLiquid = 0;
                 double totalPlasticLub = 0;
 
+                // Надбавка к нормам масел и спецжидкостей для ТС в эксплуатации > 5 лет (п. 18).
+                double oilFactor = CalculationService.OilAgeFactor(vehicle, vehicle.FuelNorms);
+
                 if (totalConsumption > 0)
                 {
-                    totalMotorOil = Math.Round(totalConsumption / 100.0 * vehicle.FuelNorms.MotorOilNormPer100L, 3);
-                    totalTransOil = Math.Round(totalConsumption / 100.0 * vehicle.FuelNorms.TransmissionOilNormPer100L, 3);
-                    totalSpecLiquid = Math.Round(totalConsumption / 100.0 * vehicle.FuelNorms.SpecialLiquidNormPer100L, 3);
+                    totalMotorOil = Math.Round(totalConsumption / 100.0 * vehicle.FuelNorms.MotorOilNormPer100L * oilFactor, 3);
+                    totalTransOil = Math.Round(totalConsumption / 100.0 * vehicle.FuelNorms.TransmissionOilNormPer100L * oilFactor, 3);
+                    totalSpecLiquid = Math.Round(totalConsumption / 100.0 * vehicle.FuelNorms.SpecialLiquidNormPer100L * oilFactor, 3);
                     totalPlasticLub = Math.Round(totalConsumption / 100.0 * vehicle.FuelNorms.PlasticLubricantNormPer100L, 3);
                 }
+
+                double adBlue = Math.Round(
+                    CalculationService.CalculateAdBlue(totalConsumption, vehicle, vehicle.FuelNorms), 3);
 
                 var vd = new VehicleData
                 {
@@ -158,6 +165,7 @@ namespace AVTOKarta.Services
                     TotalTransOil = totalTransOil,
                     TotalSpecLiquid = totalSpecLiquid,
                     TotalPlasticLub = totalPlasticLub,
+                    AdBlue = adBlue,
                     DeliveryType = card.DeliveryType
                 };
 
@@ -165,6 +173,10 @@ namespace AVTOKarta.Services
                 {
                     double recFuel = rec.NormConsumption;
                     int detail = ClassifyDetailedTrip(rec.WorkDescription);
+
+                    // Надбавки: к пробегу — все, к насосу — только помеченные (п. 21).
+                    double distFactor = 1.0 + CalculationService.SumDistanceSurchargePercent(rec.Surcharges) / 100.0;
+                    double pumpFactor = 1.0 + CalculationService.SumPumpSurchargePercent(rec.Surcharges) / 100.0;
 
                     switch (detail)
                     {
@@ -180,18 +192,22 @@ namespace AVTOKarta.Services
                     if (detail == 3)
                     {
                         vd.TrainingPumpMin += rec.TimeWithPumpMinutes;
-                        vd.TrainingPumpFuel += rec.TimeWithPumpMinutes * vehicle.FuelNorms.ConsumptionPerMinPump;
+                        vd.TrainingPumpFuel += rec.TimeWithPumpMinutes * vehicle.FuelNorms.ConsumptionPerMinPump * pumpFactor;
                         vd.TrainingNoPumpMin += rec.TimeWithoutPumpMinutes;
                         vd.TrainingNoPumpFuel += rec.TimeWithoutPumpMinutes * vehicle.FuelNorms.ConsumptionPerMinIdle;
-                        vd.TrainingNoPumpFuel += rec.DistanceKm * vehicle.FuelNorms.ConsumptionPerKmWithoutPump;
+                        vd.TrainingNoPumpFuel += rec.DistanceKm * vehicle.FuelNorms.ConsumptionPerKmWithoutPump * distFactor;
+                        vd.TrainingNoPumpFuel += rec.ParkingHours * vehicle.FuelNorms.ConsumptionPerHourParking;
+                        vd.TrainingNoPumpFuel += rec.DistanceKm / 100.0 * vehicle.FuelNorms.ConsumptionPerTonPer100Km * rec.CargoTons;
                     }
                     else
                     {
                         vd.MainWorkPumpMin += rec.TimeWithPumpMinutes;
-                        vd.MainWorkPumpFuel += rec.TimeWithPumpMinutes * vehicle.FuelNorms.ConsumptionPerMinPump;
+                        vd.MainWorkPumpFuel += rec.TimeWithPumpMinutes * vehicle.FuelNorms.ConsumptionPerMinPump * pumpFactor;
                         vd.MainWorkNoPumpMin += rec.TimeWithoutPumpMinutes;
                         vd.MainWorkNoPumpFuel += rec.TimeWithoutPumpMinutes * vehicle.FuelNorms.ConsumptionPerMinIdle;
-                        vd.MainWorkNoPumpFuel += rec.DistanceKm * vehicle.FuelNorms.ConsumptionPerKmWithoutPump;
+                        vd.MainWorkNoPumpFuel += rec.DistanceKm * vehicle.FuelNorms.ConsumptionPerKmWithoutPump * distFactor;
+                        vd.MainWorkNoPumpFuel += rec.ParkingHours * vehicle.FuelNorms.ConsumptionPerHourParking;
+                        vd.MainWorkNoPumpFuel += rec.DistanceKm / 100.0 * vehicle.FuelNorms.ConsumptionPerTonPer100Km * rec.CargoTons;
                     }
 
                     if (rec.ShiftChangeMinutes > 0 || rec.MiscWorkMinutes > 0)
@@ -884,6 +900,18 @@ namespace AVTOKarta.Services
                     }
                     row++;
                 }
+            }
+
+            double adBlueTotal = allData.Sum(v => v.AdBlue);
+            if (adBlueTotal > 0)
+            {
+                SetCell(ws, row, 1, "в т.ч. мочевина (AdBlue)", wrap: true);
+                SetCell(ws, row, 2, "л.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+                SetCellNum(ws, row, 3, 0, fontSize: 10);
+                SetCellNum(ws, row, 12, adBlueTotal, fontSize: 10);
+                SetCellNum(ws, row, 13, adBlueTotal, fontSize: 10);
+                SetFormula(ws, row, 17, string.Format("=C{0}+D{0}-M{0}", row), fontSize: 10);
+                row++;
             }
 
             if (hasPlasticData)

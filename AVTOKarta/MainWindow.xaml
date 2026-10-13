@@ -5,7 +5,7 @@
         xmlns:views="clr-namespace:AVTOKarta.Views"
         xmlns:hc="https://handyorg.github.io/handycontrol"
         xml:lang="ru-RU"
-        Title="АВТОКарта v1.2.5 — WebARTup - Studio: Technologies" Height="750" Width="1150"
+        Title="АВТОКарта v1.3.0 — WebARTup - Studio: Technologies" Height="750" Width="1150"
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized"
         KeyDown="Window_KeyDown"
@@ -327,8 +327,10 @@
                                     <DataGridTextColumn Header="На холостом (мин)" Binding="{Binding TimeWithoutPumpMinutes, StringFormat=F3}" Width="70" IsReadOnly="True"/>
                                     <DataGridTextColumn Header="Смена, мин." Binding="{Binding ShiftChangeMinutes, StringFormat=F3}" Width="60" IsReadOnly="True"/>
                                     <DataGridTextColumn Header="Прочие (мин)" Binding="{Binding MiscWorkMinutes, StringFormat=F3}" Width="60" IsReadOnly="True"/>
-                                    <DataGridTextColumn Header="Приход (заправка)" Binding="{Binding FuelRefueled, StringFormat=F3}" Width="80" IsReadOnly="True"/>
-                                    <DataGridTextColumn Header="Расход (факт)" Binding="{Binding ActualConsumption, StringFormat=F3}" Width="80" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Остаток при выезде" Binding="{Binding FuelAtDeparture, StringFormat=F3}" Width="80" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Получено" Binding="{Binding FuelRefueled, StringFormat=F3}" Width="70" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Остаток при стоянке" Binding="{Binding FuelAtReturn, StringFormat=F3}" Width="85" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Израсходовано (факт)" Binding="{Binding ActualConsumption, StringFormat=F3}" Width="90" IsReadOnly="True"/>
                                     <DataGridTextColumn Header="По норме" Binding="{Binding NormConsumption, StringFormat=F3}" Width="60" IsReadOnly="True"/>
                                     <DataGridTemplateColumn Header="Дежурный караул" Width="90" IsReadOnly="True">
                                         <DataGridTemplateColumn.CellTemplate>

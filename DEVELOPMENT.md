@@ -3,7 +3,7 @@
 > Назначение: карта проекта «что где лежит», как собирать, как устроена защита/лицензирование
 > и что было сделано — чтобы можно было продолжать **ручную** разработку без повторного изучения.
 >
-> Дата обновления документа: **14.10.2026** (последний тег: `v1.2.5`).
+> Дата обновления документа: **14.10.2026** (последний тег: `v1.3.0`).
 
 ---
 
@@ -55,13 +55,13 @@ C:\project\mchs gsm\
 ├── packages\                     # NuGet-пакеты (в .gitignore)
 ├── доп.информация\               # исходные документы заказчика (docx/xls) — НЕ код
 ├── README.md                     # обзор функционала для пользователя
-├── RELEASE_v1.2.1.md … v1.2.5.md # заметки к релизам
+├── RELEASE_v1.2.1.md … v1.3.0.md # заметки к релизам
 ├── avtokarta.crproj              # профиль обфускации ConfuserEx (в репозитории!)
 ├── DEVELOPMENT.md                # ЭТА документация
 ├── nuget.exe, opencode.json, пароль.txt, .serena\ (памяти проекта)
 ```
 
-Git: ветка `master`, теги `v1.1.0` … `v1.2.5`. Удалённые репозитории: `origin` (полный, `hedgehog200/avtocartaZ`) и `release` (публичный, `hedgehog200/avtokarta`; в `master` только `README.md`, релизы — теги).
+Git: ветка `master`, теги `v1.1.0` … `v1.3.0`. Удалённые репозитории: `origin` (полный, `hedgehog200/avtocartaZ`) и `release` (публичный, `hedgehog200/avtokarta`; в `master` только `README.md`, релизы — теги).
 
 ## 4. Архитектура приложения
 
@@ -99,8 +99,10 @@ Views (UserControl/Window) ←→ ViewModels (без логики в code-behind
 | `Vehicle.cs` | `Vehicle` + enum `EngineType` (бензин/дизель/электро и т.п.) |
 | `Driver.cs` | Водитель |
 | `MonthlyCard.cs` | Месячная карточка ТС + enum `FuelDeliveryType` (заправка/слив и т.п.) |
-| `DailyRecord.cs` | Суточная запись (выезд, пробег, время, ГСМ) + enum `OilType`, `OilTypeItem` |
-| `FuelNorm.cs` | Нормы расхода |
+| `DailyRecord.cs` | Суточная запись (выезд, пробег, время, ГСМ, остатки, стоянка/груз, надбавки) + enum `OilType`, `OilTypeItem` |
+| `FuelNorm.cs` | Нормы расхода (пробег/насос/холостой, стоянка л/час, груз л/100 км·т, масла, AdBlue) |
+| `Surcharge.cs` | Процентная надбавка (знак, к пробегу/к насосу, группа взаимоисключения) |
+| `SurchargeCatalog.cs` | Пресеты надбавок по прил. № 2 приказа ГУ МЧС № 40 + нормализация групп |
 | `TripType.cs` | enum типов рейсов (город/пригород/удалёнка и т.п.) |
 | `WarehouseItem.cs` | Позиция склада ГСМ + enum `WarehouseOperationType` |
 | `CardHistoryItem.cs` | Запись истории карточки |
@@ -137,7 +139,7 @@ UserControl (встраиваются в MainWindow): `SquadSetupView`, `SquadLi
 | `DataService.cs` | Load/Save: `squads.json`, `drivers.json`, `vehicles.json`, `cards\<госномер>\<год>-<месяц>.json`, `warehouse_<squadId>.json`; `BackupCard` |
 | `EncryptionService.cs` | AES-256 (CBC+PKCS7), PBKDF2 50k, ключ — DPAPI; `Encrypt/Decrypt`, `ReEncryptFile`, `MigrateFileToHmac`, `DecryptLegacyOrCurrent`, `ConstantTimeEquals`; экспорт может быть **без пароля** (детерминированный seed `OpenExportSeed`) |
 | `SettingsService.cs` | `%LocalAppData%\AVTOKarta`: `password.key` (DPAPI), `default.key`, `password.hash`, `.hmac_v1_done` (маркер миграции), `DataPath`, `FixAclIfNeeded`, миграция файлов в HMAC |
-| `CalculationService.cs` | `CalculateNormConsumption`, `CalculateActualConsumption`, `RecalculateAllRecords`, экономия/перерасход, `ClassifyTrip`, `CalculateByTripType` |
+| `CalculationService.cs` | `CalculateNormConsumption` (надбавки к пробегу/насосу, стоянка, груз), `CalculateActualConsumption` (по остаткам), `OilAgeFactor` (п. 18), `CalculateAdBlue`, `RecalculateAllRecords`, экономия/перерасход, `ClassifyTrip`, `CalculateByTripType` |
 | `CacheService.cs` | автосохранение (`StartAutoSave`, интервал 60 с), `MarkDirty` |
 | `ExcelExportService.cs` | месячная карточка → `.xlsx` |
 | `FuelReportExportService.cs` | сводный отчёт по ГСМ → `.xlsx` |
@@ -281,7 +283,7 @@ iscc AVTOKarta_setup.iss     # → Output\AVTOKarta_vX.Y.Z_setup.exe
 
 ### Чек-лист повышения версии
 1. `AVTOKarta\Properties\AssemblyInfo.cs` — `AssemblyVersion`/`AssemblyFileVersion`
-2. `AVTOKarta\MainWindow.xaml` — заголовок окна (`... v1.2.5 - WebARTup - Studio: Technologies`)
+2. `AVTOKarta\MainWindow.xaml` — заголовок окна (`... v1.3.0 - WebARTup - Studio: Technologies`)
 3. `AVTOKarta\Services\DataTransferService.cs` — `AppVersion` (берётся из сборки автоматически — менять не нужно)
 4. `AVTOKarta_setup.iss` — `MyAppVersion` / `VersionInfoVersion`
 5. Сборка → `build-release.ps1` → `iscc` → `git tag vX.Y.Z` → релиз в GitHub
@@ -295,7 +297,7 @@ iscc AVTOKarta_setup.iss     # → Output\AVTOKarta_vX.Y.Z_setup.exe
 
 ## 9. Текущее состояние Git (14.10.2026)
 
-- Последний тег: **v1.2.5** «автообновление без `installer.key`; установщик без пароля».
+- Последний тег: **v1.3.0** «модуль ГСМ по методике МЧС: надбавки, факт по остаткам, часовые нормы, груз, AdBlue; UI-правки».
 - Ветка `master` синхронизирована с `origin` (полный репозиторий разработки).
 - Публикация: код — push в `origin`; релизный тег — push в `release` (`hedgehog200/avtokarta`).
 - **Не отслевается намеренно (не коммитим)**: `LicGen\Licenses\` (база выданных лицензий, коды машин),
@@ -314,8 +316,9 @@ iscc AVTOKarta_setup.iss     # → Output\AVTOKarta_vX.Y.Z_setup.exe
 | v1.2.3 | **Лицензирование** (RSA `license.lic`, экран активации, фичи-гейты), **манифест целостности `tamper.sig`**, **LicGen GUI** (база выданных, выпуск в клики), предупреждение об экспорте без пароля, постоянная энептопия DPAPI, конвейер `build-release.ps1`, обфускация ConfuserEx |
 | v1.2.4 | Смена `#if DEBUG` → символ `PROTECTION` (Release\|x86), сборка без защиты через `/p:NoProtection=true` (§7.2); ускорение PBKDF2 через Windows CNG (формат `.avto` не меняется); асинхронные экспорт/импорт с индикатором прогресса; исправление имени файла склада при импорте; удаление остаточных файлов при откате импорта; `AppVersion` из сборки; честный текст диалога импорта (слияние карточек); восстановление обфускации (`avtokarta.crproj` в репо) и надёжности `build-release.ps1` |
 | v1.2.5 | Установщик **без пароля** (`Password=`/`Encryption=` убраны); автообновление больше **не требует `installer.key`** — `/PASSWORD=` добавляется только если файл есть (§8) |
+| v1.3.0 | **ГСМ по методике МЧС**: процентные надбавки (к пробегу — все, к насосу — «Зимняя»/«Горная», ред. справочник на уровне части), факт по остаткам топлива (наличие перед выездом/при постановке), насос в минутах, надбавки к нормам масел для ТС > 5 лет (п. 18), часовые нормы стоянки/прогрева (пп. 16–17), доп. расход на массу груза/прицепа (п. 20), AdBlue; взаимоисключение «Кондиционер/Климат-контроль» ↔ «Зимняя»; **UI**: правка справочника надбавок, кнопки вне прокрутки, подгонка окон под экран |
 
-Детали релизов — в `RELEASE_v1.2.1.md` … `RELEASE_v1.2.5.md`, `README.md`.
+Детали релизов — в `RELEASE_v1.2.1.md` … `RELEASE_v1.3.0.md`, `README.md`.
 
 ## 11. Ловушки при ручной доработке
 

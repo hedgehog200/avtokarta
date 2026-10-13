@@ -2,6 +2,7 @@
 // Все права защищены. Использование без лицензии запрещено.
 // Лицензия: см. файл LICENSE в корне проекта.
 
+using System;
 using System.Collections.Generic;
 using AVTOKarta.Helpers;
 using AVTOKarta.Models;
@@ -30,6 +31,13 @@ namespace AVTOKarta.ViewModels
         private double _normPerMinShiftChange;
         private double _normPerMinMisc;
         private double _reductionCoefficient;
+
+        private DateTime? _entryDate;
+        private bool _usesAdBlue;
+        private double _normPerHourParking;
+        private double _normPerTonPer100Km;
+        private double _oilAgeSurchargePercent;
+        private double _adBluePercentOfFuel;
 
         private string _selectedSquadId;
         private EngineTypeItem _selectedEngineItem;
@@ -67,6 +75,13 @@ namespace AVTOKarta.ViewModels
             _normPerMinShiftChange = vehicle.FuelNorms.ConsumptionPerMinShiftChange;
             _normPerMinMisc = vehicle.FuelNorms.ConsumptionPerMinMisc;
             _reductionCoefficient = vehicle.FuelNorms.ReductionCoefficient;
+
+            _entryDate = vehicle.EntryDate;
+            _usesAdBlue = vehicle.UsesAdBlue;
+            _normPerHourParking = vehicle.FuelNorms.ConsumptionPerHourParking;
+            _normPerTonPer100Km = vehicle.FuelNorms.ConsumptionPerTonPer100Km;
+            _oilAgeSurchargePercent = vehicle.FuelNorms.OilAgeSurchargePercent;
+            _adBluePercentOfFuel = vehicle.FuelNorms.AdBluePercentOfFuel;
 
             _selectedSquadId = vehicle.SquadId;
 
@@ -152,6 +167,48 @@ namespace AVTOKarta.ViewModels
             set { SetProperty(ref _reductionCoefficient, value); }
         }
 
+        /// <summary>Дата ввода ТС в эксплуатацию (для надбавки к маслам по возрасту, п. 18).</summary>
+        public DateTime? EntryDate
+        {
+            get { return _entryDate; }
+            set { SetProperty(ref _entryDate, value); }
+        }
+
+        /// <summary>Используется ли мочевина (AdBlue).</summary>
+        public bool UsesAdBlue
+        {
+            get { return _usesAdBlue; }
+            set { SetProperty(ref _usesAdBlue, value); }
+        }
+
+        /// <summary>Норма стоянки/прогрева с работающим двигателем, л/час.</summary>
+        public double NormPerHourParking
+        {
+            get { return _normPerHourParking; }
+            set { SetProperty(ref _normPerHourParking, value); }
+        }
+
+        /// <summary>Доп. расход на 1 т груза/прицепа, л/100 км.</summary>
+        public double NormPerTonPer100Km
+        {
+            get { return _normPerTonPer100Km; }
+            set { SetProperty(ref _normPerTonPer100Km, value); }
+        }
+
+        /// <summary>Надбавка к нормам масел для ТС в эксплуатации > 5 лет, %.</summary>
+        public double OilAgeSurchargePercent
+        {
+            get { return _oilAgeSurchargePercent; }
+            set { SetProperty(ref _oilAgeSurchargePercent, value); }
+        }
+
+        /// <summary>Доля мочевины (AdBlue) от расхода топлива, %.</summary>
+        public double AdBluePercentOfFuel
+        {
+            get { return _adBluePercentOfFuel; }
+            set { SetProperty(ref _adBluePercentOfFuel, value); }
+        }
+
         public string SelectedSquadId
         {
             get { return _selectedSquadId; }
@@ -182,6 +239,13 @@ namespace AVTOKarta.ViewModels
             EditingVehicle.FuelNorms.ConsumptionPerMinShiftChange = NormPerMinShiftChange;
             EditingVehicle.FuelNorms.ConsumptionPerMinMisc = NormPerMinMisc;
             EditingVehicle.FuelNorms.ReductionCoefficient = ReductionCoefficient;
+
+            EditingVehicle.EntryDate = EntryDate;
+            EditingVehicle.UsesAdBlue = UsesAdBlue;
+            EditingVehicle.FuelNorms.ConsumptionPerHourParking = NormPerHourParking;
+            EditingVehicle.FuelNorms.ConsumptionPerTonPer100Km = NormPerTonPer100Km;
+            EditingVehicle.FuelNorms.OilAgeSurchargePercent = OilAgeSurchargePercent;
+            EditingVehicle.FuelNorms.AdBluePercentOfFuel = AdBluePercentOfFuel;
 
             DialogResult = true;
         }

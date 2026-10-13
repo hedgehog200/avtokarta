@@ -158,6 +158,8 @@
     <Compile Include="Models\Vehicle.cs" />
     <Compile Include="Models\Driver.cs" />
     <Compile Include="Models\FuelNorm.cs" />
+    <Compile Include="Models\Surcharge.cs" />
+    <Compile Include="Models\SurchargeCatalog.cs" />
     <Compile Include="Models\DailyRecord.cs" />
     <Compile Include="Models\MonthlyCard.cs" />
     <Compile Include="Models\WarehouseItem.cs" />
@@ -182,6 +184,8 @@
     <Compile Include="ViewModels\SquadSetupViewModel.cs" />
     <Compile Include="ViewModels\VehicleViewModel.cs" />
     <Compile Include="ViewModels\CardViewModel.cs" />
+    <Compile Include="ViewModels\SurchargeOption.cs" />
+    <Compile Include="ViewModels\MonthOption.cs" />
     <Compile Include="ViewModels\ChangePasswordViewModel.cs" />
     <Compile Include="ViewModels\UpdateViewModel.cs" />
     <Compile Include="ViewModels\SquadEditViewModel.cs" />

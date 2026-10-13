@@ -16,6 +16,18 @@ namespace AVTOKarta.Models
         public double ConsumptionPerMinMisc { get; set; }
         public double ReductionCoefficient { get; set; }
 
+        /// <summary>Расход на стоянке/прогреве с работающим двигателем, л/час (пп. 16–17 АМ-23-р).</summary>
+        public double ConsumptionPerHourParking { get; set; }
+
+        /// <summary>Доп. линейный расход на 1 тонну груза/прицепа, л/100 км (п. 20 АМ-23-р).</summary>
+        public double ConsumptionPerTonPer100Km { get; set; }
+
+        /// <summary>Надбавка к нормам масел и спецжидкостей для ТС в эксплуатации более 5 лет, % (п. 18).</summary>
+        public double OilAgeSurchargePercent { get; set; }
+
+        /// <summary>Доля мочевины (AdBlue) от расхода топлива, % (0 — не учитывать).</summary>
+        public double AdBluePercentOfFuel { get; set; }
+
         public double MotorOilNormPer100L { get; set; }
         public double TransmissionOilNormPer100L { get; set; }
         public double SpecialLiquidNormPer100L { get; set; }
@@ -35,6 +47,11 @@ namespace AVTOKarta.Models
             ConsumptionPerMinShiftChange = 0.15;
             ConsumptionPerMinMisc = 0.15;
             ReductionCoefficient = 0.35;
+
+            ConsumptionPerHourParking = 0;
+            ConsumptionPerTonPer100Km = 1.3;
+            OilAgeSurchargePercent = 10;
+            AdBluePercentOfFuel = 5;
 
             MotorOilNormPer100L = 2.8;
             TransmissionOilNormPer100L = 0.4;

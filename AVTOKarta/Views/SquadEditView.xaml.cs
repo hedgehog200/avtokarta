@@ -13,6 +13,20 @@ namespace AVTOKarta.Views
         public SquadEditView()
         {
             InitializeComponent();
+            ClampToWorkArea();
+        }
+
+        /// <summary>
+        /// Не даём окну выйти за пределы рабочей области экрана
+        /// (иначе на мониторах 768/900 px нижняя часть и кнопки обрезаются).
+        /// </summary>
+        private void ClampToWorkArea()
+        {
+            var area = SystemParameters.WorkArea;
+            double maxH = area.Height - 20;
+            double maxW = area.Width - 20;
+            if (Height > maxH) Height = maxH;
+            if (Width > maxW) Width = maxW;
         }
 
         private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

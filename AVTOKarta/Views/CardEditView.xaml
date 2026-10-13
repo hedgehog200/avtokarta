@@ -12,6 +12,7 @@
     <Window.Resources>
         <conv:IntStringConverter x:Key="IntStr"/>
         <conv:DoubleStringConverter x:Key="DoubleStr"/>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVis"/>
         <Style x:Key="FieldLabel" TargetType="TextBlock">
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
@@ -53,6 +54,23 @@
                 <Button Style="{StaticResource ModalCloseButton}"
                         Click="CloseBtn_Click"/>
             </DockPanel>
+        </Border>
+
+        <!-- Кнопки всегда видны (вне области прокрутки) -->
+        <Border DockPanel.Dock="Bottom" Background="White"
+                BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,1,0,0" Padding="20,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="1" Content="Отмена" Click="CancelButton_Click" MinWidth="100" Margin="0,0,8,0"
+                        Style="{StaticResource GhostButton}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                <Button Grid.Column="2" Content="Сохранить" MinWidth="120"
+                        Style="{StaticResource PrimaryButton}" Click="SaveButton_Click" Padding="20,10"
+                        FontSize="14" FontWeight="SemiBold"/>
+            </Grid>
         </Border>
 
         <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20,16">
@@ -225,6 +243,28 @@
                              Padding="12,10" MinHeight="38" FontSize="14" VerticalContentAlignment="Center" Margin="0"/>
                 </Grid>
 
+                <TextBlock Text="Стоянка и груз" Style="{StaticResource SectionTitle}"/>
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Стоянка/прогрев (ч):" Style="{StaticResource FieldLabel}"/>
+                    <TextBox Grid.Column="1" Text="{Binding ParkingHours, UpdateSourceTrigger=LostFocus, Converter={StaticResource DoubleStr}}"
+                             Padding="12,10" MinHeight="38" FontSize="14" VerticalContentAlignment="Center" Margin="0"
+                             ToolTip="Время стоянки/прогрева с работающим двигателем, ч (норма л/час)"/>
+                </Grid>
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Груз/прицеп (т):" Style="{StaticResource FieldLabel}"/>
+                    <TextBox Grid.Column="1" Text="{Binding CargoTons, UpdateSourceTrigger=LostFocus, Converter={StaticResource DoubleStr}}"
+                             Padding="12,10" MinHeight="38" FontSize="14" VerticalContentAlignment="Center" Margin="0"
+                             ToolTip="Масса груза/прицепа при движении, т (доп. расход на тонну)"/>
+                </Grid>
+
                 <Separator Background="{StaticResource DividerBrush}" Margin="0,6,0,12"/>
 
                 <TextBlock Text="Топливо" Style="{StaticResource SectionTitle}"/>
@@ -233,33 +273,76 @@
                         <ColumnDefinition Width="150"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="Заправка (л):" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Grid.Column="0" Text="Наличие перед выездом (л):" Style="{StaticResource FieldLabel}"/>
+                    <TextBox Grid.Column="1" Text="{Binding FuelAtDeparture, UpdateSourceTrigger=LostFocus, Converter={StaticResource DoubleStr}}"
+                             Padding="12,10" MinHeight="38" FontSize="14" VerticalContentAlignment="Center" Margin="0"/>
+                </Grid>
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Получено / заправка (л):" Style="{StaticResource FieldLabel}"/>
                     <TextBox Grid.Column="1" Text="{Binding FuelRefueled, UpdateSourceTrigger=LostFocus, Converter={StaticResource DoubleStr}}"
                              Padding="12,10" MinHeight="38" FontSize="14" VerticalContentAlignment="Center" Margin="0"/>
                 </Grid>
-                <Border Style="{StaticResource InfoBanner}" Padding="14,10" Margin="0,0,0,12">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Расход по норме: " FontWeight="SemiBold"
-                                   Foreground="{StaticResource PrimaryBrush}" FontSize="13"/>
-                        <TextBlock Text="{Binding NormConsumption, Mode=OneWay, StringFormat=F3}"
-                                   FontWeight="Bold" FontSize="14"
-                                   Foreground="{StaticResource PrimaryBrush}"/>
-                        <TextBlock Text=" л" Foreground="{StaticResource PrimaryBrush}" FontSize="13"/>
-                    </StackPanel>
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="При постановке на стоянку (л):" Style="{StaticResource FieldLabel}"/>
+                    <TextBox Grid.Column="1" Text="{Binding FuelAtReturn, UpdateSourceTrigger=LostFocus, Converter={StaticResource DoubleStr}}"
+                             Padding="12,10" MinHeight="38" FontSize="14" VerticalContentAlignment="Center" Margin="0"/>
+                </Grid>
+
+                <TextBlock Text="Надбавки к норме" Style="{StaticResource SectionTitle}"/>
+                <Border BorderBrush="{StaticResource DividerBrush}" BorderThickness="1" CornerRadius="6"
+                        Padding="10,8" Margin="0,0,0,12" MaxHeight="150">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding SurchargeOptions}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox Content="{Binding Display}" IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                              Margin="0,2" FontSize="12"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                 </Border>
 
-                <Grid Margin="0,4,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <Button Grid.Column="1" Content="Отмена" Click="CancelButton_Click" MinWidth="100" Margin="0,0,8,0"
-                            Style="{StaticResource GhostButton}" Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <Button Grid.Column="2" Content="Сохранить" MinWidth="120"
-                            Style="{StaticResource PrimaryButton}" Click="SaveButton_Click" Padding="20,10"
-                            FontSize="14" FontWeight="SemiBold"/>
-                </Grid>
+                <Border Style="{StaticResource InfoBanner}" Padding="14,10" Margin="0,0,0,12">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="По норме: " FontWeight="SemiBold"
+                                       Foreground="{StaticResource PrimaryBrush}" FontSize="13"/>
+                            <TextBlock Text="{Binding NormConsumption, Mode=OneWay, StringFormat=F3}"
+                                       FontWeight="Bold" FontSize="14"
+                                       Foreground="{StaticResource PrimaryBrush}"/>
+                            <TextBlock Text=" л" Foreground="{StaticResource PrimaryBrush}" FontSize="13"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
+                                    Visibility="{Binding HasFuelReadings, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="Израсходовано (факт): " FontWeight="SemiBold"
+                                       Foreground="{StaticResource PrimaryBrush}" FontSize="13"/>
+                            <TextBlock Text="{Binding ActualConsumptionCalc, Mode=OneWay, StringFormat=F3}"
+                                       FontWeight="Bold" FontSize="14"
+                                       Foreground="{StaticResource PrimaryBrush}"/>
+                            <TextBlock Text=" л" Foreground="{StaticResource PrimaryBrush}" FontSize="13"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
+                                    Visibility="{Binding HasFuelReadings, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="Экономия: " FontWeight="SemiBold" FontSize="13"
+                                       Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <TextBlock Text="{Binding EconomyCalc, Mode=OneWay, StringFormat=F3}"
+                                       FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <TextBlock Text="    Перерасход: " FontWeight="SemiBold" FontSize="13"
+                                       Foreground="{StaticResource TextSecondaryBrush}" Margin="10,0,0,0"/>
+                            <TextBlock Text="{Binding OverspendCalc, Mode=OneWay, StringFormat=F3}"
+                                       FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
     </DockPanel>

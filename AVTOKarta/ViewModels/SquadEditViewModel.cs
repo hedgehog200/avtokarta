@@ -2,6 +2,9 @@
 // Все права защищены. Использование без лицензии запрещено.
 // Лицензия: см. файл LICENSE в корне проекта.
 
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 using AVTOKarta.Helpers;
 using AVTOKarta.Models;
 
@@ -21,12 +24,22 @@ namespace AVTOKarta.ViewModels
 
         private double _fuelTankRatioGasoline;
         private double _fuelTankRatioDiesel;
+        private double _winterSurchargePercent;
+        private Surcharge _selectedSurcharge;
 
         public RelayCommand ConfirmCommand { get; }
         public RelayCommand CancelCommand { get; }
+        public RelayCommand AddSurchargeCommand { get; }
+        public RelayCommand RemoveSurchargeCommand { get; }
 
         public Squad EditingSquad { get; }
         public bool? DialogResult { get; private set; }
+
+        /// <summary>Справочник процентных надбавок части (редактируемый).</summary>
+        public ObservableCollection<Surcharge> FuelSurcharges { get; }
+
+        /// <summary>Месяцы действия зимней надбавки.</summary>
+        public ObservableCollection<MonthOption> WinterMonthOptions { get; }
 
         public SquadEditViewModel(Squad squad)
         {
@@ -41,9 +54,33 @@ namespace AVTOKarta.ViewModels
             _address = squad.Address;
             _fuelTankRatioGasoline = squad.FuelTankRatioGasoline;
             _fuelTankRatioDiesel = squad.FuelTankRatioDiesel;
+            _winterSurchargePercent = squad.WinterSurchargePercent;
+
+            // Справочник: если у части он пуст — предлагаем пресеты (редактируемые).
+            var source = squad.EnsureFuelSurcharges().Count > 0
+                ? squad.FuelSurcharges
+                : SurchargeCatalog.GetDefaults();
+            var clonedSource = source.Select(s => s.Clone()).ToList();
+            SurchargeCatalog.NormalizeGroups(clonedSource);
+            FuelSurcharges = new ObservableCollection<Surcharge>(clonedSource);
+
+            var selectedMonths = squad.EnsureWinterMonths();
+            // Если месяцы не заданы — показываем действующий по умолчанию период 15.11–15.03.
+            if (selectedMonths.Count == 0)
+                selectedMonths = new List<int> { 11, 12, 1, 2, 3 };
+            WinterMonthOptions = new ObservableCollection<MonthOption>();
+            string[] monthNames =
+            {
+                "янв", "фев", "мар", "апр", "май", "июн",
+                "июл", "авг", "сен", "окт", "ноя", "дек"
+            };
+            for (int m = 1; m <= 12; m++)
+                WinterMonthOptions.Add(new MonthOption(m, monthNames[m - 1], selectedMonths.Contains(m)));
 
             ConfirmCommand = new RelayCommand(o => Confirm());
             CancelCommand = new RelayCommand(o => Cancel());
+            AddSurchargeCommand = new RelayCommand(o => AddSurcharge());
+            RemoveSurchargeCommand = new RelayCommand(o => RemoveSurcharge(), o => SelectedSurcharge != null);
         }
 
         public string Name
@@ -106,6 +143,31 @@ namespace AVTOKarta.ViewModels
             set { SetProperty(ref _fuelTankRatioDiesel, value); }
         }
 
+        public double WinterSurchargePercent
+        {
+            get { return _winterSurchargePercent; }
+            set { SetProperty(ref _winterSurchargePercent, value); }
+        }
+
+        public Surcharge SelectedSurcharge
+        {
+            get { return _selectedSurcharge; }
+            set { if (SetProperty(ref _selectedSurcharge, value)) RemoveSurchargeCommand?.RaiseCanExecuteChanged(); }
+        }
+
+        private void AddSurcharge()
+        {
+            var s = new Surcharge("Новая надбавка", 0, true, false);
+            FuelSurcharges.Add(s);
+            SelectedSurcharge = s;
+        }
+
+        private void RemoveSurcharge()
+        {
+            if (SelectedSurcharge != null)
+                FuelSurcharges.Remove(SelectedSurcharge);
+        }
+
         public string ErrorMessage
         {
             get { return _errorMessage; }
@@ -140,6 +202,15 @@ namespace AVTOKarta.ViewModels
             EditingSquad.Address = Address ?? string.Empty;
             EditingSquad.FuelTankRatioGasoline = FuelTankRatioGasoline;
             EditingSquad.FuelTankRatioDiesel = FuelTankRatioDiesel;
+            EditingSquad.WinterSurchargePercent = WinterSurchargePercent;
+            EditingSquad.WinterMonths = WinterMonthOptions
+                .Where(m => m.IsSelected)
+                .Select(m => m.Number)
+                .ToList();
+            EditingSquad.FuelSurcharges = FuelSurcharges
+                .Where(s => s != null && !string.IsNullOrWhiteSpace(s.Name))
+                .Select(s => s.Clone())
+                .ToList();
             DialogResult = true;
         }
 

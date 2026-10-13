@@ -3,6 +3,7 @@
 // Лицензия: см. файл LICENSE в корне проекта.
 
 using System;
+using System.Collections.Generic;
 
 namespace AVTOKarta.Models
 {
@@ -21,6 +22,15 @@ namespace AVTOKarta.Models
         public double FuelTankRatioGasoline { get; set; }
         public double FuelTankRatioDiesel { get; set; }
 
+        /// <summary>Справочник доступных процентных надбавок к нормам расхода ГСМ.</summary>
+        public List<Surcharge> FuelSurcharges { get; set; }
+
+        /// <summary>Величина зимней надбавки, % (АМ-23-р, прил. № 2; 0 — не применять).</summary>
+        public double WinterSurchargePercent { get; set; }
+
+        /// <summary>Месяцы действия зимней надбавки (1–12).</summary>
+        public List<int> WinterMonths { get; set; }
+
         public Squad()
         {
             Id = Guid.NewGuid().ToString("N").Substring(0, 8);
@@ -34,6 +44,28 @@ namespace AVTOKarta.Models
             Address = string.Empty;
             FuelTankRatioGasoline = 0.25;
             FuelTankRatioDiesel = 0.64;
+            FuelSurcharges = new List<Surcharge>();
+            WinterSurchargePercent = 0;
+            WinterMonths = new List<int>();
+        }
+
+        /// <summary>
+        /// Гарантирует непустые списки (при загрузке старых файлов поля отсутствуют)
+        /// и возвращает справочник надбавок.
+        /// </summary>
+        public List<Surcharge> EnsureFuelSurcharges()
+        {
+            if (FuelSurcharges == null)
+                FuelSurcharges = new List<Surcharge>();
+            return FuelSurcharges;
+        }
+
+        /// <summary>Гарантирует непустой список зимних месяцев.</summary>
+        public List<int> EnsureWinterMonths()
+        {
+            if (WinterMonths == null)
+                WinterMonths = new List<int>();
+            return WinterMonths;
         }
 
         public override string ToString()

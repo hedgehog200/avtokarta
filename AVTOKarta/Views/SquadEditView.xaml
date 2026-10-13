@@ -2,12 +2,16 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:hc="https://handyorg.github.io/handycontrol"
+             xmlns:conv="clr-namespace:AVTOKarta.Converters"
              xmlns:helpers="clr-namespace:AVTOKarta.Helpers"
-             Title="Редактирование части" Height="470" Width="420"
+             Title="Редактирование части" Height="760" Width="640"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         WindowStyle="None" AllowsTransparency="False"
         Background="{StaticResource BackgroundBrush}">
+    <Window.Resources>
+        <conv:DoubleStringConverter x:Key="DoubleStr"/>
+    </Window.Resources>
     <Border Background="White">
         <DockPanel>
             <!-- Header -->
@@ -65,7 +69,58 @@
 
                     <TextBlock Text="Адрес расположения:" FontWeight="SemiBold" FontSize="13"
                                Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                    <TextBox Text="{Binding Address, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10"/>
+                    <TextBox Text="{Binding Address, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16"/>
+
+                    <Border Background="{StaticResource PrimaryLightBrush}" CornerRadius="8" Padding="14,10" Margin="0,0,0,14">
+                        <TextBlock Text="Надбавки к нормам расхода ГСМ" FontSize="14" FontWeight="Bold"
+                                   Foreground="{StaticResource PrimaryBrush}"/>
+                    </Border>
+
+                    <TextBlock Text="Зимняя надбавка (%):" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding WinterSurchargePercent, UpdateSourceTrigger=LostFocus, Converter={StaticResource DoubleStr}}"
+                             Margin="0,0,0,10"/>
+
+                    <TextBlock Text="Месяцы действия зимней надбавки:" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <ItemsControl ItemsSource="{Binding WinterMonthOptions}" Margin="0,0,0,14">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                          Margin="0,0,12,4" FontSize="12"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Text="Справочник надбавок (название, %, применение):" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <DataGrid ItemsSource="{Binding FuelSurcharges}"
+                              SelectedItem="{Binding SelectedSurcharge, Mode=TwoWay}"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              IsReadOnly="False"
+                              HeadersVisibility="Column"
+                              FontSize="12"
+                              MinHeight="180" MaxHeight="240"
+                              Margin="0,0,0,6">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Название" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                            <DataGridTextColumn Header="%" Binding="{Binding Percent, StringFormat=F2}" Width="60"/>
+                            <DataGridCheckBoxColumn Header="Пробег" Binding="{Binding AppliesToDistance}" Width="55"/>
+                            <DataGridCheckBoxColumn Header="Насос" Binding="{Binding AppliesToPump}" Width="55"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button Content="Добавить" Command="{Binding AddSurchargeCommand}" MinWidth="90" Margin="0,0,8,0"
+                                Style="{StaticResource GhostButton}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <Button Content="Удалить" Command="{Binding RemoveSurchargeCommand}" MinWidth="90"
+                                Style="{StaticResource GhostButton}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </StackPanel>
 
                     <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}"
                                FontWeight="SemiBold" FontSize="12" TextWrapping="Wrap"/>
