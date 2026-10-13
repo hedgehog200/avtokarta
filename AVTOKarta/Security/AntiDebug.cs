@@ -1,14 +1,21 @@
 using System;
 using System.Collections.Generic;
+#if PROTECTION
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+#endif
 
 namespace AVTOKarta.Security
 {
     // Детектирование отладчиков и инструментов трассировки.
-    // Все проверки изолированы: сбой одной не влияет на остальные.
+    // ВАЖНО: весь код проверок компилируется ТОЛЬКО при символе PROTECTION,
+    // который объявлен исключительно в конфигурации Release|x86.
+    // В Debug/иных сборках класс пустой и всегда возвращает пустой список:
+    // ни P/Invoke, ни чтения PEB в бинарнике нет, поэтому запуск под отладчиком
+    // (Visual Studio, dnSpy) никогда не приводит к отказу запуска.
     public static class AntiDebug
     {
+#if PROTECTION
         private struct ProcessBasicInformation
         {
             public IntPtr ExitStatus;
@@ -42,11 +49,15 @@ namespace AVTOKarta.Security
 
         private const int ProcessBasicInformationClass = 0;
         private const int ProcessDebugPortClass = 7;
+#endif
 
         public static IList<string> Detect()
         {
             var reasons = new List<string>();
-
+#if !PROTECTION
+            // Сборка без защиты: проверок отладчика нет by design.
+            return reasons;
+#else
             try
             {
                 if (Debugger.IsAttached)
@@ -107,6 +118,7 @@ namespace AVTOKarta.Security
             }
 
             return reasons;
+#endif
         }
     }
 }

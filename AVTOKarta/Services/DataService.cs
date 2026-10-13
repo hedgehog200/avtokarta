@@ -17,6 +17,7 @@ namespace AVTOKarta.Services
     {
         private readonly EncryptionService _encryption;
         private readonly string _dataPath;
+        private readonly string _password;
         private readonly object _writeLock = new object();
         private bool _disposed;
         private const string SquadsFile = "squads.json";
@@ -27,6 +28,7 @@ namespace AVTOKarta.Services
         {
             _encryption = new EncryptionService(password);
             _dataPath = dataPath;
+            _password = password;
             EnsureDirectories();
             MigrateOldSquad();
         }
@@ -283,8 +285,15 @@ namespace AVTOKarta.Services
             TypeNameHandling = TypeNameHandling.None
         };
 
-        private string SanitizeFileName(string name)
+        /// <summary>
+        /// Приводит имя (госномер, id части) к безопасному для файловой системы виду.
+        /// Должно использоваться и при импорте, чтобы пути совпадали с путями чтения.
+        /// </summary>
+        public static string SanitizeFileName(string name)
         {
+            if (name == null)
+                return string.Empty;
+
             foreach (char c in Path.GetInvalidFileNameChars())
             {
                 name = name.Replace(c, '_');
@@ -300,9 +309,27 @@ namespace AVTOKarta.Services
         private T ReadEncrypted<T>(string path) where T : class
         {
             byte[] encrypted = File.ReadAllBytes(path);
-            byte[] decrypted = _encryption.Decrypt(encrypted);
+            bool usedLegacy;
+            byte[] decrypted = EncryptionService.DecryptAuto(_password, encrypted, out usedLegacy);
             string json = Encoding.UTF8.GetString(decrypted);
-            return JsonConvert.DeserializeObject<T>(json, SafeJsonSettings);
+            T result = JsonConvert.DeserializeObject<T>(json, SafeJsonSettings);
+
+            if (usedLegacy)
+            {
+                // Файл старого формата (без HMAC). Сразу переводим его в защищённый
+                // формат, чтобы на этом и на других ПК он больше не считался «битым».
+                try
+                {
+                    byte[] reEncrypted = _encryption.Encrypt(decrypted);
+                    EncryptionService.AtomicWriteAllBytes(path, reEncrypted);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Self-migration to HMAC failed: " + ex.Message);
+                }
+            }
+
+            return result;
         }
 
         private void WriteEncrypted<T>(string path, T data)
@@ -315,10 +342,7 @@ namespace AVTOKarta.Services
             byte[] jsonBytes = Encoding.UTF8.GetBytes(json);
             byte[] encrypted = _encryption.Encrypt(jsonBytes);
 
-            string tempPath = path + ".tmp";
-            File.WriteAllBytes(tempPath, encrypted);
-            File.Copy(tempPath, path, true);
-            try { File.Delete(tempPath); } catch { /* temp cleanup */ }
+            EncryptionService.AtomicWriteAllBytes(path, encrypted);
         }
     }
 }

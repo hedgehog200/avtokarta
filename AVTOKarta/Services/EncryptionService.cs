@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -155,57 +156,53 @@ namespace AVTOKarta.Services
 
         public static void ReEncryptFile(string filePath, string oldPassword, string newPassword)
         {
-            string backupPath = filePath + ".bak";
-            File.Copy(filePath, backupPath, true);
-            try
+            byte[] encryptedBytes = File.ReadAllBytes(filePath);
+            byte[] decryptedBytes = DecryptLegacyOrCurrent(oldPassword, encryptedBytes);
+            using (var newService = new EncryptionService(newPassword))
             {
-                byte[] encryptedBytes = File.ReadAllBytes(filePath);
-                byte[] decryptedBytes = DecryptLegacyOrCurrent(oldPassword, encryptedBytes);
-                using (var newService = new EncryptionService(newPassword))
-                {
-                    byte[] reEncryptedBytes = newService.Encrypt(decryptedBytes);
-                    File.WriteAllBytes(filePath, reEncryptedBytes);
-                }
-                File.Delete(backupPath);
-            }
-            catch
-            {
-                if (File.Exists(backupPath))
-                {
-                    File.Delete(filePath);
-                    File.Move(backupPath, filePath);
-                }
-                throw;
+                byte[] reEncryptedBytes = newService.Encrypt(decryptedBytes);
+                // Атомарная замена: при сбое старый файл остаётся нетронутым,
+                // «полузаписанных» файлов больше не появляется.
+                AtomicWriteAllBytes(filePath, reEncryptedBytes);
             }
         }
 
-        public static void MigrateFileToHmac(string filePath, string password)
+        /// <summary>
+        /// Переводит файл в защищённый формат (AES + HMAC). Никогда не выбрасывает
+        /// исключение: если файл занят/недоступен или пароль не подходит, возвращает
+        /// false, чтобы миграция не роняла запуск приложения на «части ПК».
+        /// </summary>
+        public static bool MigrateFileToHmac(string filePath, string password)
         {
-            byte[] raw = File.ReadAllBytes(filePath);
-
             try
             {
-                using (var service = new EncryptionService(password))
+                byte[] raw = File.ReadAllBytes(filePath);
+
+                try
                 {
-                    service.Decrypt(raw);
+                    using (var service = new EncryptionService(password))
+                    {
+                        service.Decrypt(raw);
+                    }
+                    return true; // уже в текущем (HMAC) формате
                 }
-                return;
-            }
-            catch (CryptographicException)
-            {
-            }
+                catch (CryptographicException)
+                {
+                }
 
-            try
-            {
                 byte[] decrypted = DecryptLegacyOnly(password, raw);
                 using (var service = new EncryptionService(password))
                 {
                     byte[] reEncrypted = service.Encrypt(decrypted);
-                    File.WriteAllBytes(filePath, reEncrypted);
+                    AtomicWriteAllBytes(filePath, reEncrypted);
                 }
+                return true;
             }
-            catch (CryptographicException)
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine("MigrateFileToHmac failed for "
+                    + filePath + ": " + ex.Message);
+                return false;
             }
         }
 
@@ -246,7 +243,90 @@ namespace AVTOKarta.Services
             return pair;
         }
 
+        // ------------------------------------------------------------------
+        //  PBKDF2-HMAC-SHA256
+        //
+        //  Для скорости используется нативная Windows CNG (bcrypt.dll,
+        //  BCryptDeriveKeyPBKDF2). Она даёт ПOБИТОВО тот же результат, что и
+        //  managed-реализация ниже (PBKDF2 — стандартизованный алгоритм),
+        //  поэтому формат уже сохранённых файлов и файлов .avto не меняется.
+        //  На Windows 7, где этой функции нет, происходит автоматический
+        //  откат на managed-реализацию.
+        // ------------------------------------------------------------------
+
+        private static volatile bool _cngUnavailable;
+
+        private const uint BCRYPT_ALG_HANDLE_HMAC_FLAG = 0x00000008;
+
+        [DllImport("bcrypt.dll", CharSet = CharSet.Unicode)]
+        private static extern int BCryptOpenAlgorithmProvider(
+            out IntPtr phAlgorithm, string pszAlgId, string pszImplementation, uint dwFlags);
+
+        [DllImport("bcrypt.dll")]
+        private static extern int BCryptCloseAlgorithmProvider(IntPtr hAlgorithm, uint dwFlags);
+
+        [DllImport("bcrypt.dll")]
+        private static extern int BCryptDeriveKeyPBKDF2(
+            IntPtr hPrf, byte[] pbPassword, int cbPassword, byte[] pbSalt, int cbSalt,
+            ulong cIterations, byte[] pbDerivedKey, int cbDerivedKey, uint dwFlags);
+
         private static byte[] Pbkdf2Sha256(byte[] password, byte[] salt, int iterations, int outputBytes)
+        {
+            byte[] native;
+            if (TryPbkdf2Native(password, salt, iterations, outputBytes, out native))
+                return native;
+
+            return Pbkdf2Sha256Managed(password, salt, iterations, outputBytes);
+        }
+
+        private static bool TryPbkdf2Native(byte[] password, byte[] salt, int iterations,
+            int outputBytes, out byte[] result)
+        {
+            result = null;
+            if (_cngUnavailable)
+                return false;
+
+            IntPtr hAlg = IntPtr.Zero;
+            try
+            {
+                if (BCryptOpenAlgorithmProvider(out hAlg, "SHA256", null,
+                        BCRYPT_ALG_HANDLE_HMAC_FLAG) < 0 || hAlg == IntPtr.Zero)
+                {
+                    _cngUnavailable = true;
+                    return false;
+                }
+
+                byte[] derived = new byte[outputBytes];
+                if (BCryptDeriveKeyPBKDF2(hAlg, password, password.Length, salt, salt.Length,
+                        (ulong)iterations, derived, outputBytes, 0) < 0)
+                {
+                    return false;
+                }
+
+                result = derived;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                // Например, Windows 7: bcrypt.dll не экспортирует PBKDF2.
+                _cngUnavailable = true;
+                System.Diagnostics.Debug.WriteLine("CNG PBKDF2 недоступен, используем managed: " + ex.Message);
+                return false;
+            }
+            finally
+            {
+                if (hAlg != IntPtr.Zero)
+                {
+                    try { BCryptCloseAlgorithmProvider(hAlg, 0); }
+                    catch (Exception) { }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Управляемая реализация PBKDF2-HMAC-SHA256 (эталон, откат для Windows 7).
+        /// </summary>
+        private static byte[] Pbkdf2Sha256Managed(byte[] password, byte[] salt, int iterations, int outputBytes)
         {
             byte[] result = new byte[outputBytes];
             byte[] buffer = new byte[32];
@@ -286,6 +366,22 @@ namespace AVTOKarta.Services
 
         public static byte[] DecryptLegacyOrCurrent(string password, byte[] encryptedData)
         {
+            bool usedLegacy;
+            return DecryptAuto(password, encryptedData, out usedLegacy);
+        }
+
+        /// <summary>
+        /// Расшифровывает данные, автоматически определяя формат:
+        /// текущий (AES + HMAC) или старый (AES без HMAC).
+        /// <paramref name="usedLegacy"/> = true, если сработал старый формат.
+        /// </summary>
+        public static byte[] DecryptAuto(string password, byte[] encryptedData, out bool usedLegacy)
+        {
+            usedLegacy = false;
+
+            if (encryptedData == null || encryptedData.Length == 0)
+                throw new CryptographicException("Data is empty.");
+
             if (encryptedData.Length >= HmacSize + SaltSize + 1)
             {
                 try
@@ -297,10 +393,74 @@ namespace AVTOKarta.Services
                 }
                 catch (CryptographicException)
                 {
+                    // Не исключено, что это старый формат без HMAC — пробуем ниже.
                 }
             }
 
+            usedLegacy = true;
             return DecryptLegacyOnly(password, encryptedData);
+        }
+
+        /// <summary>
+        /// Атомарно записывает файл: сначала во временный, затем подменяет целевой.
+        /// Повторяет попытки при кратковременной блокировке файла (антивирус, OneDrive) —
+        /// именно из-за неё на части ПК раньше появлялись «битые» файлы.
+        /// </summary>
+        public static void AtomicWriteAllBytes(string path, byte[] data)
+        {
+            string dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+
+            string tempPath = path + ".tmp";
+            IOException lastError = null;
+
+            for (int attempt = 0; attempt < 4; attempt++)
+            {
+                try
+                {
+                    File.WriteAllBytes(tempPath, data);
+
+                    if (File.Exists(path))
+                    {
+                        try
+                        {
+                            File.Replace(tempPath, path, null);
+                        }
+                        catch (Exception replaceEx)
+                        {
+                            System.Diagnostics.Debug.WriteLine(
+                                "File.Replace failed, fallback to copy: " + replaceEx.Message);
+                            File.Copy(tempPath, path, true);
+                            File.Delete(tempPath);
+                        }
+                    }
+                    else
+                    {
+                        File.Move(tempPath, path);
+                    }
+                    return;
+                }
+                catch (IOException ex)
+                {
+                    lastError = ex;
+                    System.Threading.Thread.Sleep(75 * (attempt + 1));
+                }
+                finally
+                {
+                    try
+                    {
+                        if (File.Exists(tempPath))
+                            File.Delete(tempPath);
+                    }
+                    catch (Exception cleanupEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Temp cleanup failed: " + cleanupEx.Message);
+                    }
+                }
+            }
+
+            throw lastError ?? new IOException("Не удалось записать файл: " + path);
         }
 
         private static byte[] DecryptLegacyOnly(string password, byte[] encryptedData)

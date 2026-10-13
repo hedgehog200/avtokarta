@@ -100,11 +100,21 @@ namespace AVTOKarta.Services
             if (!File.Exists(dpapiPath))
                 return null;
 
-            byte[] encrypted = File.ReadAllBytes(dpapiPath);
-            byte[] decrypted = ProtectedData.Unprotect(encrypted, Entropy, DataProtectionScope.CurrentUser);
-            string password = Encoding.UTF8.GetString(decrypted);
-            Array.Clear(decrypted, 0, decrypted.Length);
-            return password;
+            try
+            {
+                byte[] encrypted = File.ReadAllBytes(dpapiPath);
+                byte[] decrypted = ProtectedData.Unprotect(encrypted, Entropy, DataProtectionScope.CurrentUser);
+                string password = Encoding.UTF8.GetString(decrypted);
+                Array.Clear(decrypted, 0, decrypted.Length);
+                return password;
+            }
+            catch (Exception ex)
+            {
+                // DPAPI CurrentUser не читается после переноса профиля/смены пользователя
+                // (частая причина «ошибок с паролями» на части ПК). Не роняем приложение.
+                System.Diagnostics.Debug.WriteLine("LoadPassword failed: " + ex.Message);
+                return null;
+            }
         }
 
         private static string GetOrCreateDefaultPasswordStatic()
@@ -275,10 +285,12 @@ Array.Clear(decrypted, 0, decrypted.Length);
             return errors;
         }
 
-        public void MigrateAllFilesToHmac(string password)
+        public bool MigrateAllFilesToHmac(string password)
         {
             string markerPath = Path.Combine(AppDataPath, ".hmac_v1_done");
-            if (File.Exists(markerPath)) return;
+            if (File.Exists(markerPath)) return true;
+
+            bool allOk = true;
 
             string[] targets = new string[]
             {
@@ -289,13 +301,22 @@ Array.Clear(decrypted, 0, decrypted.Length);
 
             foreach (string f in targets)
             {
-                if (File.Exists(f))
-                    EncryptionService.MigrateFileToHmac(f, password);
+                if (File.Exists(f) && !EncryptionService.MigrateFileToHmac(f, password))
+                    allOk = false;
             }
 
-            foreach (string f in Directory.GetFiles(AppDataPath, "warehouse_*.json"))
+            try
             {
-                EncryptionService.MigrateFileToHmac(f, password);
+                foreach (string f in Directory.GetFiles(AppDataPath, "warehouse_*.json"))
+                {
+                    if (!EncryptionService.MigrateFileToHmac(f, password))
+                        allOk = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Warehouse migration enumeration failed: " + ex.Message);
+                allOk = false;
             }
 
             string cardsPath = Path.Combine(AppDataPath, "cards");
@@ -307,14 +328,22 @@ Array.Clear(decrypted, 0, decrypted.Length);
                     {
                         foreach (string cardFile in Directory.GetFiles(yearDir, "*.json"))
                         {
-                            EncryptionService.MigrateFileToHmac(cardFile, password);
+                            if (!EncryptionService.MigrateFileToHmac(cardFile, password))
+                                allOk = false;
                         }
                     }
                 }
             }
 
-            try { File.WriteAllText(markerPath, DateTime.Now.ToString("o")); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("MigrateMarker write failed: " + ex.Message); }
+            // Маркер ставим только при полном успехе. Иначе на следующем запуске
+            // миграция продолжится, и «застрявшие» файлы не останутся битыми.
+            if (allOk)
+            {
+                try { File.WriteAllText(markerPath, DateTime.Now.ToString("o")); }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("MigrateMarker write failed: " + ex.Message); }
+            }
+
+            return allOk;
         }
 
         private void ReEncryptWithRollback(string filePath, string oldPassword, string newPassword,

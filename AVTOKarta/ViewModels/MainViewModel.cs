@@ -63,6 +63,7 @@ namespace AVTOKarta.ViewModels
         private CardHistoryItem _selectedCardHistoryItem;
         private int _deliveryTypeIndex;
         private int _currentScreenIndex = -1;
+        private bool _isBusy;
 
         public RelayCommand SquadSetupCommand { get; }
         public RelayCommand SquadListCommand { get; }
@@ -125,8 +126,8 @@ namespace AVTOKarta.ViewModels
             EditSquadCommand = new RelayCommand(o => EditSquad(), o => SelectedSquad != null);
             DeleteSquadCommand = new RelayCommand(o => DeleteSquad(), o => SelectedSquad != null);
             OpenHistoryCardCommand = new RelayCommand(o => OpenHistoryCard(SelectedCardHistoryItem), o => SelectedCardHistoryItem != null);
-            ExportDataCommand = new RelayCommand(o => ExportData(), o => _dataService != null);
-            ImportDataCommand = new RelayCommand(o => ImportData(), o => _dataService != null);
+            ExportDataCommand = new RelayCommand(o => ExportData(), o => _dataService != null && !_isBusy);
+            ImportDataCommand = new RelayCommand(o => ImportData(), o => _dataService != null && !_isBusy);
             WarehouseCommand = new RelayCommand(o => ShowWarehouse(), o => _dataService != null && _selectedSquad != null && LicenseService.HasFeature(LicenseFeatures.Warehouse));
             DriverListCommand = new RelayCommand(o => ShowDriverList(), o => _dataService != null);
 
@@ -157,6 +158,11 @@ namespace AVTOKarta.ViewModels
                 }
 
                 _settingsService = new SettingsService(password);
+
+                // Миграция старого формата (без HMAC) до чтения данных: иначе на
+                // первом запуске после обновления файлы считались бы «битыми».
+                _settingsService.MigrateAllFilesToHmac(password);
+
                 _dataService = new DataService(password, _settingsService.DataPath);
                 _cacheService = new CacheService();
 
@@ -187,8 +193,6 @@ namespace AVTOKarta.ViewModels
                 }));
 
                 _cacheService.StartAutoSave(SaveAll, 60000);
-
-                _settingsService.MigrateAllFilesToHmac(password);
 
                 Task.Run(() =>
                 {
@@ -427,6 +431,20 @@ namespace AVTOKarta.ViewModels
         {
             get { return _statusMessage; }
             set { SetProperty(ref _statusMessage, value); }
+        }
+
+        /// <summary>Признак выполнения длительной операции (выгрузка/загрузка).</summary>
+        public bool IsBusy
+        {
+            get { return _isBusy; }
+            private set
+            {
+                if (SetProperty(ref _isBusy, value))
+                {
+                    if (ExportDataCommand != null) ExportDataCommand.RaiseCanExecuteChanged();
+                    if (ImportDataCommand != null) ImportDataCommand.RaiseCanExecuteChanged();
+                }
+            }
         }
 
         public bool HasPassword
@@ -1219,9 +1237,41 @@ namespace AVTOKarta.ViewModels
             }
         }
 
-        private void ExportData()
+        /// <summary>
+        /// Колбэк прогресса для длительных операций. Вызывается из рабочего
+        /// потока; обновление интерфейса выполняется через диспетчер, а частые
+        /// промежуточные значения отбрасываются, чтобы не «забивать» UI-поток.
+        /// </summary>
+        private Action<int, int> CreateProgressReporter(string verb)
         {
-            if (_settingsService == null || _dataService == null) return;
+            return (done, total) =>
+            {
+                if (total <= 0) return;
+
+                int step = Math.Max(1, total / 50);
+                if (done != 0 && done != total && done % step != 0)
+                    return;
+
+                Application app = Application.Current;
+                if (app == null) return;
+
+                try
+                {
+                    app.Dispatcher.BeginInvoke((Action)(() =>
+                    {
+                        StatusMessage = string.Format("{0}… {1}/{2}", verb, done, total);
+                    }));
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Progress report failed: " + ex.Message);
+                }
+            };
+        }
+
+        private async void ExportData()
+        {
+            if (_settingsService == null || _dataService == null || _isBusy) return;
 
             try
             {
@@ -1233,43 +1283,66 @@ namespace AVTOKarta.ViewModels
                     Title = "Выгрузка данных АВТОКарта"
                 };
 
-                if (dialog.ShowDialog() == true)
+                if (dialog.ShowDialog() != true)
+                    return;
+
+                string exportPassword = PasswordInputDialog.Show(
+                    "Пароль выгрузки",
+                    "Введите пароль для защиты файла выгрузки.\n\n" +
+                    "Оставьте пустым, чтобы выгрузить данные БЕЗ пароля:");
+                if (exportPassword == null)
+                    return;
+
+                if (string.IsNullOrEmpty(exportPassword))
                 {
-                    string exportPassword = PasswordInputDialog.Show(
-                        "Пароль выгрузки",
-                        "Введите пароль для защиты файла выгрузки.\n\n" +
-                        "Оставьте пустым, чтобы выгрузить данные БЕЗ пароля:");
-                    if (exportPassword == null)
+                    MessageBoxResult warn = MessageBox.Show(
+                        "Внимание! Пароль не задан — файл выгрузки НЕ будет защищён.\n\n" +
+                        "Данные (части, автомобили, карточки) сможет прочитать любой, " +
+                        "кому попадёт этот файл.\n\n" +
+                        "Рекомендуется вернуться и ввести надёжный пароль.\n\n" +
+                        "Продолжить выгрузку без пароля?",
+                        "Файл не защищён", MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+                    if (warn != MessageBoxResult.Yes)
                         return;
+                }
 
-                    if (string.IsNullOrEmpty(exportPassword))
+                string filePath = dialog.FileName;
+                string localPassword = _settingsService.GetEffectivePassword();
+                string dataPath = _settingsService.DataPath;
+
+                IsBusy = true;
+                StatusMessage = "Выгрузка данных…";
+
+                try
+                {
+                    // Шифрование PBKDF2 — самая тяжёлая часть, уводим в фон.
+                    Action<int, int> progress = CreateProgressReporter("Выгрузка данных");
+                    ExportResult exportResult = await Task.Run(() =>
                     {
-                        MessageBoxResult warn = MessageBox.Show(
-                            "Внимание! Пароль не задан — файл выгрузки НЕ будет защищён.\n\n" +
-                            "Данные (части, автомобили, карточки) сможет прочитать любой, " +
-                            "кому попадёт этот файл.\n\n" +
-                            "Рекомендуется вернуться и ввести надёжный пароль.\n\n" +
-                            "Продолжить выгрузку без пароля?",
-                            "Файл не защищён", MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
-                        if (warn != MessageBoxResult.Yes)
-                            return;
-                    }
+                        using (var transferService = new DataTransferService(localPassword, dataPath))
+                        {
+                            return transferService.ExportToFile(filePath, exportPassword, progress);
+                        }
+                    });
 
-                    using (var transferService = new DataTransferService(_settingsService.GetEffectivePassword(), _settingsService.DataPath))
-                    {
-                        transferService.ExportToFile(dialog.FileName, exportPassword);
-                    }
-
-                    StatusMessage = "Данные выгружены: " + dialog.FileName;
+                    StatusMessage = "Данные выгружены: " + filePath;
                     string passwordNote = string.IsNullOrEmpty(exportPassword)
                         ? "Файл выгружен БЕЗ пароля. На другом ПК при загрузке "
                           + "поле «Пароль источника» можно оставить пустым."
                         : "Файл зашифрован паролем. На другом ПК при загрузке потребуется ввести этот пароль.";
+                    string skippedNote = (exportResult != null && exportResult.SkippedFiles > 0)
+                        ? "\n\nВнимание: " + exportResult.SkippedFiles +
+                          " повреждённых файл(ов) пропущено — они не попали в выгрузку."
+                        : "";
                     MessageBox.Show(
-                        "Данные успешно выгружены в файл:\n" + dialog.FileName +
-                        "\n\n" + passwordNote +
+                        "Данные успешно выгружены в файл:\n" + filePath +
+                        "\n\n" + passwordNote + skippedNote +
                         "\n\nСкопируйте файл на другой ПК и используйте «Загрузка данных».",
                         "Выгрузка данных", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                finally
+                {
+                    IsBusy = false;
                 }
             }
             catch (Exception ex)
@@ -1281,65 +1354,156 @@ namespace AVTOKarta.ViewModels
             }
         }
 
-        private void ImportData()
+        private async void ImportData()
         {
-            if (_settingsService == null || _dataService == null) return;
+            if (_settingsService == null || _dataService == null || _isBusy) return;
+
+            var dialog = new OpenFileDialog
+            {
+                Filter = "Файл выгрузки АВТОКарта (*.avto)|*.avto|Все файлы (*.*)|*.*",
+                Title = "Загрузка данных АВТОКарта"
+            };
+
+            if (dialog.ShowDialog() != true)
+                return;
+
+            string archivePath = dialog.FileName;
+            string localPassword = _settingsService.GetEffectivePassword();
+            string dataPath = _settingsService.DataPath;
+            bool autoSaveStopped = false;
 
             try
             {
-                var dialog = new OpenFileDialog
+                // 1. Проверяем файл и пароль ДО любых изменений (с возможностью повтора).
+                ExportPreview preview = null;
+                string sourcePassword = null;
+
+                while (true)
                 {
-                    Filter = "Файл выгрузки АВТОКарта (*.avto)|*.avto|Все файлы (*.*)|*.*",
-                    Title = "Загрузка данных АВТОКарта"
-                };
+                    sourcePassword = PasswordInputDialog.Show(
+                        "Пароль источника",
+                        "Введите пароль, который был установлен на ПК-источнике\n(при выгрузке данных).\n\n" +
+                        "Оставьте пустым, если файл выгружен без пароля:");
 
-                if (dialog.ShowDialog() != true)
-                    return;
+                    if (sourcePassword == null)
+                        return;
 
-                string sourcePassword = PasswordInputDialog.Show(
-                    "Пароль источника",
-                    "Введите пароль, который был установлен на ПК-источнике\n(при выгрузке данных).\n\n" +
-                    "Оставьте пустым, если файл выгружен без пароля:");
+                    try
+                    {
+                        IsBusy = true;
+                        StatusMessage = "Проверка файла…";
+                        string sp = sourcePassword;
+                        preview = await Task.Run(() =>
+                        {
+                            using (var transferService = new DataTransferService(localPassword, dataPath))
+                            {
+                                return transferService.PreviewExport(archivePath, sp, localPassword);
+                            }
+                        });
+                        break;
+                    }
+                    catch (ExportPasswordException ex)
+                    {
+                        IsBusy = false;
+                        MessageBoxResult retry = MessageBox.Show(
+                            ex.Message + "\n\nПовторить ввод пароля?",
+                            "Не удалось открыть файл", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                        if (retry != MessageBoxResult.Yes)
+                            return;
+                    }
+                }
 
-                if (sourcePassword == null)
-                    return;
-
+                ExportMetadata meta = preview.Metadata ?? new ExportMetadata();
                 var confirmResult = MessageBox.Show(
-                    "ВНИМАНИЕ: Текущие данные будут заменены!\n\n" +
-                    "Перед заменой будет создана резервная копия текущих данных.\n\n" +
+                    "Данные будут ОБЪЕДИНЕНЫ с текущими.\n\n" +
+                    "Файл выгрузки от: " + meta.ExportDate + "\n" +
+                    "Версия программы: " + (string.IsNullOrEmpty(meta.AppVersion) ? "?" : meta.AppVersion) + "\n" +
+                    "Частей: " + meta.SquadCount + ", автомобилей: " + meta.VehicleCount +
+                    ", карточек: " + meta.CardCount + "\n\n" +
+                    "Справочники (части, автомобили, водители, склад) будут заменены данными из файла. " +
+                    "Карточки добавятся к существующим: совпадающие месяцы перезапишутся, " +
+                    "а карточки, которых нет в файле, останутся без изменений.\n\n" +
+                    "Перед импортом будет создана резервная копия текущих данных.\n\n" +
                     "Продолжить загрузку?",
                     "Подтверждение загрузки", MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
                 if (confirmResult != MessageBoxResult.Yes)
                     return;
 
-                StatusMessage = "Создание резервной копии...";
+                // 2. Останавливаем автосохранение, чтобы оно не перезаписало импорт.
+                try { _cacheService?.StopAutoSave(); } catch { }
+                autoSaveStopped = true;
 
-                string localPassword = _settingsService.GetEffectivePassword();
-                string backupPath;
-                ImportResult result;
-                using (var transferService = new DataTransferService(localPassword, _settingsService.DataPath))
+                // 3. Резервная копия (не критична для продолжения — предупреждаем и спрашиваем).
+                StatusMessage = "Создание резервной копии…";
+                string backupPath = null;
+                try
                 {
-                    backupPath = transferService.CreateBackup(localPassword);
-                    StatusMessage = "Бэкап создан: " + Path.GetFileName(backupPath);
-
-                    result = transferService.ImportFromFile(dialog.FileName, sourcePassword, _settingsService.DataPath, localPassword);
+                    backupPath = await Task.Run(() =>
+                    {
+                        using (var transferService = new DataTransferService(localPassword, dataPath))
+                        {
+                            return transferService.CreateBackup(localPassword);
+                        }
+                    });
+                    if (!string.IsNullOrEmpty(backupPath))
+                        StatusMessage = "Бэкап создан: " + Path.GetFileName(backupPath);
+                }
+                catch (Exception backupEx)
+                {
+                    System.Diagnostics.Debug.WriteLine("Backup failed: " + backupEx);
+                    MessageBoxResult cont = MessageBox.Show(
+                        "Не удалось создать резервную копию:\n" + backupEx.Message +
+                        "\n\nПродолжить загрузку без резервной копии?",
+                        "Резервная копия не создана", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                    if (cont != MessageBoxResult.Yes)
+                        return;
                 }
 
-                _settingsService.Dispose();
-                _settingsService = new SettingsService(localPassword);
-                _dataService.Dispose();
-                _dataService = new DataService(localPassword, _settingsService.DataPath);
+                // 4. Импорт (сервис сам делает снимок и откат при сбое).
+                StatusMessage = "Загрузка данных…";
+                string sp2 = sourcePassword;
+                Action<int, int> importProgress = CreateProgressReporter("Загрузка данных");
+                ImportResult result = await Task.Run(() =>
+                {
+                    using (var transferService = new DataTransferService(localPassword, dataPath))
+                    {
+                        return transferService.ImportFromFile(archivePath, sp2, dataPath, localPassword, importProgress);
+                    }
+                });
 
-                var squadsList = _dataService.LoadSquads();
+                // 5. Пересоздаём сервисы и перечитываем данные в фоне,
+                //    подменяем их уже в UI-потоке.
+                StatusMessage = "Обновление интерфейса…";
+                var reloaded = await Task.Run(() =>
+                {
+                    var newSettings = new SettingsService(localPassword);
+                    var newData = new DataService(localPassword, newSettings.DataPath);
+                    return new
+                    {
+                        Settings = newSettings,
+                        Data = newData,
+                        Squads = newData.LoadSquads(),
+                        Vehicles = newData.LoadVehicles()
+                    };
+                });
+
+                SettingsService oldSettings = _settingsService;
+                DataService oldData = _dataService;
+
+                _settingsService = reloaded.Settings;
+                _dataService = reloaded.Data;
+
+                try { if (oldSettings != null) oldSettings.Dispose(); } catch { }
+                try { if (oldData != null) oldData.Dispose(); } catch { }
+
                 _squads.Clear();
-                foreach (var s in squadsList)
+                foreach (var s in reloaded.Squads)
                     _squads.Add(s);
                 SyncConverterSquads();
 
-                var vehiclesList = _dataService.LoadVehicles();
                 _allVehicles.Clear();
-                foreach (var v in vehiclesList)
+                foreach (var v in reloaded.Vehicles)
                     _allVehicles.Add(v);
 
                 RefreshFilteredVehicles();
@@ -1348,27 +1512,55 @@ namespace AVTOKarta.ViewModels
                     LoadCardForVehicle(SelectedVehicle);
 
                 string info = string.Format(
-                    "Загрузка завершена!\n\nЧастей: {0}\nАвтомобилей: {1}\nКарточек: {2}\n\nБэкап сохранён: {3}",
-                    result.SquadsImported ? (result.Metadata != null ? result.Metadata.SquadCount : 0) : 0,
-                    result.VehiclesImported ? (result.Metadata != null ? result.Metadata.VehicleCount : 0) : 0,
+                    "Загрузка завершена!\n\nЧастей: {0}\nАвтомобилей: {1}\nКарточек: {2}\nВодителей: {3}\n\nБэкап сохранён: {4}",
+                    reloaded.Squads.Count,
+                    reloaded.Vehicles.Count,
                     result.CardsImported,
-                    Path.GetFileName(backupPath));
+                    result.DriversImported ? "да" : "нет",
+                    string.IsNullOrEmpty(backupPath) ? "не создан" : backupPath);
+
+                if (result.Warnings != null && result.Warnings.Count > 0)
+                {
+                    int shown = Math.Min(result.Warnings.Count, 5);
+                    info += "\n\nПропущено записей: " + result.Warnings.Count;
+                    for (int i = 0; i < shown; i++)
+                        info += "\n  • " + result.Warnings[i];
+                    if (result.Warnings.Count > shown)
+                        info += "\n  • …и ещё " + (result.Warnings.Count - shown);
+                }
 
                 StatusMessage = "Данные загружены: " + result.CardsImported + " карточек";
                 MessageBox.Show(info, "Загрузка данных", MessageBoxButton.OK, MessageBoxImage.Information);
             }
-            catch (InvalidOperationException ex)
+            catch (ExportPasswordException ex)
             {
-                System.Diagnostics.Debug.WriteLine("Import error: " + ex);
-                StatusMessage = "Ошибка загрузки: " + ex.Message;
-                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Diagnostics.Debug.WriteLine("Import password error: " + ex);
+                StatusMessage = "Ошибка загрузки: неверный пароль.";
+                MessageBox.Show(ex.Message, "Ошибка загрузки", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            catch (ExportValidationException ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Import validation error: " + ex);
+                StatusMessage = "Ошибка загрузки: файл повреждён.";
+                MessageBox.Show(ex.Message, "Ошибка загрузки", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine("Import error: " + ex);
                 StatusMessage = "Ошибка загрузки данных.";
-                MessageBox.Show("Ошибка при загрузке данных.\nОбратитесь к администратору.",
+                MessageBox.Show("Ошибка при загрузке данных:\n\n" + ex.Message +
+                    "\n\nДанные не изменены (выполнен откат). Проверьте резервную копию.",
                     "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsBusy = false;
+                // Возобновляем автосохранение (после импорта — уже с новыми сервисами).
+                if (autoSaveStopped && _cacheService != null)
+                {
+                    try { _cacheService.StartAutoSave(SaveAll, 60000); }
+                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Auto-save restart failed: " + ex.Message); }
+                }
             }
         }
 

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Профиль обфускации AVTOKarta для ConfuserEx 1.6.0 (форк mkaring).
+  Набор защит — согласно DEVELOPMENT.md §7.1:
+    anti debug, anti dump, ctrl flow, constants(decoderCount=2).
+  ВАЖНО: rename НЕ используем (ломает WPF BAML/x:Class),
+         anti tamper НЕ используем (ломает подпись tamper.sig).
+  Запуск: Confuser.CLI.exe -n avtokarta.crproj
+  Результат: AVTOKarta\bin\Release\Confused\AVTOKarta.exe
+             (build-release.ps1 копирует его поверх bin\Release\AVTOKarta.exe и переподписывает).
+-->
+<project outputDir="C:\project\mchs gsm\AVTOKarta\bin\Release\Confused"
+         baseDir="C:\project\mchs gsm\AVTOKarta\bin\Release"
+         xmlns="http://confuser.codeplex.com">
+  <rule pattern="true" inherit="false">
+    <protection id="anti debug" />
+    <protection id="anti dump" />
+    <protection id="ctrl flow" />
+    <protection id="constants">
+      <argument name="decoderCount" value="2" />
+    </protection>
+  </rule>
+  <module path="AVTOKarta.exe" />
+</project>

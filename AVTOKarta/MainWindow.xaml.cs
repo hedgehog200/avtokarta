@@ -59,6 +59,8 @@ namespace AVTOKarta
 
         private void StartGuard()
         {
+#if PROTECTION
+            // Сторож целостности/отладчика — только в релизных сборках.
             TamperGuard.TamperDetected += (s, args) =>
             {
                 MessageBox.Show(
@@ -68,13 +70,16 @@ namespace AVTOKarta
                     "Проверка целостности", MessageBoxButton.OK, MessageBoxImage.Warning);
                 RefreshLicenseGates();
             };
+#endif
 
             _guardTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
             _guardTimer.Tick += (s, args) =>
             {
                 LicenseService.EnsureFresh();
+#if PROTECTION
                 if (TamperGuard.Refresh())
                     RefreshLicenseGates();
+#endif
             };
             _guardTimer.Start();
         }
@@ -83,6 +88,7 @@ namespace AVTOKarta
         {
             LicenseInfo info;
             string message;
+#if PROTECTION
             if (TamperGuard.IsTampered())
             {
                 MessageBox.Show(
@@ -93,6 +99,7 @@ namespace AVTOKarta
                 Application.Current.Shutdown();
                 return;
             }
+#endif
 
             if (LicenseService.IsLicensed(out info, out message))
             {

@@ -11,16 +11,41 @@ namespace AVTOKarta.Security
     // Проверка целостности приложения по RSA-подписанному манифесту (tamper.sig).
     // Манифест создаётся утилитой LicGen (команда --sig-issue) закрытым ключом на этапе
     // публикации и покрывает ВСЕ исполняемые компоненты (*.exe, *.dll) каталога приложения.
+    //
+    // ВАЖНО: проверка подписи манифеста компилируется ТОЛЬКО при символе PROTECTION
+    // (конфигурация Release|x86). В остальных сборках VerifyAppIntegrity всегда успешна,
+    // поэтому tamper.sig не требуется и запуск из Visual Studio не блокируется.
     public static class IntegrityChecker
     {
         public static string ApplicationExePath
         {
-            get { return Assembly.GetExecutingAssembly().Location; }
+            get
+            {
+                string location = Assembly.GetExecutingAssembly().Location;
+                // Обфускация с anti-tamper (ConfuserEx) может отдавать пустой Location —
+                // тогда каталог берём у предела домена приложения.
+                if (!string.IsNullOrEmpty(location))
+                    return location;
+
+                string main = Assembly.GetEntryAssembly() == null
+                    ? null
+                    : Assembly.GetEntryAssembly().Location;
+                if (!string.IsNullOrEmpty(main))
+                    return main;
+
+                return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AVTOKarta.exe");
+            }
         }
 
         public static string ApplicationDirectory
         {
-            get { return Path.GetDirectoryName(ApplicationExePath); }
+            get
+            {
+                string dir = Path.GetDirectoryName(ApplicationExePath);
+                if (!string.IsNullOrEmpty(dir))
+                    return dir;
+                return AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\', '/');
+            }
         }
 
         public static string SignatureFilePath
@@ -39,8 +64,14 @@ namespace AVTOKarta.Security
         // Полная проверка всего каталога приложения по манифесту целостности.
         public static bool VerifyAppIntegrity(out string reason)
         {
+            reason = null;
+#if !PROTECTION
+            // Сборка без защиты: проверка целостности не выполняется.
+            return true;
+#else
             return VerifyDirectory(ApplicationDirectory, SignatureFilePath,
                 LicenseService.PublisherPublicKeyXml, out reason);
+#endif
         }
 
         // Проверка каталога по манифесту: каждый компонент из манифеста должен существовать

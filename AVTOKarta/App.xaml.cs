@@ -35,9 +35,10 @@ namespace AVTOKarta
         {
             Log("=== OnStartup START ===");
 
-#if DEBUG
-            // Dev-обход защиты: только в Debug-сборках, чтобы можно было отлаживать в VS.
-            // В Release (#else) защита работает всегда.
+#if !PROTECTION
+            // Отладочная сборка: проверки целостности и отладчика в неё не компилируются
+            // вовсе (символ PROTECTION объявлен только в Release|x86), поэтому запуск
+            // под отладчиком Visual Studio / исследование бинарника не блокируются.
             TamperGuard.SetDevBypass(true);
 #endif
 

@@ -95,8 +95,11 @@ namespace AVTOKarta.Licensing
             if (feature == LicenseFeatures.Core)
                 return _currentFeatures.Has(LicenseFeatures.Core);
 
+#if PROTECTION
+            // Ограничение расширенных функций при вмешательстве — только в релизных сборках.
             if (TamperGuard.IsTampered())
                 return false;
+#endif
 
             return _currentFeatures.Has(feature);
         }

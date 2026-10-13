@@ -2,11 +2,23 @@ using System;
 using System.Collections.Generic;
 using AVTOKarta.Licensing;
 
+// Страховка на этапе компиляции: релизную сборку нельзя выпустить без защиты.
+// Символ PROTECTION объявлен в конфигурации Release (см. AVTOKarta.csproj).
+// Осознанная сборка без защиты помечается символом PROTECTION_DISABLED
+// (msbuild /p:NoProtection=true) и ошибкой не считается.
+#if !PROTECTION && !DEBUG && !PROTECTION_DISABLED
+#error Релизная сборка собрана без символа PROTECTION: код защиты отсутствует. Соберите через build-release.ps1 или Release|x86, либо используйте /p:NoProtection=true для намеренной сборки без защиты.
+#endif
+
 namespace AVTOKarta.Security
 {
     // Сторож целостности: проверяет подпись exe и наличие отладчика.
     // При обнаружении вмешательства переводит приложение в режим деградации
     // (не-базовые функции отключаются через LicenseService.HasFeature).
+    //
+    // ВАЖНО: вся логика проверок компилируется ТОЛЬКО при символе PROTECTION
+    // (конфигурация Release|x86). В Debug сборке TamperGuard ничего не проверяет,
+    // поэтому запуск из Visual Studio и исследование кода не блокируются.
     public static class TamperGuard
     {
         private static readonly object Sync = new object();
@@ -97,6 +109,14 @@ namespace AVTOKarta.Security
                 ReasonsList.Clear();
                 return;
             }
+
+#if !PROTECTION
+            // Сборка без защиты (Debug и любые не-релизные конфигурации):
+            // проверок целостности и отладчика в бинарнике нет — вмешательство не фиксируется.
+            _tampered = false;
+            ReasonsList.Clear();
+            return;
+#else
             bool tampered = false;
             var reasons = new List<string>();
 
@@ -124,6 +144,7 @@ namespace AVTOKarta.Security
             _tampered = tampered;
             ReasonsList.Clear();
             ReasonsList.AddRange(reasons);
+#endif
         }
     }
 }

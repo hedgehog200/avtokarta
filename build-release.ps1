@@ -36,29 +36,41 @@ Write-Host '==> 1. MSBuild (Release x86)'
 if ($LASTEXITCODE -ne 0) { throw 'Сборка завершилась с ошибками' }
 
 $didObfuscate = $false
-if (-not $NoObfuscation -and $crproj -and (Test-Path $confuserCli)) {
+if ($NoObfuscation) {
+    Write-Warning '==> 2. Обфускация пропущена (задан -NoObfuscation)'
+}
+elseif (-not $crproj) {
+    # Отсутствие профиля/CLI раньше приводило к ТИХОМУ пропуску обфускации —
+    # можно было выпустить незащищённый exe, не заметив. Теперь падаем явно.
+    throw ('Профиль обфускации .crproj не найден. Ожидается avtokarta.crproj в репозитории ' +
+           'или %TEMP%\confuser\avtokarta.crproj. Либо запустите с -NoObfuscation.')
+}
+elseif (-not (Test-Path $confuserCli)) {
+    throw ('Confuser.CLI.exe не найден: ' + $confuserCli + '. ' +
+           'Скачайте ConfuserEx-CLI 1.6.0 (github.com/mkaring/ConfuserEx/releases) и распакуйте в ' +
+           (Split-Path $confuserCli) + ', либо запустите с -NoObfuscation.')
+}
+else {
     Write-Host '==> 2. Обфускация ConfuserEx'
     & $confuserCli -n $crproj.FullName
     if ($LASTEXITCODE -ne 0) { throw 'Обфускация завершилась с ошибками' }
     $confused = Join-Path $outDir 'Confused\AVTOKarta.exe'
-    if (Test-Path $confused) {
-        Copy-Item $confused $exePath -Force
-        $didObfuscate = $true
-        Write-Host '    обфускация применена, exe заменён'
-    } else {
-        Write-Warning 'Confused\AVTOKarta.exe не найден — обфускация пропущена'
-    }
-} else {
-    Write-Warning '==> 2. Обфускация пропущена (нет .crproj/Confuser.CLI или задан -NoObfuscation)'
+    if (-not (Test-Path $confused)) { throw ('Confused\AVTOKarta.exe не найден после обфускации: ' + $confused) }
+    Copy-Item $confused $exePath -Force
+    $didObfuscate = $true
+    Write-Host '    обфускация применена, exe заменён'
 }
 
 if (-not (Test-Path $lg)) { throw 'LicGen.exe не найден: ' + $lg }
 
 Write-Host '==> 3. Переподпись tamper.sig'
-& $lg --sig-issue $exePath
-if ($LASTEXITCODE -ne 0) { throw 'sig-issue не удался' }
-& $lg --sig-check $exePath
-if ($LASTEXITCODE -ne 0) { throw 'sig-check не пройден' }
+# LicGen — WinExe: оператор '&' не дожидается завершения и не возвращает код,
+# поэтому подпись могла ещё идти, когда скрипт уже писал «Готово». Запускаем
+# через Start-Process -Wait и проверяем реальный ExitCode.
+$pIssue = Start-Process -FilePath $lg -ArgumentList "--sig-issue `"$exePath`"" -Wait -PassThru -NoNewWindow
+if ($pIssue.ExitCode -ne 0) { throw ('sig-issue не удался (код ' + $pIssue.ExitCode + ')') }
+$pCheck = Start-Process -FilePath $lg -ArgumentList "--sig-check `"$exePath`"" -Wait -PassThru -NoNewWindow
+if ($pCheck.ExitCode -ne 0) { throw ('sig-check не пройден (код ' + $pCheck.ExitCode + ')') }
 
 if ($didObfuscate) { Write-Host '==> 4. Готово (обфусцировано и подписано):' } else { Write-Host '==> 3. Готово:' }
 Write-Host ('    ' + (Join-Path $root $exePath))

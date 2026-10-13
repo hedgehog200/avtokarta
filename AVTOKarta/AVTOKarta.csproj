@@ -16,6 +16,20 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
   </PropertyGroup>
+  <!-- Защита от дизассемблирования/отладки собирается ТОЛЬКО в релизных сборках:
+       символ PROTECTION объявлен исключительно в конфигурации Release|x86.
+       В Debug (и любой другой конфигурации) кода проверок в бинарнике нет вовсе,
+       поэтому отладка в Visual Studio, dnSpy/ILSpy и запуск без tamper.sig работают.
+
+       Сборка конфигурации Release БЕЗ защиты (для локальной проверки релиза под отладчиком):
+         msbuild AVTOKarta\AVTOKarta.csproj /p:Configuration=Release /p:NoProtection=true
+       Флаг действует на этапе компиляции — в рантайме никаких обходов нет. -->
+  <PropertyGroup>
+    <ProtectionConstants Condition=" '$(NoProtection)' != 'true' ">PROTECTION</ProtectionConstants>
+    <!-- Маркер осознанной сборки без защиты. Нужен, чтобы компилятор не считал
+         такую сборку ошибочной (см. #error в Security\TamperGuard.cs). -->
+    <ProtectionConstants Condition=" '$(NoProtection)' == 'true' ">PROTECTION_DISABLED</ProtectionConstants>
+  </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <PlatformTarget>x86</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
@@ -30,7 +44,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE;$(ProtectionConstants)</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
   <ItemGroup>
