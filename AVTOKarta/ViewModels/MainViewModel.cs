@@ -43,11 +43,13 @@ namespace AVTOKarta.ViewModels
         private bool _isFuelReportMode;
         private bool _isWarehouseMode;
         private bool _isDriverListMode;
+        private bool _isNormativeMode;
 
         private string _statusMessage;
         private SquadSetupViewModel _squadSetupVm;
         private WarehouseViewModel _warehouseVm;
         private DriverListViewModel _driverListVm;
+        private NormativeDataViewModel _normativeDataVm;
         private UpdateViewModel _updateVm;
 
         private double _totalActual;
@@ -93,6 +95,7 @@ namespace AVTOKarta.ViewModels
         public RelayCommand ImportDataCommand { get; }
         public RelayCommand WarehouseCommand { get; }
         public RelayCommand DriverListCommand { get; }
+        public RelayCommand NormativeDataCommand { get; }
 
         public MainViewModel()
         {
@@ -130,10 +133,12 @@ namespace AVTOKarta.ViewModels
             ImportDataCommand = new RelayCommand(o => ImportData(), o => _dataService != null && !_isBusy);
             WarehouseCommand = new RelayCommand(o => ShowWarehouse(), o => _dataService != null && _selectedSquad != null && LicenseService.HasFeature(LicenseFeatures.Warehouse));
             DriverListCommand = new RelayCommand(o => ShowDriverList(), o => _dataService != null);
+            NormativeDataCommand = new RelayCommand(o => ShowNormativeData());
 
             _selectedMonthIndex = DateTime.Now.Month - 1;
             _selectedYear = DateTime.Now.Year;
             _squadSetupVm = new SquadSetupViewModel();
+            _normativeDataVm = new NormativeDataViewModel();
             _updateVm = new UpdateViewModel();
             IsSetupMode = true;
             StatusMessage = "Загрузка...";
@@ -427,6 +432,18 @@ namespace AVTOKarta.ViewModels
             set { SetProperty(ref _isDriverListMode, value); }
         }
 
+        public bool IsNormativeMode
+        {
+            get { return _isNormativeMode; }
+            set { SetProperty(ref _isNormativeMode, value); }
+        }
+
+        /// <summary>ViewModel раздела «Нормативные данные» (справочник норм ГСМ для авто и шасси МЧС).</summary>
+        public NormativeDataViewModel NormativeDataVm
+        {
+            get { return _normativeDataVm; }
+        }
+
         public string StatusMessage
         {
             get { return _statusMessage; }
@@ -614,6 +631,7 @@ namespace AVTOKarta.ViewModels
             IsFuelReportMode = false;
             IsWarehouseMode = false;
             IsDriverListMode = false;
+            IsNormativeMode = false;
         }
 
         private void ShowSquadList()
@@ -626,6 +644,7 @@ namespace AVTOKarta.ViewModels
             IsFuelReportMode = false;
             IsWarehouseMode = false;
             IsDriverListMode = false;
+            IsNormativeMode = false;
             CurrentScreenIndex = 0;
         }
 
@@ -639,6 +658,7 @@ namespace AVTOKarta.ViewModels
             IsFuelReportMode = false;
             IsWarehouseMode = false;
             IsDriverListMode = false;
+            IsNormativeMode = false;
             CurrentScreenIndex = 2;
         }
 
@@ -652,6 +672,7 @@ namespace AVTOKarta.ViewModels
             IsFuelReportMode = false;
             IsWarehouseMode = false;
             IsDriverListMode = false;
+            IsNormativeMode = false;
             CurrentScreenIndex = 3;
 
             if (CardVehicle == null)
@@ -683,6 +704,7 @@ namespace AVTOKarta.ViewModels
             IsFuelReportMode = false;
             IsWarehouseMode = false;
             IsDriverListMode = false;
+            IsNormativeMode = false;
             CurrentScreenIndex = 3;
             OnPropertyChanged("HasPassword");
         }
@@ -697,6 +719,7 @@ namespace AVTOKarta.ViewModels
             IsFuelReportMode = true;
             IsWarehouseMode = false;
             IsDriverListMode = false;
+            IsNormativeMode = false;
             CurrentScreenIndex = 6;
         }
 
@@ -712,6 +735,7 @@ namespace AVTOKarta.ViewModels
             IsFuelReportMode = false;
             IsWarehouseMode = true;
             IsDriverListMode = false;
+            IsNormativeMode = false;
             CurrentScreenIndex = 4;
 
             if (_dataService != null && _selectedSquad != null)
@@ -734,7 +758,10 @@ namespace AVTOKarta.ViewModels
             IsSquadListMode = false;
             IsFuelReportMode = false;
             IsWarehouseMode = false;
+            IsFuelReportMode = false;
+            IsWarehouseMode = false;
             IsDriverListMode = true;
+            IsNormativeMode = false;
             CurrentScreenIndex = 1;
 
             if (_dataService != null)
@@ -747,6 +774,24 @@ namespace AVTOKarta.ViewModels
                 Application.Current.Dispatcher.BeginInvoke(
                     new Action(() => DriverListVm?.RefreshTripHistory()));
             }
+        }
+
+        /// <summary>
+        /// Раздел «Нормативные данные» — справочник базовых норм расхода топлива
+        /// для авто и шасси МЧС (АМ-23-р, прил. II, п. 15.12).
+        /// </summary>
+        private void ShowNormativeData()
+        {
+            IsSetupMode = false;
+            IsVehicleMode = false;
+            IsCardMode = false;
+            IsSettingsMode = false;
+            IsSquadListMode = false;
+            IsFuelReportMode = false;
+            IsWarehouseMode = false;
+            IsDriverListMode = false;
+            IsNormativeMode = true;
+            CurrentScreenIndex = 7;
         }
 
         public void CompleteSetup(string password, Squad squad)

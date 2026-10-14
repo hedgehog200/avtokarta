@@ -144,6 +144,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="Views\NormativeDataView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="Views\LicenseView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -156,6 +160,7 @@
     </Compile>
     <Compile Include="Models\Squad.cs" />
     <Compile Include="Models\Vehicle.cs" />
+    <Compile Include="Models\NormativeVehicle.cs" />
     <Compile Include="Models\Driver.cs" />
     <Compile Include="Models\FuelNorm.cs" />
     <Compile Include="Models\Surcharge.cs" />
@@ -178,6 +183,7 @@
     <Compile Include="Services\CalculationService.cs" />
     <Compile Include="Services\SettingsService.cs" />
     <Compile Include="Services\DataTransferService.cs" />
+    <Compile Include="Services\NormativeDataService.cs" />
     <Compile Include="Services\UpdateService.cs" />
     <Compile Include="ViewModels\BaseViewModel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
@@ -190,6 +196,7 @@
     <Compile Include="ViewModels\UpdateViewModel.cs" />
     <Compile Include="ViewModels\SquadEditViewModel.cs" />
     <Compile Include="ViewModels\WarehouseViewModel.cs" />
+    <Compile Include="ViewModels\NormativeDataViewModel.cs" />
     <Compile Include="ViewModels\DriverListViewModel.cs" />
     <Compile Include="Views\ChangePasswordView.xaml.cs">
       <DependentUpon>ChangePasswordView.xaml</DependentUpon>
@@ -223,6 +230,9 @@
     </Compile>
     <Compile Include="Views\WarehouseView.xaml.cs">
       <DependentUpon>WarehouseView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\NormativeDataView.xaml.cs">
+      <DependentUpon>NormativeDataView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\DriverListView.xaml.cs">
       <DependentUpon>DriverListView.xaml</DependentUpon>

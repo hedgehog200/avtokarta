@@ -97,6 +97,28 @@
                                    Foreground="{StaticResource PrimaryBrush}"/>
                     </Border>
 
+                    <TextBlock Text="Подставить нормы из справочника (модель ПА / шасси):"
+                               FontWeight="SemiBold" FontSize="13" TextWrapping="Wrap"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <ComboBox ItemsSource="{Binding NormativeItems}"
+                              SelectedItem="{Binding SelectedNormative}"
+                              Margin="0,0,0,4" Height="36"
+                              IsTextSearchEnabled="True" TextSearch.TextPath="Model"
+                              ItemContainerStyle="{StaticResource ComboBoxItemStyle}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Model}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding Chassis}" Margin="8,0,0,0"
+                                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBlock Text="Выбор модели заполнит нормы: пробег (л/км), насос (л/мин), холостой ход (л/мин) и тип двигателя."
+                               FontSize="11" TextWrapping="Wrap"
+                               Foreground="{StaticResource TextTertiaryBrush}" Margin="0,0,0,12"/>
+
                     <TextBlock Text="Норма на пробег (л/км):" FontWeight="SemiBold" FontSize="13"
                                Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                     <TextBox Text="{Binding NormPerKmWithoutPump, StringFormat=F3, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,10"/>

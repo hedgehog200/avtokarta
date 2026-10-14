@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using AVTOKarta.Helpers;
 using AVTOKarta.Models;
+using AVTOKarta.Services;
 
 namespace AVTOKarta.ViewModels
 {
@@ -41,6 +42,7 @@ namespace AVTOKarta.ViewModels
 
         private string _selectedSquadId;
         private EngineTypeItem _selectedEngineItem;
+        private NormativeVehicle _selectedNormative;
 
         public RelayCommand ConfirmCommand { get; }
         public RelayCommand CancelCommand { get; }
@@ -59,6 +61,7 @@ namespace AVTOKarta.ViewModels
         {
             EditingVehicle = vehicle;
             AvailableSquads = squads ?? new List<Squad>();
+            NormativeItems = new List<NormativeVehicle>(NormativeDataService.Items);
 
             _licensePlate = vehicle.LicensePlate;
             _make = vehicle.Make;
@@ -219,6 +222,50 @@ namespace AVTOKarta.ViewModels
         {
             get { return _selectedEngineItem; }
             set { SetProperty(ref _selectedEngineItem, value); }
+        }
+
+        /// <summary>
+        /// Справочник базовых норм (АМ-23-р, прил. II, п. 15.12) для подстановки
+        /// норм расхода выбранной модели ПА/шасси в карточку ТС.
+        /// </summary>
+        public List<NormativeVehicle> NormativeItems { get; private set; }
+
+        /// <summary>Выбранная модель из справочника нормативных данных.</summary>
+        public NormativeVehicle SelectedNormative
+        {
+            get { return _selectedNormative; }
+            set
+            {
+                if (SetProperty(ref _selectedNormative, value))
+                    ApplyNormative(value);
+            }
+        }
+
+        /// <summary>
+        /// Заполняет нормы расхода по выбранной справочной записи.
+        /// Базовая норма справочника задана в л/100 км, в ПО норма хранится в л/км (÷ 100).
+        /// </summary>
+        private void ApplyNormative(NormativeVehicle n)
+        {
+            if (n == null)
+                return;
+
+            if (n.ConsumptionPer100Km > 0)
+                NormPerKmWithoutPump = n.ConsumptionPerKm;
+
+            NormPerMinPump = n.PumpLpm;
+            NormPerMinIdle = n.IdleLpm;
+
+            EngineType? engine = n.Engine;
+            if (engine.HasValue)
+            {
+                EngineTypeItem item = EngineTypes.Find(e => e.Type == engine.Value);
+                if (item != null)
+                    SelectedEngineItem = item;
+            }
+
+            if (string.IsNullOrWhiteSpace(Type))
+                Type = n.Model;
         }
 
         private void Confirm()

@@ -5,7 +5,7 @@
         xmlns:views="clr-namespace:AVTOKarta.Views"
         xmlns:hc="https://handyorg.github.io/handycontrol"
         xml:lang="ru-RU"
-        Title="АВТОКарта v1.3.0 — WebARTup - Studio: Technologies" Height="750" Width="1150"
+        Title="АВТОКарта v1.3.1 — WebARTup - Studio: Technologies" Height="750" Width="1150"
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized"
         KeyDown="Window_KeyDown"
@@ -412,6 +412,10 @@
             <views:WarehouseView DataContext="{Binding}"
                                  Visibility="{Binding IsWarehouseMode, Converter={StaticResource BoolToVis}}"
                                  Panel.ZIndex="7"/>
+
+            <views:NormativeDataView DataContext="{Binding}"
+                                     Visibility="{Binding IsNormativeMode, Converter={StaticResource BoolToVis}}"
+                                     Panel.ZIndex="8"/>
         </Grid>
 
         <!-- ===== STATUS BAR ===== -->
@@ -588,6 +592,14 @@
                                     <TextBlock Text="&#xF080;" FontFamily="{StaticResource FontAwesomeSolid}" FontSize="16"
                                                VerticalAlignment="Center" Margin="0,0,12,0"/>
                                     <TextBlock Text="Отчёт ГСМ" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Command="{Binding NormativeDataCommand}" Style="{StaticResource DrawerNavButton}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xF02D;" FontFamily="{StaticResource FontAwesomeSolid}" FontSize="16"
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock Text="Нормативные данные" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 
