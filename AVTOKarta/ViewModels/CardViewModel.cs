@@ -54,12 +54,18 @@ namespace AVTOKarta.ViewModels
 
         public RelayCommand ConfirmCommand { get; }
         public RelayCommand CancelCommand { get; }
+        public RelayCommand ClearSurchargesCommand { get; }
 
         public DailyRecord EditingRecord { get; }
         public bool? DialogResult { get; private set; }
 
-        /// <summary>Список надбавок, доступных для выбора в записи.</summary>
+        /// <summary>Список надбавок (кроме зимней), доступных для выбора в записи.</summary>
         public ObservableCollection<SurchargeOption> SurchargeOptions { get; }
+
+        /// <summary>Отдельный тумблер зимней надбавки (показывается сверху блока надбавок).</summary>
+        public SurchargeOption WinterSurchargeOption { get; private set; }
+
+        public bool HasWinterSurchargeOption => WinterSurchargeOption != null;
 
         public CardViewModel(DailyRecord record, FuelNorm fuelNorms, List<string> driverNames = null, double previousOdometer = 0, Squad squad = null)
         {
@@ -115,11 +121,9 @@ namespace AVTOKarta.ViewModels
             SurchargeOptions = new ObservableCollection<SurchargeOption>();
             BuildSurchargeOptions(record);
 
-            // Отметить зимнюю надбавку автоматически, если она действует и ещё не выбрана.
-            RefreshWinterAutoSelection();
-
             ConfirmCommand = new RelayCommand(o => Confirm());
             CancelCommand = new RelayCommand(o => Cancel());
+            ClearSurchargesCommand = new RelayCommand(o => ClearSurcharges());
 
             Recalculate();
         }
@@ -128,13 +132,16 @@ namespace AVTOKarta.ViewModels
         {
             var applied = record.EnsureSurcharges();
 
-            // Зимняя надбавка — отдельный авто-элемент (задаётся на уровне части).
-            if (_squad != null && _squad.WinterSurchargePercent != 0)
-            {
-                var winter = new SurchargeOption(new Surcharge("Зимняя", _squad.WinterSurchargePercent,
-                    true, true, SurchargeCatalog.ClimateGroup));
-                AddSurchargeOption(winter, applied);
-            }
+            // Зимняя надбавка всегда отображается отдельным верхним тумблером.
+            // Если процент у части ещё не задан, показываем редактируемый пресет 10 %.
+            double winterPercent = _squad != null && _squad.WinterSurchargePercent != 0
+                ? _squad.WinterSurchargePercent
+                : SurchargeCatalog.DefaultWinterPercent;
+            WinterSurchargeOption = new SurchargeOption(new Surcharge("Зимняя", winterPercent,
+                true, true, SurchargeCatalog.ClimateGroup));
+            WinterSurchargeOption.IsSelected = applied.Any(a =>
+                a != null && a.Name == WinterSurchargeOption.Name && Math.Abs(a.Percent - WinterSurchargeOption.Percent) < 0.001);
+            WinterSurchargeOption.SelectionChanged += () => OnSurchargeChanged(WinterSurchargeOption);
 
             foreach (var s in SurchargeCatalog.GetForSquad(_squad))
                 AddSurchargeOption(new SurchargeOption(s), applied);
@@ -145,8 +152,7 @@ namespace AVTOKarta.ViewModels
             {
                 if (a == null)
                     continue;
-                bool found = SurchargeOptions.Any(o =>
-                    o.Name == a.Name && Math.Abs(o.Percent - a.Percent) < 0.001);
+                bool found = IsOptionPresent(a);
                 if (!found)
                 {
                     var extra = new SurchargeOption(a) { IsSelected = true };
@@ -154,6 +160,23 @@ namespace AVTOKarta.ViewModels
                     SurchargeOptions.Add(extra);
                 }
             }
+        }
+
+        private bool IsOptionPresent(Surcharge applied)
+        {
+            if (WinterSurchargeOption != null &&
+                WinterSurchargeOption.Name == applied.Name && Math.Abs(WinterSurchargeOption.Percent - applied.Percent) < 0.001)
+                return true;
+            return SurchargeOptions.Any(o =>
+                o.Name == applied.Name && Math.Abs(o.Percent - applied.Percent) < 0.001);
+        }
+
+        private IEnumerable<SurchargeOption> AllSurchargeOptions()
+        {
+            if (WinterSurchargeOption != null)
+                yield return WinterSurchargeOption;
+            foreach (var o in SurchargeOptions)
+                yield return o;
         }
 
         private void AddSurchargeOption(SurchargeOption option, List<Surcharge> applied)
@@ -179,7 +202,7 @@ namespace AVTOKarta.ViewModels
                 _suppressSurchargeEvents = true;
                 try
                 {
-                    foreach (var other in SurchargeOptions)
+                    foreach (var other in AllSurchargeOptions())
                     {
                         if (!ReferenceEquals(other, option) && other.IsSelected &&
                             !string.IsNullOrEmpty(other.ExclusiveGroup) &&
@@ -198,16 +221,20 @@ namespace AVTOKarta.ViewModels
             Recalculate();
         }
 
-        private void RefreshWinterAutoSelection()
+        private void ClearSurcharges()
         {
-            if (_squad == null || _squad.WinterSurchargePercent == 0)
-                return;
+            _suppressSurchargeEvents = true;
+            try
+            {
+                foreach (var option in AllSurchargeOptions())
+                    option.IsSelected = false;
+            }
+            finally
+            {
+                _suppressSurchargeEvents = false;
+            }
 
-            var winterOpt = SurchargeOptions.FirstOrDefault(o => o.Name == "Зимняя");
-            if (winterOpt == null)
-                return;
-
-            winterOpt.IsSelected = CalculationService.IsWinterDate(Date, _squad);
+            Recalculate();
         }
 
         public DateTime Date
@@ -217,7 +244,6 @@ namespace AVTOKarta.ViewModels
             {
                 if (SetProperty(ref _date, value))
                 {
-                    RefreshWinterAutoSelection();
                     Recalculate();
                 }
             }
@@ -520,7 +546,7 @@ namespace AVTOKarta.ViewModels
         private List<Surcharge> BuildSurcharges()
         {
             var list = new List<Surcharge>();
-            foreach (var opt in SurchargeOptions)
+            foreach (var opt in AllSurchargeOptions())
             {
                 if (opt.IsSelected)
                     list.Add(opt.ToSurcharge());

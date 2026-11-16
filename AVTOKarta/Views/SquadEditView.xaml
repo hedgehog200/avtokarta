@@ -91,8 +91,9 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                          Margin="0,0,12,4" FontSize="12"/>
+                                <ToggleButton Content="{Binding Name}" IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                              Style="{StaticResource ToggleSwitchStyle}"
+                                              Margin="0,0,12,4" FontSize="12"/>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -111,8 +112,16 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Название" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
                             <DataGridTextColumn Header="%" Binding="{Binding Percent, StringFormat=F2}" Width="60"/>
-                            <DataGridCheckBoxColumn Header="Пробег" Binding="{Binding AppliesToDistance}" Width="55"/>
-                            <DataGridCheckBoxColumn Header="Насос" Binding="{Binding AppliesToPump}" Width="55"/>
+                            <DataGridTemplateColumn Header="Пробег" Width="70">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate><ToggleButton IsChecked="{Binding AppliesToDistance, Mode=TwoWay}" Style="{StaticResource ToggleSwitchStyle}"/></DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Насос" Width="70">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate><ToggleButton IsChecked="{Binding AppliesToPump, Mode=TwoWay}" Style="{StaticResource ToggleSwitchStyle}"/></DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                         </DataGrid.Columns>
                     </DataGrid>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">

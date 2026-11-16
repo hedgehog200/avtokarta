@@ -343,7 +343,8 @@ namespace AVTOKarta.Services
 
         private void SetCellNum(IXLWorksheet ws, int row, int col, double value, bool bold = false,
             double fontSize = 11, string format = "#,##0.000",
-            XLAlignmentVerticalValues? vAlign = null)
+            XLAlignmentVerticalValues? vAlign = null,
+            XLAlignmentHorizontalValues? hAlign = null)
         {
             var cell = ws.Cell(row, col);
             cell.Value = value;
@@ -352,6 +353,7 @@ namespace AVTOKarta.Services
             cell.Style.Font.Bold = bold;
             cell.Style.NumberFormat.Format = format;
             cell.Style.Alignment.Vertical = vAlign ?? XLAlignmentVerticalValues.Bottom;
+            if (hAlign.HasValue) cell.Style.Alignment.Horizontal = hAlign.Value;
         }
 
         private string FuelFormat(bool isDiesel)
@@ -364,9 +366,15 @@ namespace AVTOKarta.Services
             return isDiesel ? "0.000" : "0.0000";
         }
 
+        private string FuelTypeName(bool isDiesel)
+        {
+            return isDiesel ? "ДТ" : "АИ-92";
+        }
+
         private void SetFormula(IXLWorksheet ws, int row, int col, string formula, bool bold = false,
             double fontSize = 11, string format = "#,##0.000",
-            XLAlignmentVerticalValues? vAlign = null)
+            XLAlignmentVerticalValues? vAlign = null,
+            XLAlignmentHorizontalValues? hAlign = null)
         {
             var cell = ws.Cell(row, col);
             cell.FormulaA1 = formula;
@@ -375,6 +383,7 @@ namespace AVTOKarta.Services
             cell.Style.Font.Bold = bold;
             cell.Style.NumberFormat.Format = format;
             cell.Style.Alignment.Vertical = vAlign ?? XLAlignmentVerticalValues.Bottom;
+            if (hAlign.HasValue) cell.Style.Alignment.Horizontal = hAlign.Value;
         }
 
         private void SetPageSetup(IXLWorksheet ws, bool landscape = true)
@@ -589,7 +598,7 @@ namespace AVTOKarta.Services
             ws.Row(12).Height = 20;
             ws.Row(13).Height = 15;
 
-            // === Header block rows 8-12 ===
+            // === Header block rows 8-12 (по эталону «(1)донесение») ===
             ws.Range(8, 1, 12, 1).Merge();
             SetCell(ws, 8, 1, "Наименование", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
             ws.Range(8, 2, 12, 2).Merge();
@@ -601,7 +610,7 @@ namespace AVTOKarta.Services
             SetCell(ws, 8, 4, "Приход", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, vAlign: XLAlignmentVerticalValues.Center);
 
             ws.Range(9, 4, 12, 4).Merge();
-            SetCell(ws, 9, 4, "Всего ", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+            SetCell(ws, 9, 4, "Всего", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
 
             ws.Range(9, 5, 9, 10).Merge();
             SetCell(ws, 9, 5, "в т.ч.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, vAlign: XLAlignmentVerticalValues.Center);
@@ -634,7 +643,7 @@ namespace AVTOKarta.Services
             SetCell(ws, 8, 12, "Расход", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, vAlign: XLAlignmentVerticalValues.Center);
 
             ws.Range(9, 12, 12, 12).Merge();
-            SetCell(ws, 9, 12, "Всего ", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+            SetCell(ws, 9, 12, "Всего", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
 
             ws.Range(9, 13, 9, 16).Merge();
             SetCell(ws, 9, 13, "в т.ч.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, vAlign: XLAlignmentVerticalValues.Center);
@@ -718,25 +727,30 @@ namespace AVTOKarta.Services
             double whFuelDiesel = warehouseItems.Where(w => w.Type == OilType.Diesel).Sum(w => w.Quantity);
 
             int row = 14;
+            int gasTotalRow = row;
+            int ai92Row = -1;
+            int dieselTotalRow = -1;
+            int dtRow = -1;
+            int misTotalRow = -1;
 
             // Автобен. Всего
-            string gasFmt = "#,##0.0000";
+            const string fuelFmt = "0.000";
             SetCell(ws, row, 1, "Автобен. Всего", wrap: true);
             SetCell(ws, row, 2, "л.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            SetCellNum(ws, row, 3, gasStart, fontSize: 10, format: gasFmt);
-            SetFormula(ws, row, 4, string.Format("=SUM(E{0}:J{0})", row), fontSize: 10, format: gasFmt);
-            SetCellNum(ws, row, 5, gasRefuelCentralized, fontSize: 10, format: gasFmt);
-            SetCellNum(ws, row, 6, gasRefuelOwnRC, fontSize: 10, format: gasFmt);
-            SetCellNum(ws, row, 7, gasRefuelOtherRC, fontSize: 10, format: gasFmt);
-            SetCellNum(ws, row, 8, gasRefuelLocal, fontSize: 10, format: gasFmt);
-            SetCellNum(ws, row, 10, gasRefuelOther, fontSize: 10, format: gasFmt);
-            SetCellNum(ws, row, 11, gasYTD + gasConsumed, fontSize: 10, format: gasFmt);
-            SetFormula(ws, row, 12, string.Format("=SUM(M{0}:P{0})", row), fontSize: 10, format: gasFmt);
-            SetCellNum(ws, row, 13, gasConsumed, fontSize: 10, format: gasFmt);
-            SetFormula(ws, row, 17, string.Format("=K{0}", row), fontSize: 10, format: gasFmt);
-            SetFormula(ws, row, 18, string.Format("=C{0}+D{0}-L{0}", row), fontSize: 10, format: gasFmt);
-            SetFormula(ws, row, 19, string.Format("=R{0}*{1}", row, gasTankRatio.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture)), fontSize: 10, format: gasFmt);
-            SetFormula(ws, row, 20, string.Format("=R{0}-S{0}", row), fontSize: 10, format: gasFmt);
+            SetCellNum(ws, row, 3, gasStart, fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 4, string.Format("=SUM(E{0}:J{0})", row), fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 5, gasRefuelCentralized, fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 6, gasRefuelOwnRC, fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 7, gasRefuelOtherRC, fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 8, gasRefuelLocal, fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 10, gasRefuelOther, fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 11, gasYTD + gasConsumed, fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 12, string.Format("=SUM(M{0}:P{0})", row), fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 13, gasConsumed, fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 17, string.Format("=K{0}", row), fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 18, string.Format("=C{0}+D{0}-L{0}", row), fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 19, string.Format("=R{0}*{1}", row, gasTankRatio.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture)), fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 20, string.Format("=R{0}-S{0}", row), fontSize: 10, format: fuelFmt);
             row++;
 
             // АИ-95
@@ -745,60 +759,63 @@ namespace AVTOKarta.Services
             row++;
 
             // АИ-92
+            ai92Row = row;
             SetCell(ws, row, 1, "АИ-92", wrap: true);
             SetCell(ws, row, 2, "л.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            SetCellNum(ws, row, 3, gasStart, fontSize: 10, format: gasFmt);
-            SetFormula(ws, row, 4, string.Format("=SUM(E{0}:J{0})", row), fontSize: 10, format: gasFmt);
-            SetCellNum(ws, row, 5, gasRefuelCentralized, fontSize: 10, format: gasFmt);
-            SetCellNum(ws, row, 6, gasRefuelOwnRC, fontSize: 10, format: gasFmt);
-            SetCellNum(ws, row, 7, gasRefuelOtherRC, fontSize: 10, format: gasFmt);
-            SetCellNum(ws, row, 8, gasRefuelLocal, fontSize: 10, format: gasFmt);
-            SetCellNum(ws, row, 10, gasRefuelOther, fontSize: 10, format: gasFmt);
-            SetCellNum(ws, row, 11, gasYTD + gasConsumed, fontSize: 10, format: gasFmt);
-            SetFormula(ws, row, 12, string.Format("=SUM(M{0}:P{0})", row), fontSize: 10, format: gasFmt);
-            SetCellNum(ws, row, 13, gasConsumed, fontSize: 10, format: gasFmt);
-            SetFormula(ws, row, 17, string.Format("=K{0}", row), fontSize: 10, format: gasFmt);
-            SetFormula(ws, row, 18, string.Format("=C{0}+D{0}-L{0}", row), fontSize: 10, format: gasFmt);
-            SetFormula(ws, row, 19, string.Format("=R{0}*{1}", row, gasTankRatio.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture)), fontSize: 10, format: gasFmt);
-            SetFormula(ws, row, 20, string.Format("=R{0}-S{0}", row), fontSize: 10, format: gasFmt);
+            SetCellNum(ws, row, 3, gasStart, fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 4, string.Format("=SUM(E{0}:J{0})", row), fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 5, gasRefuelCentralized, fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 6, gasRefuelOwnRC, fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 7, gasRefuelOtherRC, fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 8, gasRefuelLocal, fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 10, gasRefuelOther, fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 11, gasYTD + gasConsumed, fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 12, string.Format("=SUM(M{0}:P{0})", row), fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 13, gasConsumed, fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 17, string.Format("=K{0}", row), fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 18, string.Format("=C{0}+D{0}-L{0}", row), fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 19, string.Format("=R{0}*{1}", row, gasTankRatio.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture)), fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 20, string.Format("=R{0}-S{0}", row), fontSize: 10, format: fuelFmt);
             row++;
 
             // Д/т Всего
+            dieselTotalRow = row;
             SetCell(ws, row, 1, "Д/т Всего", wrap: true);
             SetCell(ws, row, 2, "л.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            SetCellNum(ws, row, 3, dieselStart, fontSize: 10);
-            SetFormula(ws, row, 4, string.Format("=SUM(E{0}:J{0})", row), fontSize: 10);
-            SetCellNum(ws, row, 5, dieselRefuelCentralized, fontSize: 10);
-            SetCellNum(ws, row, 6, dieselRefuelOwnRC, fontSize: 10);
-            SetCellNum(ws, row, 7, dieselRefuelOtherRC, fontSize: 10);
-            SetCellNum(ws, row, 8, dieselRefuelLocal, fontSize: 10);
-            SetCellNum(ws, row, 10, dieselRefuelOther, fontSize: 10);
-            SetCellNum(ws, row, 11, dieselYTD + dieselConsumed, fontSize: 10);
-            SetFormula(ws, row, 12, string.Format("=SUM(M{0}:P{0})", row), fontSize: 10);
-            SetCellNum(ws, row, 13, dieselConsumed, fontSize: 10);
-            SetFormula(ws, row, 17, string.Format("=K{0}", row), fontSize: 10);
-            SetFormula(ws, row, 18, string.Format("=C{0}+D{0}-L{0}", row), fontSize: 10);
-            SetFormula(ws, row, 19, string.Format("=R{0}*{1}", row, dieselTankRatio.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)), fontSize: 10);
-            SetFormula(ws, row, 20, string.Format("=R{0}-S{0}", row), fontSize: 10);
+            SetCellNum(ws, row, 3, dieselStart, fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 4, string.Format("=SUM(E{0}:J{0})", row), fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 5, dieselRefuelCentralized, fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 6, dieselRefuelOwnRC, fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 7, dieselRefuelOtherRC, fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 8, dieselRefuelLocal, fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 10, dieselRefuelOther, fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 11, dieselYTD + dieselConsumed, fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 12, string.Format("=SUM(M{0}:P{0})", row), fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 13, dieselConsumed, fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 17, string.Format("=K{0}", row), fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 18, string.Format("=C{0}+D{0}-L{0}", row), fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 19, string.Format("=R{0}*{1}", row, dieselTankRatio.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture)), fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 20, string.Format("=R{0}-S{0}", row), fontSize: 10, format: fuelFmt);
             row++;
 
             // Дт
+            dtRow = row;
             SetCell(ws, row, 1, "Дт", wrap: true);
             SetCell(ws, row, 2, "л.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            SetCellNum(ws, row, 3, dieselStart, fontSize: 10);
-            SetFormula(ws, row, 4, string.Format("=SUM(E{0}:J{0})", row), fontSize: 10);
-            SetCellNum(ws, row, 5, dieselRefuelCentralized, fontSize: 10);
-            SetCellNum(ws, row, 6, dieselRefuelOwnRC, fontSize: 10);
-            SetCellNum(ws, row, 7, dieselRefuelOtherRC, fontSize: 10);
-            SetCellNum(ws, row, 8, dieselRefuelLocal, fontSize: 10);
-            SetCellNum(ws, row, 10, dieselRefuelOther, fontSize: 10);
-            SetCellNum(ws, row, 11, dieselYTD + dieselConsumed, fontSize: 10);
-            SetFormula(ws, row, 12, string.Format("=SUM(M{0}:P{0})", row), fontSize: 10);
-            SetCellNum(ws, row, 13, dieselConsumed, fontSize: 10);
-            SetFormula(ws, row, 17, string.Format("=K{0}", row), fontSize: 10);
-            SetFormula(ws, row, 18, string.Format("=C{0}+D{0}-L{0}", row), fontSize: 10);
-            SetFormula(ws, row, 19, string.Format("=R{0}*{1}", row, dieselTankRatio.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)), fontSize: 10);
-            SetFormula(ws, row, 20, string.Format("=R{0}-S{0}", row), fontSize: 10);
+            SetCellNum(ws, row, 3, dieselStart, fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 4, string.Format("=SUM(E{0}:J{0})", row), fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 5, dieselRefuelCentralized, fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 6, dieselRefuelOwnRC, fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 7, dieselRefuelOtherRC, fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 8, dieselRefuelLocal, fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 10, dieselRefuelOther, fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 11, dieselYTD + dieselConsumed, fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 12, string.Format("=SUM(M{0}:P{0})", row), fontSize: 10, format: fuelFmt);
+            SetCellNum(ws, row, 13, dieselConsumed, fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 17, string.Format("=K{0}", row), fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 18, string.Format("=C{0}+D{0}-L{0}", row), fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 19, string.Format("=R{0}*{1}", row, dieselTankRatio.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture)), fontSize: 10, format: fuelFmt);
+            SetFormula(ws, row, 20, string.Format("=R{0}-S{0}", row), fontSize: 10, format: fuelFmt);
             row++;
 
             var allMotorBrands = new List<string>();
@@ -828,14 +845,14 @@ namespace AVTOKarta.Services
 
             if (hasMisData)
             {
+                misTotalRow = row;
                 SetCell(ws, row, 1, "МиС Всего", wrap: true);
                 SetCell(ws, row, 2, "л.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-                SetCellNum(ws, row, 3, oilStart, fontSize: 10);
-                SetFormula(ws, row, 12, string.Format("=SUM(M{0}:M{1})", row + 1, row + allMotorBrands.Count + allTransBrands.Count + allSpecBrands.Count + 4), fontSize: 10);
-                SetCellNum(ws, row, 13, oilConsumed, fontSize: 10);
-                SetFormula(ws, row, 17, string.Format("=C{0}-M{0}", row), fontSize: 10);
-                SetFormula(ws, row, 18, string.Format("=Q{0}", row), fontSize: 10);
-                SetFormula(ws, row, 20, string.Format("=Q{0}", row), fontSize: 10);
+                SetCellNum(ws, row, 3, oilStart, fontSize: 10, format: fuelFmt);
+                SetCellNum(ws, row, 13, oilConsumed, fontSize: 10, format: fuelFmt);
+                SetFormula(ws, row, 17, string.Format("=C{0}-M{0}", row), fontSize: 10, format: fuelFmt);
+                SetFormula(ws, row, 18, string.Format("=Q{0}", row), fontSize: 10, format: fuelFmt);
+                SetFormula(ws, row, 20, string.Format("=Q{0}", row), fontSize: 10, format: fuelFmt);
                 row++;
 
                 foreach (var brand in allMotorBrands)
@@ -937,106 +954,114 @@ namespace AVTOKarta.Services
             dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
             dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
 
-            // === MONETARY SECTION (rows 49-60) ===
-            int mRow = 49;
-            ws.Range(mRow, 1, mRow, 20).Merge();
-            SetCell(ws, mRow, 1, "2. Наличие и движение денежных средств за отчетный период ", true, 10, hAlign: XLAlignmentHorizontalValues.Center, vAlign: XLAlignmentVerticalValues.Center);
+            // === MONETARY SECTION (по эталону, динамически после данных) ===
+            int mTitle = row + 3;
+            ws.Range(mTitle, 1, mTitle, 20).Merge();
+            SetCell(ws, mTitle, 1, "2. Наличие и движение денежных средств за отчетный период", true, 10,
+                hAlign: XLAlignmentHorizontalValues.Center, vAlign: XLAlignmentVerticalValues.Center);
 
-            ws.Range(51, 1, 57, 1).Merge();
-            SetCell(ws, 51, 1, "Статья расхода", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true);
-            ws.Range(51, 2, 57, 2).Merge();
-            SetCell(ws, 51, 2, "Ед.              изм.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true);
-            ws.Range(51, 3, 57, 3).Merge();
-            SetCell(ws, 51, 3, "Наличие на начало периода (месяц)", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true);
+            int mh = mTitle + 2; // header start
+            ws.Range(mh, 1, mh + 6, 1).Merge();
+            SetCell(ws, mh, 1, "Статья расхода", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+            ws.Range(mh, 2, mh + 6, 2).Merge();
+            SetCell(ws, mh, 2, "Ед.              изм.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+            ws.Range(mh, 3, mh + 6, 3).Merge();
+            SetCell(ws, mh, 3, "Наличие на начало периода (месяц)", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
 
-            ws.Range(51, 4, 51, 11).Merge();
-            SetCell(ws, 51, 4, "Приход", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+            ws.Range(mh, 4, mh, 11).Merge();
+            SetCell(ws, mh, 4, "Приход", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, vAlign: XLAlignmentVerticalValues.Center);
 
-            ws.Range(52, 4, 57, 5).Merge();
-            SetCell(ws, 52, 4, "Всего", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true);
+            ws.Range(mh + 1, 4, mh + 6, 5).Merge();
+            SetCell(ws, mh + 1, 4, "Всего", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
 
-            ws.Range(52, 6, 53, 11).Merge();
-            SetCell(ws, 52, 6, "в т. ч.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true);
+            ws.Range(mh + 1, 6, mh + 2, 11).Merge();
+            SetCell(ws, mh + 1, 6, "в т. ч.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
 
-            ws.Range(51, 12, 51, 16).Merge();
-            SetCell(ws, 51, 12, "Расход", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+            ws.Range(mh, 12, mh, 16).Merge();
+            SetCell(ws, mh, 12, "Расход", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, vAlign: XLAlignmentVerticalValues.Center);
 
-            ws.Range(52, 12, 53, 16).Merge();
-            SetCell(ws, 52, 12, "приобретение ГСМ", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true);
+            ws.Range(mh + 1, 12, mh + 2, 16).Merge();
+            SetCell(ws, mh + 1, 12, "приобретение ГСМ", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
 
-            ws.Range(54, 12, 57, 13).Merge();
-            SetCell(ws, 54, 12, "кг", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true);
+            ws.Range(mh + 3, 12, mh + 6, 13).Merge();
+            SetCell(ws, mh + 3, 12, "кг", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
 
-            ws.Range(54, 14, 57, 15).Merge();
-            SetCell(ws, 54, 14, "руб.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true);
+            ws.Range(mh + 3, 14, mh + 6, 15).Merge();
+            SetCell(ws, mh + 3, 14, "руб.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
 
-            ws.Range(54, 16, 57, 16).Merge();
-            SetCell(ws, 54, 16, "Всего  с начала года, тыс. руб.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true);
+            ws.Range(mh + 3, 16, mh + 6, 16).Merge();
+            SetCell(ws, mh + 3, 16, "Всего  с начала года, тыс. руб.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
 
-            ws.Range(51, 17, 57, 18).Merge();
-            SetCell(ws, 51, 17, "Наличие на конец периода", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true);
+            ws.Range(mh, 17, mh + 6, 18).Merge();
+            SetCell(ws, mh, 17, "Наличие на конец периода", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
 
-            ws.Range(51, 20, 57, 20).Merge();
-            SetCell(ws, 51, 20, "Примечание", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true);
+            ws.Range(mh, 20, mh + 6, 20).Merge();
+            SetCell(ws, mh, 20, "Примечание", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
 
-            ws.Range(57, 6, 57, 7).Merge();
-            SetCell(ws, 57, 6, "из бюджета", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true);
-            ws.Range(57, 8, 57, 9).Merge();
-            SetCell(ws, 57, 8, "из ЦФР", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true);
-            ws.Range(57, 10, 57, 11).Merge();
-            SetCell(ws, 57, 10, "по распоряжениям Правительства РФ", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true);
+            ws.Range(mh + 6, 6, mh + 6, 7).Merge();
+            SetCell(ws, mh + 6, 6, "из бюджета", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+            ws.Range(mh + 6, 8, mh + 6, 9).Merge();
+            SetCell(ws, mh + 6, 8, "из ЦФР", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
+            ws.Range(mh + 6, 10, mh + 6, 11).Merge();
+            SetCell(ws, mh + 6, 10, "по распоряжениям Правительства РФ", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true, vAlign: XLAlignmentVerticalValues.Center);
 
-            SetCell(ws, 58, 1, "1", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            SetCell(ws, 58, 2, "2", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            SetCell(ws, 58, 3, "3", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            ws.Range(58, 4, 58, 5).Merge();
-            SetCell(ws, 58, 4, "4", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            ws.Range(58, 6, 58, 7).Merge();
-            SetCell(ws, 58, 6, "5", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            ws.Range(58, 8, 58, 9).Merge();
-            SetCell(ws, 58, 8, "6", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            ws.Range(58, 10, 58, 11).Merge();
-            SetCell(ws, 58, 10, "7", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            ws.Range(58, 12, 58, 13).Merge();
-            SetCell(ws, 58, 12, "8", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            ws.Range(58, 14, 58, 15).Merge();
-            SetCell(ws, 58, 14, "9", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            SetCell(ws, 58, 16, "10", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            ws.Range(58, 17, 58, 18).Merge();
-            SetCell(ws, 58, 17, "11", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            SetCell(ws, 58, 20, "12", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+            int mn = mh + 7; // numbering row
+            SetCell(ws, mn, 1, "1", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+            SetCell(ws, mn, 2, "2", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+            SetCell(ws, mn, 3, "3", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+            ws.Range(mn, 4, mn, 5).Merge(); SetCell(ws, mn, 4, "4", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+            ws.Range(mn, 6, mn, 7).Merge(); SetCell(ws, mn, 6, "5", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+            ws.Range(mn, 8, mn, 9).Merge(); SetCell(ws, mn, 8, "6", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+            ws.Range(mn, 10, mn, 11).Merge(); SetCell(ws, mn, 10, "7", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+            ws.Range(mn, 12, mn, 13).Merge(); SetCell(ws, mn, 12, "8", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+            ws.Range(mn, 14, mn, 15).Merge(); SetCell(ws, mn, 14, "9", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+            SetCell(ws, mn, 16, "10", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+            ws.Range(mn, 17, mn, 18).Merge(); SetCell(ws, mn, 17, "11", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+            SetCell(ws, mn, 20, "12", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
 
-            var mHdrRange = ws.Range(51, 1, 58, 20);
+            var mHdrRange = ws.Range(mh, 1, mn, 20);
             mHdrRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
             mHdrRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
 
-            double totalRefuelCost = allData.Sum(v => v.Refueled);
-            SetCell(ws, 59, 1, "03-10-201-253-340", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true);
-            SetCell(ws, 59, 2, "руб.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            ws.Range(59, 4, 59, 5).Merge();
-            SetCellNum(ws, 59, 4, 0, fontSize: 10, format: "0.000");
-            ws.Range(59, 14, 59, 15).Merge();
-            SetCellNum(ws, 59, 14, 0, fontSize: 10, format: "0.000");
-            ws.Range(59, 17, 59, 18).Merge();
-            SetCellNum(ws, 59, 17, 0, fontSize: 10, format: "0.000");
+            int mData = mn + 1;
+            // Итоговая строка
+            SetCell(ws, mData, 1, "03-10-201-253-340", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center, wrap: true);
+            SetCell(ws, mData, 2, "руб.", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+            ws.Range(mData, 4, mData, 5).Merge();
+            SetFormula(ws, mData, 4, string.Format("=SUM(F{0}:K{0})", mData), fontSize: 10, format: fuelFmt);
+            ws.Range(mData, 14, mData, 15).Merge();
+            SetFormula(ws, mData, 14, string.Format("=SUM(N{0}:O{1})", mData + 1, mData + 5), fontSize: 10, format: fuelFmt);
+            ws.Range(mData, 17, mData, 18).Merge();
+            SetFormula(ws, mData, 17, string.Format("=C{0}+D{0}-N{0}", mData), fontSize: 10, format: fuelFmt);
 
-            SetCell(ws, 60, 1, "в т.ч.   АБ - всего", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Left, wrap: true);
-            SetCell(ws, 60, 2, " -", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            SetCell(ws, 60, 3, " -", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            ws.Range(60, 4, 60, 5).Merge();
-            SetCell(ws, 60, 4, " -", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            ws.Range(60, 6, 60, 7).Merge();
-            SetCell(ws, 60, 6, " -", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            ws.Range(60, 8, 60, 9).Merge();
-            SetCell(ws, 60, 8, " -", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            ws.Range(60, 10, 60, 11).Merge();
-            SetCell(ws, 60, 10, " -", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
-            ws.Range(60, 12, 60, 13).Merge();
-            SetCellNum(ws, 60, 12, 0, fontSize: 10, format: "0.000");
-            ws.Range(60, 14, 60, 15).Merge();
-            SetCellNum(ws, 60, 14, 0, fontSize: 10, format: "0.000");
-            ws.Range(60, 17, 60, 18).Merge();
-            SetCell(ws, 60, 17, " -", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+            Action<int, string, int> writeBreakdown = (r, label, srcRow) =>
+            {
+                SetCell(ws, r, 1, label, fontSize: 10, hAlign: XLAlignmentHorizontalValues.Left, wrap: true);
+                SetCell(ws, r, 2, "-", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+                SetCell(ws, r, 3, "-", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+                ws.Range(r, 4, r, 5).Merge(); SetCell(ws, r, 4, "-", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+                ws.Range(r, 6, r, 7).Merge(); SetCell(ws, r, 6, "-", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+                ws.Range(r, 8, r, 9).Merge(); SetCell(ws, r, 8, "-", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+                ws.Range(r, 10, r, 11).Merge(); SetCell(ws, r, 10, "-", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+                ws.Range(r, 12, r, 13).Merge();
+                if (srcRow > 0)
+                    SetFormula(ws, r, 12, string.Format("=L{0}", srcRow), fontSize: 10, format: fuelFmt);
+                else
+                    SetCell(ws, r, 12, "-", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+                ws.Range(r, 14, r, 15).Merge();
+                SetCell(ws, r, 14, "-", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+                ws.Range(r, 17, r, 18).Merge(); SetCell(ws, r, 17, "-", fontSize: 10, hAlign: XLAlignmentHorizontalValues.Center);
+            };
+
+            writeBreakdown(mData + 1, "в т. ч.   АБ - всего", gasTotalRow);
+            writeBreakdown(mData + 2, "ДТ - всего", dieselTotalRow);
+            writeBreakdown(mData + 3, "АК - всего", -1);
+            writeBreakdown(mData + 4, "МиС - всего", misTotalRow);
+            writeBreakdown(mData + 5, "СЖ - всего", -1);
+
+            var mDataRange = ws.Range(mData, 1, mData + 5, 20);
+            mDataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            mDataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
 
             ws.Column(1).Width = 12.67;
             ws.Column(2).Width = 3.89;
@@ -1152,22 +1177,26 @@ namespace AVTOKarta.Services
                 SetCell(ws, row, 1, vd.Vehicle.Make ?? "", true, 9, hAlign: XLAlignmentHorizontalValues.Center, wrap: true);
                 SetCell(ws, row, 2, vd.Vehicle.Type ?? "", true, 9, hAlign: XLAlignmentHorizontalValues.Left, wrap: true, vAlign: XLAlignmentVerticalValues.Top);
                 SetCell(ws, row, 3, vd.Vehicle.LicensePlate ?? "", true, 9, hAlign: XLAlignmentHorizontalValues.Center);
-                SetCell(ws, row, 4, vd.IsDiesel ? "ДТ" : "аи-92", fontSize: 9, hAlign: XLAlignmentHorizontalValues.Center);
+                SetCell(ws, row, 4, FuelTypeName(vd.IsDiesel), fontSize: 9, hAlign: XLAlignmentHorizontalValues.Center);
 
-                string fmt = FuelFormat(vd.IsDiesel);
-                SetCellNum(ws, row, 5, vd.TotalFuelConsumption, fontSize: 10, format: fmt, vAlign: XLAlignmentVerticalValues.Center);
-                SetCellNum(ws, row, 6, vd.MainActivityFuel, fontSize: 10, format: fmt);
-                SetCellNum(ws, row, 7, vd.EmergencyFuel, fontSize: 10, format: fmt);
-                SetCellNum(ws, row, 8, vd.FireCallsFuel, fontSize: 10, format: fmt);
-                SetCellNum(ws, row, 9, vd.IgnitionCallsFuel, fontSize: 10, format: fmt);
-                SetCellNum(ws, row, 10, vd.FalseAlarmFuel, fontSize: 10, format: fmt);
-                SetCellNum(ws, row, 11, vd.EtoFuel, fontSize: 10, format: fmt);
-                SetCellNum(ws, row, 12, vd.RescueDtpFuel, fontSize: 10, format: fmt);
-                SetCellNum(ws, row, 13, vd.HeatingDutyFuel, fontSize: 10, format: fmt);
-                SetCellNum(ws, row, 14, vd.TrainingPumpFuel + vd.TrainingNoPumpFuel, fontSize: 10, format: fmt);
-                SetCellNum(ws, row, 15, vd.LiteraryEventsFuel, fontSize: 10, format: fmt);
-                SetCellNum(ws, row, 16, vd.ReducedMileage, fontSize: 10, format: FuelFormat4(vd.IsDiesel));
-                SetCellNum(ws, row, 17, vd.Refueled, fontSize: 10, format: fmt);
+                // Эталон («2 ГСМ на осн деят»): расходы — формат 0,000 по центру,
+                // моторесурс (приведённый пробег) — целое число.
+                string fmt = FuelFormat4(vd.IsDiesel);
+                var mid = XLAlignmentVerticalValues.Center;
+                var ctr = XLAlignmentHorizontalValues.Center;
+                SetCellNum(ws, row, 5, vd.TotalFuelConsumption, fontSize: 10, format: fmt, vAlign: mid, hAlign: ctr);
+                SetCellNum(ws, row, 6, vd.MainActivityFuel, fontSize: 10, format: fmt, vAlign: mid, hAlign: ctr);
+                SetCellNum(ws, row, 7, vd.EmergencyFuel, fontSize: 10, format: fmt, vAlign: mid, hAlign: ctr);
+                SetCellNum(ws, row, 8, vd.FireCallsFuel, fontSize: 10, format: fmt, vAlign: mid, hAlign: ctr);
+                SetCellNum(ws, row, 9, vd.IgnitionCallsFuel, fontSize: 10, format: fmt, vAlign: mid, hAlign: ctr);
+                SetCellNum(ws, row, 10, vd.FalseAlarmFuel, fontSize: 10, format: fmt, vAlign: mid, hAlign: ctr);
+                SetCellNum(ws, row, 11, vd.EtoFuel, fontSize: 10, format: fmt, vAlign: mid, hAlign: ctr);
+                SetCellNum(ws, row, 12, vd.RescueDtpFuel, fontSize: 10, format: fmt, vAlign: mid, hAlign: ctr);
+                SetCellNum(ws, row, 13, vd.HeatingDutyFuel, fontSize: 10, format: fmt, vAlign: mid, hAlign: ctr);
+                SetCellNum(ws, row, 14, vd.TrainingPumpFuel + vd.TrainingNoPumpFuel, fontSize: 10, format: fmt, vAlign: mid, hAlign: ctr);
+                SetCellNum(ws, row, 15, vd.LiteraryEventsFuel, fontSize: 10, format: fmt, vAlign: mid, hAlign: ctr);
+                SetCellNum(ws, row, 16, vd.ReducedMileage, fontSize: 10, format: "0", vAlign: mid, hAlign: ctr);
+                SetCellNum(ws, row, 17, vd.Refueled, fontSize: 10, format: fmt, vAlign: mid, hAlign: ctr);
                 row++;
             }
 
@@ -1291,6 +1320,18 @@ namespace AVTOKarta.Services
             int row = 12;
             int num = 1;
             var dieselData = allData.Where(v => v.IsDiesel).ToList();
+
+            // Эталон: перед группой идёт строка с видом топлива на всю ширину таблицы.
+            if (dieselData.Count > 0)
+            {
+                ws.Row(row).Height = 17.3;
+                ws.Range(row, 1, row, 23).Merge();
+                SetCell(ws, row, 1, "Д/Т", fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center,
+                    vAlign: XLAlignmentVerticalValues.Center);
+                ws.Range(row, 1, row, 23).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                row++;
+            }
+
             int dieselStartRow = row;
             foreach (var vd in dieselData)
             {
@@ -1360,6 +1401,18 @@ namespace AVTOKarta.Services
 
             // Gasoline group
             var gasData = allData.Where(v => !v.IsDiesel).ToList();
+
+            // Эталон: перед группой идёт строка с видом топлива на всю ширину таблицы.
+            if (gasData.Count > 0)
+            {
+                ws.Row(row).Height = 17.3;
+                ws.Range(row, 1, row, 23).Merge();
+                SetCell(ws, row, 1, "АИ-92", fontSize: 11, hAlign: XLAlignmentHorizontalValues.Center,
+                    vAlign: XLAlignmentVerticalValues.Center);
+                ws.Range(row, 1, row, 23).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                row++;
+            }
+
             int gasStartRow = row;
             foreach (var vd in gasData)
             {
@@ -1425,6 +1478,10 @@ namespace AVTOKarta.Services
                 gRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
                 row++;
             }
+
+            // Эталон: числовые данные таблицы выровнены по центру.
+            if (row > 13)
+                ws.Range(12, 4, row - 1, 23).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
             row++;
             WriteSignatureBlock(ws, row);

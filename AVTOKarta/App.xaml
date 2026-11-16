@@ -16,6 +16,40 @@
             <!-- ==================== FONTS ==================== -->
             <FontFamily x:Key="FontAwesomeSolid">/Fonts/#Font Awesome 6 Free Solid</FontFamily>
 
+            <Style x:Key="ToggleSwitchStyle" TargetType="ToggleButton">
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Focusable" Value="False"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Grid Margin="0,3">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="52"/></Grid.ColumnDefinitions>
+                                <ContentPresenter Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <Grid Grid.Column="1" Width="46" Height="24" HorizontalAlignment="Right">
+                                    <Border x:Name="Track" CornerRadius="12" Background="#CBD5E1"/>
+                                    <Border x:Name="OnTrack" CornerRadius="12" Background="#2563EB" Opacity="0"/>
+                                    <Ellipse Width="18" Height="18" Fill="White" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="3,0,0,0">
+                                        <Ellipse.RenderTransform><TranslateTransform x:Name="SwitchThumb" X="0"/></Ellipse.RenderTransform>
+                                    </Ellipse>
+                                </Grid>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Trigger.EnterActions><BeginStoryboard><Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="OnTrack" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.18"/>
+                                        <DoubleAnimation Storyboard.TargetName="SwitchThumb" Storyboard.TargetProperty="X" To="22" Duration="0:0:0.18"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard></BeginStoryboard></Trigger.EnterActions>
+                                    <Trigger.ExitActions><BeginStoryboard><Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="OnTrack" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.18"/>
+                                        <DoubleAnimation Storyboard.TargetName="SwitchThumb" Storyboard.TargetProperty="X" To="0" Duration="0:0:0.18"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard></BeginStoryboard></Trigger.ExitActions>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- ==================== COLOR PALETTE ==================== -->
             <SolidColorBrush x:Key="PrimaryBrush" Color="#2563EB"/>
             <SolidColorBrush x:Key="PrimaryDarkBrush" Color="#1D4ED8"/>

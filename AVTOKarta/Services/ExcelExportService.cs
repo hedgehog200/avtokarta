@@ -23,31 +23,76 @@ namespace AVTOKarta.Services
             _squad = squad;
         }
 
-        public void Export(MonthlyCard card, Vehicle vehicle, List<DailyRecord> records, string filePath)
+        /// <summary>
+        /// Сводные значения карточки. Рассчитываются тем же кодом, что и на экране,
+        /// поэтому экспорт всегда совпадает с интерфейсом.
+        /// </summary>
+        private sealed class CardTotals
+        {
+            public double Distance;
+            public double PumpMinutes;
+            public double NoPumpMinutes;
+            public double ParkingHours;
+            public double ShiftMinutes;
+            public double MiscMinutes;
+            public double FuelRefueled;
+            public double FuelActual;
+            public double FuelNorm;
+            public double Savings;
+            public double Overspend;
+            public double ReducedMileage;
+            public double FuelRemainingOnLast;
+            public Dictionary<string, double> ByElement;
+            public Dictionary<TripType, double> ByTripType;
+            public Dictionary<TripType, double> FuelByTripType;
+        }
+
+        public void Export(MonthlyCard card, Vehicle vehicle, List<DailyRecord> records, string filePath,
+            bool openAfterExport = true)
         {
             _fuelFormat = vehicle != null && vehicle.Engine == EngineType.Gasoline ? "0.0000" : "0.000";
+
+            var data = records != null ? new List<DailyRecord>(records) : new List<DailyRecord>();
+            var norms = vehicle != null && vehicle.FuelNorms != null ? vehicle.FuelNorms : new FuelNorm();
+
+            // Пересчитываем записи перед выгрузкой: в файл должны попадать те же
+            // значения, что пользователь видит в карточке.
+            foreach (var rec in data)
+            {
+                rec.NormConsumption = CalculationService.CalculateNormConsumption(rec, norms);
+                rec.ActualConsumption = CalculationService.HasFuelReadings(rec)
+                    ? CalculationService.CalculateActualConsumption(rec)
+                    : rec.NormConsumption;
+            }
+
+            var totals = CalculateTotals(card, data, norms);
+
             using (var workbook = new XLWorkbook())
             {
                 var ws = workbook.Worksheets.Add("Эксплуатационная карточка");
 
                 WriteHeader(ws, card, vehicle);
-                WriteInfoRows(ws, card, vehicle, records);
+                WriteInfoRows(ws, card, vehicle, totals);
                 WriteTableHeader(ws);
-                WriteRecords(ws, records);
-                WriteSummary(ws, records, vehicle.FuelNorms, card);
+                WriteRecords(ws, data);
+                WriteSummary(ws, norms, totals);
 
                 ApplyTableBorders(ws);
                 SetColumnWidths(ws);
+                ConfigurePage(ws);
                 workbook.SaveAs(filePath);
             }
 
             try
             {
-                string ext = System.IO.Path.GetExtension(filePath);
-                if (string.Equals(ext, ".xlsx", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(ext, ".xls", StringComparison.OrdinalIgnoreCase))
+                if (openAfterExport)
                 {
-                    Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
+                    string ext = System.IO.Path.GetExtension(filePath);
+                    if (string.Equals(ext, ".xlsx", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(ext, ".xls", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
+                    }
                 }
             }
             catch (Exception ex)
@@ -56,49 +101,115 @@ namespace AVTOKarta.Services
             }
         }
 
+        private CardTotals CalculateTotals(MonthlyCard card, List<DailyRecord> records, FuelNorm norms)
+        {
+            var t = new CardTotals
+            {
+                Distance = records.Sum(r => r.DistanceKm),
+                PumpMinutes = records.Sum(r => r.TimeWithPumpMinutes),
+                NoPumpMinutes = records.Sum(r => r.TimeWithoutPumpMinutes),
+                ParkingHours = records.Sum(r => r.ParkingHours),
+                ShiftMinutes = records.Sum(r => r.ShiftChangeMinutes),
+                MiscMinutes = records.Sum(r => r.MiscWorkMinutes),
+                FuelRefueled = records.Sum(r => r.FuelRefueled),
+                FuelActual = records.Sum(r => r.ActualConsumption),
+                FuelNorm = records.Sum(r => r.NormConsumption),
+                ByElement = CalculationService.CalculateConsumptionByElement(records, norms),
+                ByTripType = CalculationService.CalculateByTripType(records),
+                FuelByTripType = CalculationService.CalculateFuelByTripType(records)
+            };
+
+            t.Savings = CalculationService.CalculateSavings(t.FuelActual, t.FuelNorm);
+            t.Overspend = CalculationService.CalculateOverspend(t.FuelActual, t.FuelNorm);
+            t.ReducedMileage = CalculationService.CalculateReductionMileage(records, norms.ReductionCoefficient);
+
+            // Остаток на конец — как в карточке: показание последнего выезда,
+            // а при отсутствии показаний — расчёт по остатку и фактическому расходу.
+            DailyRecord lastReading = null;
+            foreach (var r in records)
+            {
+                if (!CalculationService.HasFuelReadings(r))
+                    continue;
+                if (lastReading == null ||
+                    r.Date > lastReading.Date ||
+                    (r.Date == lastReading.Date && r.Id > lastReading.Id))
+                {
+                    lastReading = r;
+                }
+            }
+
+            double remainingOnFirst = card != null ? card.FuelRemainingOnFirst : 0;
+            t.FuelRemainingOnLast = lastReading != null
+                ? lastReading.FuelAtReturn
+                : remainingOnFirst + t.FuelRefueled - t.FuelActual;
+
+            return t;
+        }
+
         private void SetColumnWidths(IXLWorksheet ws)
         {
             ws.Column(1).Width = 11.56;
-            ws.Column(2).Width = 20.56;
+            ws.Column(2).Width = 26.0;
             ws.Column(3).Width = 4.78;
             ws.Column(4).Width = 4.78;
             ws.Column(5).Width = 4.78;
             ws.Column(6).Width = 4.78;
             ws.Column(7).Width = 9.11;
             ws.Column(8).Width = 7.22;
-            ws.Column(9).Width = 4.78;
-            ws.Column(10).Width = 4.78;
-            ws.Column(11).Width = 4.78;
-            ws.Column(12).Width = 4.78;
-            ws.Column(13).Width = 6.22;
-            ws.Column(14).Width = 4.78;
-            ws.Column(15).Width = 4.78;
+            ws.Column(9).Width = 6.20;
+            ws.Column(10).Width = 6.20;
+            ws.Column(11).Width = 7.20;
+            ws.Column(12).Width = 6.20;
+            ws.Column(13).Width = 6.20;
+            ws.Column(14).Width = 6.20;
+            ws.Column(15).Width = 6.22;
             ws.Column(16).Width = 7.22;
             ws.Column(17).Width = 7.11;
             ws.Column(18).Width = 8.11;
-            ws.Column(19).Width = 8.11;
+            ws.Column(19).Width = 16.0;
             ws.Column(20).Width = 7.0;
+        }
 
-            // Служебные столбцы — скрываем:
-            // U, V — коэффициенты надбавок (к пробегу / к насосу);
-            // W — время стоянки/прогрева (ч); X — масса груза/прицепа (т).
-            ws.Column(21).Hide();
-            ws.Column(22).Hide();
-            ws.Column(23).Hide();
-            ws.Column(24).Hide();
+        private void ConfigurePage(IXLWorksheet ws)
+        {
+            ws.ShowGridLines = false;
+            ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
+            ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
+            // ClosedXML 0.94 не сохраняет флаг fitToPage, поэтому используем
+            // явный масштаб: 80 % гарантированно укладывает таблицу по ширине A4.
+            ws.PageSetup.Scale = 80;
+            ws.PageSetup.CenterHorizontally = true;
+            ws.PageSetup.Margins.Top = 0.4;
+            ws.PageSetup.Margins.Bottom = 0.4;
+            ws.PageSetup.Margins.Left = 0.3;
+            ws.PageSetup.Margins.Right = 0.3;
+            ws.PageSetup.PrintAreas.Add("A1:T127");
+            ws.PageSetup.SetRowsToRepeatAtTop(14, 17);
+            // Итоговая часть начинается с новой страницы, чтобы не разрывать
+            // таблицу видов выездов посередине.
+            ws.PageSetup.AddHorizontalPageBreak(100);
         }
 
         private void ApplyTableBorders(IXLWorksheet ws)
         {
-            // 84 rows x 20 cols: rows 14-97, cols 1-20
+            // Таблица ежедневных записей: строки 14-97, столбцы 1-20.
             var dataRange = ws.Range(14, 1, 97, 20);
             dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
             dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
 
-            // Summary rows 99-111
-            var summaryRange = ws.Range(99, 1, 111, 20);
-            summaryRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-            summaryRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            // Итоговая строка и блок приведённого пробега.
+            ws.Range(99, 1, 99, 19).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            ws.Range(108, 1, 108, 19).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+
+            // Расход по элементам работы по нормам.
+            ws.Range(101, 1, 107, 5).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            for (int r = 101; r <= 107; r++)
+                ws.Range(r, 1, r, 5).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+
+            // Разбивка по видам выездов.
+            ws.Range(109, 2, 114, 8).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            for (int r = 109; r <= 114; r++)
+                ws.Range(r, 2, r, 8).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
         }
 
         private void SetCell(IXLWorksheet ws, int row, int col, string value, bool bold = false, double fontSize = 12,
@@ -115,7 +226,7 @@ namespace AVTOKarta.Services
         }
 
         private void SetCellNum(IXLWorksheet ws, int row, int col, double value, bool bold = false, double fontSize = 12,
-            string format = "0.000", string fontName = "Times New Roman")
+            string format = "0.000", string fontName = "Times New Roman", XLAlignmentHorizontalValues? hAlign = null)
         {
             var cell = ws.Cell(row, col);
             cell.Value = value;
@@ -123,6 +234,7 @@ namespace AVTOKarta.Services
             cell.Style.Font.FontSize = fontSize;
             cell.Style.Font.Bold = bold;
             cell.Style.NumberFormat.Format = format;
+            if (hAlign.HasValue) cell.Style.Alignment.Horizontal = hAlign.Value;
             cell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
         }
 
@@ -136,7 +248,7 @@ namespace AVTOKarta.Services
                 bold: true, fontSize: 18, hAlign: XLAlignmentHorizontalValues.Center);
         }
 
-        private void WriteInfoRows(IXLWorksheet ws, MonthlyCard card, Vehicle vehicle, List<DailyRecord> records)
+        private void WriteInfoRows(IXLWorksheet ws, MonthlyCard card, Vehicle vehicle, CardTotals totals)
         {
             ws.Row(2).Height = 16.2;
             ws.Row(3).Height = 16.2;
@@ -201,6 +313,9 @@ namespace AVTOKarta.Services
             ws.Range(4, 18, 4, 19).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
 
             // Row 5: fuel remaining on first
+            ws.Range(5, 1, 5, 7).Merge();
+            SetCell(ws, 5, 1, "Остаток топлива на 1-е число отчетного месяца", fontSize: 12);
+
             ws.Range(5, 8, 5, 11).Merge();
             SetCellNum(ws, 5, 8, card.FuelRemainingOnFirst, bold: true, fontSize: 12, format: _fuelFormat);
 
@@ -213,8 +328,7 @@ namespace AVTOKarta.Services
             SetCell(ws, 6, 1, "Заправлено топлива в автомобиль за отчетный месяц", fontSize: 12);
 
             ws.Range(6, 7, 6, 11).Merge();
-            double refueledMonth = records != null ? records.Sum(r => r.FuelRefueled) : card.FuelRefueledMonth;
-            SetCellNum(ws, 6, 7, refueledMonth, bold: true, fontSize: 12, format: _fuelFormat);
+            SetCellNum(ws, 6, 7, totals.FuelRefueled, bold: true, fontSize: 12, format: _fuelFormat);
 
             ws.Range(6, 12, 6, 13).Merge();
             SetCell(ws, 6, 12, "литры", fontSize: 12);
@@ -224,7 +338,7 @@ namespace AVTOKarta.Services
             SetCell(ws, 7, 1, "Остаток топлива в автомобиле на 1-е число следующего за отчетным месяцем", fontSize: 12);
 
             ws.Range(7, 13, 7, 15).Merge();
-            SetCellNum(ws, 7, 13, card.FuelRemainingOnLast, bold: true, fontSize: 12, format: _fuelFormat);
+            SetCellNum(ws, 7, 13, totals.FuelRemainingOnLast, bold: true, fontSize: 12, format: _fuelFormat);
 
             ws.Range(7, 16, 7, 17).Merge();
             SetCell(ws, 7, 16, "литры", fontSize: 12);
@@ -233,35 +347,37 @@ namespace AVTOKarta.Services
             SetCellNum(ws, 7, 18, card.FuelLevelCm, bold: true, fontSize: 12, format: _fuelFormat);
             SetCell(ws, 7, 19, "см.", fontSize: 12);
 
-            // Row 9: fuel consumption result header
+            // Rows 9-11: результат расхода топлива за отчётный месяц.
             ws.Range(9, 1, 9, 19).Merge();
-            SetCell(ws, 9, 1, "Результат расхода топлива за отчетный месяц", fontSize: 12);
+            SetCell(ws, 9, 1, "Результат расхода топлива за отчетный месяц", bold: true, fontSize: 12);
 
-            // Rows 10-13: sub-results
-            ws.Range(10, 3, 10, 5).Merge();
-            SetCell(ws, 10, 3, "фактический", fontSize: 12);
-
-            SetCell(ws, 10, 8, "мин.", fontSize: 12);
-
+            ws.Range(10, 1, 10, 3).Merge();
+            SetCell(ws, 10, 1, "Фактический расход, л", fontSize: 11,
+                hAlign: XLAlignmentHorizontalValues.Right);
+            ws.Range(10, 6, 10, 7).Merge();
+            SetCell(ws, 10, 6, "По нормам, л", fontSize: 11,
+                hAlign: XLAlignmentHorizontalValues.Right);
             ws.Range(10, 10, 10, 12).Merge();
-            SetCell(ws, 10, 10, "норматив", fontSize: 12);
+            SetCell(ws, 10, 10, "Экономия, л", fontSize: 11,
+                hAlign: XLAlignmentHorizontalValues.Right);
+            ws.Range(10, 15, 10, 17).Merge();
+            SetCell(ws, 10, 15, "Перерасход, л", fontSize: 11,
+                hAlign: XLAlignmentHorizontalValues.Right);
 
-            ws.Range(10, 15, 10, 16).Merge();
-            SetCell(ws, 10, 15, "мин.", fontSize: 12);
+            ws.Range(11, 1, 11, 3).Merge();
+            SetCellNum(ws, 11, 1, totals.FuelActual, bold: true, fontSize: 12, format: _fuelFormat,
+                hAlign: XLAlignmentHorizontalValues.Center);
+            ws.Range(11, 6, 11, 7).Merge();
+            SetCellNum(ws, 11, 6, totals.FuelNorm, bold: true, fontSize: 12, format: _fuelFormat,
+                hAlign: XLAlignmentHorizontalValues.Center);
+            ws.Range(11, 10, 11, 12).Merge();
+            SetCellNum(ws, 11, 10, totals.Savings, bold: true, fontSize: 12, format: _fuelFormat,
+                hAlign: XLAlignmentHorizontalValues.Center);
+            ws.Range(11, 15, 11, 17).Merge();
+            SetCellNum(ws, 11, 15, totals.Overspend, bold: true, fontSize: 12, format: _fuelFormat,
+                hAlign: XLAlignmentHorizontalValues.Center);
 
-            ws.Range(12, 3, 12, 5).Merge();
-            SetCell(ws, 12, 3, "по нормам", fontSize: 12);
-
-            SetCell(ws, 12, 8, "мин.", fontSize: 12);
-
-            ws.Range(12, 10, 12, 12).Merge();
-            SetCell(ws, 12, 10, "прочие", fontSize: 12);
-
-            ws.Range(12, 13, 12, 14).Merge();
-            SetCell(ws, 12, 13, "0", bold: true, fontSize: 12);
-
-            ws.Range(12, 15, 12, 16).Merge();
-            SetCell(ws, 12, 15, "мин.", fontSize: 12);
+            ws.Range(10, 1, 11, 17).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
         }
 
         private void WriteTableHeader(IXLWorksheet ws)
@@ -306,28 +422,34 @@ namespace AVTOKarta.Services
             SetCell(ws, 15, 7, "Показания спидометра, км", fontSize: 10, wrap: true);
 
             ws.Range(15, 8, 16, 8).Merge();
-            SetCell(ws, 15, 8, "Пробег км", fontSize: 10, wrap: true);
+            SetCell(ws, 15, 8, "Пробег, км", fontSize: 10, wrap: true);
 
             ws.Range(15, 9, 16, 9).Merge();
-            SetCell(ws, 15, 9, "С насосом", fontSize: 10, wrap: true);
+            SetCell(ws, 15, 9, "С насосом, мин", fontSize: 10, wrap: true);
 
-            ws.Range(15, 10, 15, 11).Merge();
-            SetCell(ws, 15, 10, "Без насоса", fontSize: 10, wrap: true);
+            ws.Range(15, 10, 16, 10).Merge();
+            SetCell(ws, 15, 10, "Без насоса, мин", fontSize: 10, wrap: true);
+
+            ws.Range(15, 11, 16, 11).Merge();
+            SetCell(ws, 15, 11, "Стоянка/прогрев, ч", fontSize: 10, wrap: true);
 
             ws.Range(15, 12, 16, 12).Merge();
             SetCell(ws, 15, 12, "Смена караула, мин.", fontSize: 10, wrap: true);
 
-            ws.Range(15, 13, 15, 14).Merge();
-            SetCell(ws, 15, 13, "Прочие работы", fontSize: 10, wrap: true);
+            ws.Range(15, 13, 16, 13).Merge();
+            SetCell(ws, 15, 13, "Прочие работы, мин.", fontSize: 10, wrap: true);
+
+            ws.Range(15, 14, 16, 14).Merge();
+            SetCell(ws, 15, 14, "Груз/прицеп, т", fontSize: 10, wrap: true);
 
             ws.Range(15, 15, 16, 15).Merge();
             SetCell(ws, 15, 15, "Заправка, л", fontSize: 10, wrap: true);
 
             ws.Range(15, 16, 16, 16).Merge();
-            SetCell(ws, 15, 16, "фактический", fontSize: 10, wrap: true);
+            SetCell(ws, 15, 16, "фактический, л", fontSize: 10, wrap: true);
 
             ws.Range(15, 17, 16, 17).Merge();
-            SetCell(ws, 15, 17, "по норме", fontSize: 10, wrap: true);
+            SetCell(ws, 15, 17, "по норме, л", fontSize: 10, wrap: true);
 
             ws.Range(15, 18, 16, 18).Merge();
             SetCell(ws, 15, 18, "Номер караула", fontSize: 10, wrap: true);
@@ -337,12 +459,6 @@ namespace AVTOKarta.Services
 
             ws.Range(14, 20, 16, 20).Merge();
             SetCell(ws, 14, 20, "№ пут. листа", fontSize: 10, wrap: true);
-
-            // Row 16 sub-sub-headers
-            SetCell(ws, 16, 10, "мин", fontSize: 10);
-            SetCell(ws, 16, 11, "мин", fontSize: 10);
-            SetCell(ws, 16, 13, "мин.", fontSize: 10);
-            SetCell(ws, 16, 14, "мин.", fontSize: 10);
 
             // Row 17: Column numbers
             for (int i = 1; i <= 20; i++)
@@ -356,14 +472,18 @@ namespace AVTOKarta.Services
         {
             var sorted = records.OrderBy(r => r.Date).ThenBy(r => r.DepartureHour * 60 + r.DepartureMinute).ToList();
             int startRow = 18;
-            for (int i = 0; i < sorted.Count; i++)
+            int maxRecords = 97 - startRow + 1;
+            int count = Math.Min(sorted.Count, maxRecords);
+
+            for (int i = 0; i < count; i++)
             {
                 var rec = sorted[i];
                 int row = startRow + i;
 
                 ws.Row(row).Height = 24;
 
-                SetCell(ws, row, 1, rec.Date.ToString("d.M.yyyy"), fontSize: 12);
+                SetCell(ws, row, 1, rec.Date.ToString("dd.MM.yyyy"), fontSize: 12);
+                ws.Cell(row, 1).Style.NumberFormat.Format = "dd.MM.yyyy";
                 string col2 = rec.WorkDescription ?? "";
                 if (!string.IsNullOrEmpty(rec.Comments))
                     col2 += (col2.Length > 0 ? " " : "") + rec.Comments;
@@ -373,11 +493,13 @@ namespace AVTOKarta.Services
                 ws.Range(row, 3, row, 4).Merge();
                 SetCell(ws, row, 3, string.Format("{0:D2}:{1:D2}", rec.DepartureHour, rec.DepartureMinute),
                     fontSize: 12, hAlign: XLAlignmentHorizontalValues.Center);
+                ws.Cell(row, 3).Style.NumberFormat.Format = "hh:mm";
 
                 // Return time
                 ws.Range(row, 5, row, 6).Merge();
                 SetCell(ws, row, 5, string.Format("{0:D2}:{1:D2}", rec.ReturnHour, rec.ReturnMinute),
                     fontSize: 12, hAlign: XLAlignmentHorizontalValues.Center);
+                ws.Cell(row, 5).Style.NumberFormat.Format = "hh:mm";
 
                 // Odometer
                 SetCellNum(ws, row, 7, rec.OdometerBeforeDeparture, fontSize: 12, format: "0.000");
@@ -391,7 +513,8 @@ namespace AVTOKarta.Services
                 // Time without pump
                 SetCellNum(ws, row, 10, rec.TimeWithoutPumpMinutes, fontSize: 12, format: "0.000");
 
-                SetCellNum(ws, row, 11, 0, fontSize: 12, format: "0.000");
+                // Parking / warming up, hours
+                SetCellNum(ws, row, 11, rec.ParkingHours, fontSize: 12, format: "0.000");
 
                 // Shift change
                 SetCellNum(ws, row, 12, rec.ShiftChangeMinutes, fontSize: 12, format: "0.000");
@@ -399,377 +522,176 @@ namespace AVTOKarta.Services
                 // Misc work
                 SetCellNum(ws, row, 13, rec.MiscWorkMinutes, fontSize: 12, format: "0.000");
 
-                SetCellNum(ws, row, 14, 0, fontSize: 12, format: "0.000");
+                // Cargo / trailer weight, tons
+                SetCellNum(ws, row, 14, rec.CargoTons, fontSize: 12, format: "0.000");
 
                 // Fuel refueled
                 SetCellNum(ws, row, 15, rec.FuelRefueled, fontSize: 12, format: _fuelFormat);
 
-                // Fuel fact
+                // Fuel fact and norm (already recalculated before export)
                 SetCellNum(ws, row, 16, rec.ActualConsumption, fontSize: 10, format: _fuelFormat);
-
-                // Коэффициенты надбавок (скрытые служебные столбцы U/V):
-                // к пробегу — все надбавки, к работе насоса — только помеченные (п. 21).
-                double distFactor = 1.0 + CalculationService.SumDistanceSurchargePercent(rec.Surcharges) / 100.0;
-                double pumpFactor = 1.0 + CalculationService.SumPumpSurchargePercent(rec.Surcharges) / 100.0;
-                SetCellNum(ws, row, 21, distFactor, fontSize: 10, format: "0.0000");
-                SetCellNum(ws, row, 22, pumpFactor, fontSize: 10, format: "0.0000");
-
-                // Скрытые служебные столбцы W (стоянка/прогрев, ч) и X (масса груза, т).
-                SetCellNum(ws, row, 23, rec.ParkingHours, fontSize: 10, format: "0.000");
-                SetCellNum(ws, row, 24, rec.CargoTons, fontSize: 10, format: "0.000");
-
-                // Fuel norm formula:
-                // H*$D$120*U + I*$D$122*V + J*$D$123 + L*$D$124 + M*$D$125 + W*$D$121 + H/100*$D$127*X
-                var cell17 = ws.Cell(row, 17);
-                cell17.FormulaA1 = String.Format(
-                    "H{0}*$D$120*U{0}+I{0}*$D$122*V{0}+J{0}*$D$123+L{0}*$D$124+M{0}*$D$125" +
-                    "+W{0}*$D$121+H{0}/100*$D$127*X{0}", row);
-                cell17.Style.Font.FontName = "Times New Roman";
-                cell17.Style.Font.FontSize = 10;
-                cell17.Style.NumberFormat.Format = _fuelFormat;
-                cell17.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                SetCellNum(ws, row, 17, rec.NormConsumption, fontSize: 10, format: _fuelFormat);
 
                 // Signatures
                 SetCell(ws, row, 18, rec.SquadNumber ?? "", fontSize: 12);
                 SetCell(ws, row, 19, rec.DriverName ?? "", fontSize: 12);
 
                 // Trip sheet number
-                SetCell(ws, row, 20, rec.TripSheetNumber > 0 ? rec.TripSheetNumber.ToString() : "", fontSize: 12, hAlign: XLAlignmentHorizontalValues.Center);
+                SetCell(ws, row, 20, rec.TripSheetNumber > 0 ? rec.TripSheetNumber.ToString() : "", fontSize: 12,
+                    hAlign: XLAlignmentHorizontalValues.Center);
             }
 
-            for (int r = startRow + sorted.Count; r <= 97; r++)
-            {
-                // Empty row — still add norm formula for col 17 so summary formulas work
-                SetCellNum(ws, r, 16, 0, fontSize: 10, format: _fuelFormat);
-                SetCellNum(ws, r, 21, 1.0, fontSize: 10, format: "0.0000");
-                SetCellNum(ws, r, 22, 1.0, fontSize: 10, format: "0.0000");
-
-                var emptyCell17 = ws.Cell(r, 17);
-                emptyCell17.FormulaA1 = String.Format(
-                    "H{0}*$D$120*U{0}+I{0}*$D$122*V{0}+J{0}*$D$123+L{0}*$D$124+M{0}*$D$125" +
-                    "+W{0}*$D$121+H{0}/100*$D$127*X{0}", r);
-                emptyCell17.Style.Font.FontName = "Times New Roman";
-                emptyCell17.Style.Font.FontSize = 10;
-                emptyCell17.Style.NumberFormat.Format = _fuelFormat;
-                emptyCell17.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-            }
+            // Пустые строки бланка не печатаем — иначе карточка растягивается
+            // на несколько страниц. Значения и итоги при этом не меняются.
+            for (int r = startRow + count; r <= 97; r++)
+                ws.Row(r).Hide();
 
             ws.Row(98).Height = 15.6;
-            SetCell(ws, 98, 8, "0", bold: true, fontSize: 12);
         }
 
-        private void WriteSummary(IXLWorksheet ws, List<DailyRecord> records, FuelNorm norms, MonthlyCard card)
+        private void WriteSummary(IXLWorksheet ws, FuelNorm norms, CardTotals totals)
         {
-            for (int r = 99; r <= 106; r++) ws.Row(r).Height = 15.6;
-            for (int r = 107; r <= 111; r++) ws.Row(r).Height = 16.2;
+            for (int r = 99; r <= 117; r++) ws.Row(r).Height = 15.6;
+            ws.Row(100).Height = 4.8;
+            ws.Row(108).Height = 16.2;
+            ws.Row(114).Height = 16.2;
+            ws.Row(116).Height = 18.0;
 
-            // Row 99: 1) Итого за месяц — formulas referencing data rows 18-97
+            // Row 99: 1) Итого за месяц
             int row = 99;
-            ws.Range(row, 1, row, 2).Merge();
-            SetCell(ws, row, 1, "1) Итого за месяц", fontSize: 12);
+            ws.Range(row, 1, row, 7).Merge();
+            SetCell(ws, row, 1, "1) Итого за месяц", bold: true, fontSize: 12);
 
-            // Col 3: count of records with work (departure time filled)
-            var fCell3 = ws.Cell(row, 3);
-            fCell3.FormulaA1 = "COUNTA(C18:C97)";
-            fCell3.Style.Font.FontName = "Times New Roman";
-            fCell3.Style.Font.FontSize = 12;
-            fCell3.Style.Font.Bold = true;
-            fCell3.Style.NumberFormat.Format = "0.000";
-            fCell3.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-            SetCell(ws, row, 4, "мин.", fontSize: 12);
+            SetCellNum(ws, row, 8, totals.Distance, bold: true, fontSize: 12, format: "0.000",
+                hAlign: XLAlignmentHorizontalValues.Center);
+            SetCellNum(ws, row, 9, totals.PumpMinutes, bold: true, fontSize: 12, format: "0.000",
+                hAlign: XLAlignmentHorizontalValues.Center);
+            SetCellNum(ws, row, 10, totals.NoPumpMinutes, bold: true, fontSize: 12, format: "0.000",
+                hAlign: XLAlignmentHorizontalValues.Center);
+            SetCellNum(ws, row, 11, totals.ParkingHours, bold: true, fontSize: 12, format: "0.000",
+                hAlign: XLAlignmentHorizontalValues.Center);
+            SetCellNum(ws, row, 12, totals.ShiftMinutes, bold: true, fontSize: 12, format: "0.000",
+                hAlign: XLAlignmentHorizontalValues.Center);
+            SetCellNum(ws, row, 13, totals.MiscMinutes, bold: true, fontSize: 12, format: "0.000",
+                hAlign: XLAlignmentHorizontalValues.Center);
+            SetCellNum(ws, row, 15, totals.FuelRefueled, bold: true, fontSize: 12, format: _fuelFormat,
+                hAlign: XLAlignmentHorizontalValues.Center);
+            SetCellNum(ws, row, 16, totals.FuelActual, bold: true, fontSize: 12, format: _fuelFormat,
+                hAlign: XLAlignmentHorizontalValues.Center);
+            SetCellNum(ws, row, 17, totals.FuelNorm, bold: true, fontSize: 12, format: _fuelFormat,
+                hAlign: XLAlignmentHorizontalValues.Center);
 
-            // Col 5: count of misc work rows
-            var fCell5 = ws.Cell(row, 5);
-            fCell5.FormulaA1 = "COUNTIF(M18:M97,\">0\")";
-            fCell5.Style.Font.FontName = "Times New Roman";
-            fCell5.Style.Font.FontSize = 12;
-            fCell5.Style.Font.Bold = true;
-            fCell5.Style.NumberFormat.Format = "0.000";
-            fCell5.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-            SetCell(ws, row, 6, "мин.", fontSize: 12);
-
-            // Col 7: count of shift-change rows
-            var fCell7 = ws.Cell(row, 7);
-            fCell7.FormulaA1 = "COUNTIF(L18:L97,\">0\")";
-            fCell7.Style.Font.FontName = "Times New Roman";
-            fCell7.Style.Font.FontSize = 12;
-            fCell7.Style.Font.Bold = true;
-            fCell7.Style.NumberFormat.Format = "0.000";
-            fCell7.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-            SetCell(ws, row, 8, "мин.", fontSize: 12);
-
-            // Col 9: total record count
-            var fCell9 = ws.Cell(row, 9);
-            fCell9.FormulaA1 = "COUNTA(A18:A97)";
-            fCell9.Style.Font.FontName = "Times New Roman";
-            fCell9.Style.Font.FontSize = 12;
-            fCell9.Style.Font.Bold = true;
-            fCell9.Style.NumberFormat.Format = "0.000";
-            fCell9.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-            SetCell(ws, row, 10, "мин.", fontSize: 12);
-
-            // Col 11: sum of shift change + misc minutes
-            var fCell11 = ws.Cell(row, 11);
-            fCell11.FormulaA1 = "SUM(L18:L97)+SUM(M18:M97)";
-            fCell11.Style.Font.FontName = "Times New Roman";
-            fCell11.Style.Font.FontSize = 12;
-            fCell11.Style.Font.Bold = true;
-            fCell11.Style.NumberFormat.Format = "0.000";
-            fCell11.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-            SetCell(ws, row, 12, "мин.", fontSize: 12);
-
-            // Col 13: total fuel refueled
-            SetCellNum(ws, row, 13, records.Sum(r => r.FuelRefueled), bold: true, fontSize: 12, format: _fuelFormat);
-            SetCell(ws, row, 14, "мин.", fontSize: 12);
-            SetCell(ws, row, 15, "", fontSize: 12);
-            SetCell(ws, row, 16, "факт", fontSize: 12);
-
-            // Col 18: SUM of actual consumption (col 16)
-            var fCell18 = ws.Cell(row, 18);
-            fCell18.FormulaA1 = "SUM(P18:P97)";
-            fCell18.Style.Font.FontName = "Times New Roman";
-            fCell18.Style.Font.FontSize = 12;
-            fCell18.Style.Font.Bold = true;
-            fCell18.Style.NumberFormat.Format = _fuelFormat;
-            fCell18.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-            SetCell(ws, row, 19, "литр", fontSize: 12);
-
-            // Row 101: 2) Израсходовано по элементам работы по.normam — formulas
+            // Row 101: 2) Израсходовано по элементам работы по нормам
             row = 101;
-            ws.Range(row, 1, row, 6).Merge();
-            SetCell(ws, row, 1, "2) Израсходовано по элементам работы по нормам", fontSize: 12);
+            ws.Range(row, 1, row, 4).Merge();
+            SetCell(ws, row, 1, "2) Израсходовано по элементам работы по нормам", bold: true, fontSize: 12);
+            SetCell(ws, row, 5, "Расход, л", bold: true, fontSize: 12,
+                hAlign: XLAlignmentHorizontalValues.Right);
 
-            SetCell(ws, row, 7, "0", bold: true, fontSize: 12);
-            SetCell(ws, row, 8, ";", bold: true, fontSize: 12);
+            string[] elementNames =
+            {
+                "Пробег",
+                "С насосом",
+                "Без насоса",
+                "Смена караула",
+                "Прочие работы (в т.ч. стоянка/прогрев, груз/прицеп)"
+            };
+            double[] elementValues =
+            {
+                totals.ByElement["Пробег"],
+                totals.ByElement["С насосом"],
+                totals.ByElement["Без насоса"],
+                totals.ByElement["Смена караула"],
+                totals.ByElement["Прочие"]
+            };
 
-            // Col 9-10: Пробег = SUMPRODUCT(H;U)*$D$120 + доп. расход на груз (SUMPRODUCT(H;X)*$D$127/100)
-            ws.Range(row, 9, row, 10).Merge();
-            var fEl9 = ws.Cell(row, 9);
-            fEl9.FormulaA1 = "ROUND(SUMPRODUCT(H18:H97,U18:U97)*$D$120+SUMPRODUCT(H18:H97,X18:X97)*$D$127/100,4)";
-            fEl9.Style.Font.FontName = "Times New Roman";
-            fEl9.Style.Font.FontSize = 12;
-            fEl9.Style.Font.Bold = true;
-            fEl9.Style.NumberFormat.Format = _fuelFormat;
-            fEl9.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-
-            SetCell(ws, row, 11, ";", bold: true, fontSize: 12);
-
-            // Col 12-13: С насосом = SUMPRODUCT(I;V)*$D$122 (с учётом надбавок к насосу)
-            ws.Range(row, 12, row, 13).Merge();
-            var fEl12 = ws.Cell(row, 12);
-            fEl12.FormulaA1 = "ROUND(SUMPRODUCT(I18:I97,V18:V97)*$D$122,4)";
-            fEl12.Style.Font.FontName = "Times New Roman";
-            fEl12.Style.Font.FontSize = 12;
-            fEl12.Style.Font.Bold = true;
-            fEl12.Style.NumberFormat.Format = _fuelFormat;
-            fEl12.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-
-            SetCell(ws, row, 14, ";", bold: true, fontSize: 12);
-
-            // Col 15-16: Без насоса = SUM(J18:J97)*$D$123 + стоянка/прогрев (SUMPRODUCT(W)*$D$121)
-            ws.Range(row, 15, row, 16).Merge();
-            var fEl15 = ws.Cell(row, 15);
-            fEl15.FormulaA1 = "ROUND(SUM(J18:J97)*$D$123+SUMPRODUCT(W18:W97)*$D$121,4)";
-            fEl15.Style.Font.FontName = "Times New Roman";
-            fEl15.Style.Font.FontSize = 12;
-            fEl15.Style.Font.Bold = true;
-            fEl15.Style.NumberFormat.Format = _fuelFormat;
-            fEl15.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-
-            SetCell(ws, row, 17, ";", bold: true, fontSize: 12);
-
-            // Col 18: Смена + Прочие = SUM(L18:L97)*$D$124+SUM(M18:M97)*$D$125
-            var fEl18 = ws.Cell(row, 18);
-            fEl18.FormulaA1 = "ROUND(SUM(L18:L97)*$D$124+SUM(M18:M97)*$D$125,4)";
-            fEl18.Style.Font.FontName = "Times New Roman";
-            fEl18.Style.Font.FontSize = 12;
-            fEl18.Style.Font.Bold = true;
-            fEl18.Style.NumberFormat.Format = _fuelFormat;
-            fEl18.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-
-            SetCell(ws, row, 19, ";", bold: true, fontSize: 12);
-
-            // Row 103 — formulas
-            row = 103;
-            ws.Range(row, 3, row, 4).Merge();
-            // Col 3-4: Смена караула = SUM(L18:L97)*$D$124
-            var f103_3 = ws.Cell(row, 3);
-            f103_3.FormulaA1 = "ROUND(SUM(L18:L97)*$D$124,4)";
-            f103_3.Style.Font.FontName = "Times New Roman";
-            f103_3.Style.Font.FontSize = 12;
-            f103_3.Style.Font.Bold = true;
-            f103_3.Style.NumberFormat.Format = _fuelFormat;
-            f103_3.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-
-            SetCell(ws, row, 5, ";", bold: true, fontSize: 12);
-
-            ws.Range(row, 6, row, 7).Merge();
-            // Col 6-7: Прочие = SUM(M18:M97)*$D$125
-            var f103_6 = ws.Cell(row, 6);
-            f103_6.FormulaA1 = "ROUND(SUM(M18:M97)*$D$125,4)";
-            f103_6.Style.Font.FontName = "Times New Roman";
-            f103_6.Style.Font.FontSize = 12;
-            f103_6.Style.Font.Bold = true;
-            f103_6.Style.NumberFormat.Format = _fuelFormat;
-            f103_6.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-
-            ws.Range(row, 8, row, 9).Merge();
-            SetCell(ws, row, 8, ";", bold: true, fontSize: 12);
-            ws.Range(row, 11, row, 12).Merge();
-
-            // Col 11: Всего = SUM(Q18:Q97)
-            var f103_11 = ws.Cell(row, 11);
-            f103_11.FormulaA1 = "ROUND(SUM(Q18:Q97),4)";
-            f103_11.Style.Font.FontName = "Times New Roman";
-            f103_11.Style.Font.FontSize = 12;
-            f103_11.Style.Font.Bold = true;
-            f103_11.Style.NumberFormat.Format = _fuelFormat;
-            f103_11.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-
-            ws.Range(row, 13, row, 14).Merge();
-            SetCell(ws, row, 13, "всего", fontSize: 12);
-            ws.Range(row, 15, row, 17).Merge();
-            SetCell(ws, row, 15, "( в литрах)", fontSize: 12);
-
-            // Row 105: 3) Общий пробег — formula: SUM(H18:H97)+(SUM(L18:L97)+SUM(M18:M97))*$D$126
-            row = 105;
-            ws.Range(row, 1, row, 12).Merge();
-            SetCell(ws, row, 1, "3) Общий пробег автомобиля за месяц с учетом работы двигателя на стоянках (приведенных)", fontSize: 12);
-
-            ws.Range(row, 13, row, 16).Merge();
-            var f105 = ws.Cell(row, 13);
-            f105.FormulaA1 = "ROUND(SUM(H18:H97)+(SUM(L18:L97)+SUM(M18:M97))*$D$126,0)";
-            f105.Style.Font.FontName = "Times New Roman";
-            f105.Style.Font.FontSize = 12;
-            f105.Style.Font.Bold = true;
-            f105.Style.NumberFormat.Format = "0.000";
-            f105.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-            SetCell(ws, row, 17, "км.", fontSize: 12);
-
-            // Row 106: table header
-            row = 106;
-            ws.Range(row, 7, row, 8).Merge();
-            SetCell(ws, row, 7, "Пробег", fontSize: 12);
-            ws.Range(row, 7, row, 8).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-
-            SetCell(ws, row, 9, "Расход ГСМ", fontSize: 12);
-            ws.Range(row, 9, row, 10).Merge();
-            ws.Range(row, 9, row, 10).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-
-            SetCell(ws, row, 11, "лит.", fontSize: 12);
-            ws.Range(row, 11, row, 11).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-
-            // Row 107-109: trip type breakdown
-            var byTripType = CalculationService.CalculateByTripType(records);
-            var fuelByTripType = CalculationService.CalculateFuelByTripType(records);
+            for (int i = 0; i < elementNames.Length; i++)
+            {
+                int r = 102 + i;
+                ws.Range(r, 1, r, 4).Merge();
+                SetCell(ws, r, 1, elementNames[i], fontSize: 12);
+                SetCellNum(ws, r, 5, elementValues[i], fontSize: 12, format: _fuelFormat,
+                    hAlign: XLAlignmentHorizontalValues.Right);
+            }
 
             row = 107;
-            SetCell(ws, row, 2, "Учебный выезд", fontSize: 12);
-            ws.Range(row, 2, row, 2).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            SetCellNum(ws, row, 7, byTripType[TripType.Training], bold: true, fontSize: 12, fontName: "Times New Roman", format: "0.000");
-            ws.Range(row, 7, row, 7).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            SetCell(ws, row, 8, "км.", fontSize: 12);
-            ws.Range(row, 8, row, 8).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            ws.Range(row, 9, row, 10).Merge();
-            SetCellNum(ws, row, 9, fuelByTripType[TripType.Training], bold: true, fontSize: 12, format: _fuelFormat);
-            ws.Range(row, 9, row, 10).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            SetCell(ws, row, 11, "л.", fontSize: 12);
-            ws.Range(row, 11, row, 11).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            ws.Range(row, 1, row, 4).Merge();
+            SetCell(ws, row, 1, "Итого по нормам", bold: true, fontSize: 12);
+            SetCellNum(ws, row, 5, totals.ByElement["ИТОГО"], bold: true, fontSize: 12, format: _fuelFormat,
+                hAlign: XLAlignmentHorizontalValues.Right);
 
+            // Row 108: 3) Общий пробег (приведённый)
             row = 108;
-            SetCell(ws, row, 2, "Пожар", fontSize: 12);
-            ws.Range(row, 2, row, 2).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            SetCellNum(ws, row, 7, byTripType[TripType.Fire], bold: true, fontSize: 12, fontName: "Times New Roman", format: "0.000");
-            ws.Range(row, 7, row, 7).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            SetCell(ws, row, 8, "км.", fontSize: 12);
-            ws.Range(row, 8, row, 8).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            ws.Range(row, 9, row, 10).Merge();
-            SetCellNum(ws, row, 9, fuelByTripType[TripType.Fire], bold: true, fontSize: 12, format: _fuelFormat);
-            ws.Range(row, 9, row, 10).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            SetCell(ws, row, 11, "л.", fontSize: 12);
-            ws.Range(row, 11, row, 11).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            ws.Range(row, 1, row, 12).Merge();
+            SetCell(ws, row, 1,
+                "3) Общий пробег автомобиля за месяц с учетом работы двигателя на стоянках (приведенный)",
+                fontSize: 12);
 
+            ws.Range(row, 13, row, 15).Merge();
+            SetCellNum(ws, row, 13, totals.ReducedMileage, bold: true, fontSize: 12, format: "0.000",
+                hAlign: XLAlignmentHorizontalValues.Center);
+            SetCell(ws, row, 16, "км.", fontSize: 12);
+
+            // Row 109: заголовок разбивки по видам выездов
             row = 109;
-            SetCell(ws, row, 2, "Прочий пробег", fontSize: 12);
-            ws.Range(row, 2, row, 2).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            SetCellNum(ws, row, 7, byTripType[TripType.Other], bold: true, fontSize: 12, fontName: "Times New Roman", format: "0.000");
-            ws.Range(row, 7, row, 7).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            SetCell(ws, row, 8, "км.", fontSize: 12);
-            ws.Range(row, 8, row, 8).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            ws.Range(row, 9, row, 10).Merge();
-            SetCellNum(ws, row, 9, fuelByTripType[TripType.Other], bold: true, fontSize: 12, format: _fuelFormat);
-            ws.Range(row, 9, row, 10).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            SetCell(ws, row, 11, "л.", fontSize: 12);
-            ws.Range(row, 11, row, 11).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            SetCell(ws, row, 2, "Вид выезда", bold: true, fontSize: 11);
+            ws.Range(row, 3, row, 4).Merge();
+            SetCell(ws, row, 3, "Пробег, км", bold: true, fontSize: 11,
+                hAlign: XLAlignmentHorizontalValues.Center);
+            ws.Range(row, 6, row, 7).Merge();
+            SetCell(ws, row, 6, "Расход ГСМ, л", bold: true, fontSize: 11,
+                hAlign: XLAlignmentHorizontalValues.Center);
 
-            row = 110;
-            SetCell(ws, row, 2, "Ложно", fontSize: 12);
-            ws.Range(row, 2, row, 2).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            SetCellNum(ws, row, 7, byTripType[TripType.FalseAlarm], bold: true, fontSize: 12, fontName: "Times New Roman", format: "0.000");
-            ws.Range(row, 7, row, 7).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            SetCell(ws, row, 8, "км.", fontSize: 12);
-            ws.Range(row, 8, row, 8).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            ws.Range(row, 9, row, 10).Merge();
-            SetCellNum(ws, row, 9, fuelByTripType[TripType.FalseAlarm], bold: true, fontSize: 12, format: _fuelFormat);
-            ws.Range(row, 9, row, 10).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            SetCell(ws, row, 11, "л.", fontSize: 12);
-            ws.Range(row, 11, row, 11).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            string[] tripNames = { "Учебный выезд", "Пожар", "Прочий пробег", "Ложный выезд" };
+            TripType[] tripTypes = { TripType.Training, TripType.Fire, TripType.Other, TripType.FalseAlarm };
 
-            row = 111;
-            SetCell(ws, row, 2, "ИТОГО", fontSize: 12);
-            ws.Range(row, 2, row, 2).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            for (int i = 0; i < tripNames.Length; i++)
+            {
+                int r = 110 + i;
+                var tripType = tripTypes[i];
 
-            // Col 7: total distance = SUM(H18:H97)
-            var f111_7 = ws.Cell(row, 7);
-            f111_7.FormulaA1 = "ROUND(SUM(H18:H97),0)";
-            f111_7.Style.Font.FontName = "Times New Roman";
-            f111_7.Style.Font.FontSize = 12;
-            f111_7.Style.Font.Bold = true;
-            f111_7.Style.NumberFormat.Format = "0.000";
-            f111_7.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-            ws.Range(row, 7, row, 7).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+                SetCell(ws, r, 2, tripNames[i], fontSize: 12);
+                ws.Range(r, 3, r, 4).Merge();
+                SetCellNum(ws, r, 3, totals.ByTripType[tripType], fontSize: 12, format: "0.000",
+                    hAlign: XLAlignmentHorizontalValues.Center);
+                SetCell(ws, r, 5, "км.", fontSize: 12);
 
-            SetCell(ws, row, 8, "км.", fontSize: 12);
-            ws.Range(row, 8, row, 8).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+                ws.Range(r, 6, r, 7).Merge();
+                SetCellNum(ws, r, 6, totals.FuelByTripType[tripType], fontSize: 12, format: _fuelFormat,
+                    hAlign: XLAlignmentHorizontalValues.Center);
+                SetCell(ws, r, 8, "л.", fontSize: 12);
+            }
 
-            // Col 9-10: total norm = SUM(Q18:Q97)
-            ws.Range(row, 9, row, 10).Merge();
-            var f111_9 = ws.Cell(row, 9);
-            f111_9.FormulaA1 = "ROUND(SUM(Q18:Q97),4)";
-            f111_9.Style.Font.FontName = "Times New Roman";
-            f111_9.Style.Font.FontSize = 12;
-            f111_9.Style.Font.Bold = true;
-            f111_9.Style.NumberFormat.Format = _fuelFormat;
-            f111_9.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-            ws.Range(row, 9, row, 10).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            row = 114;
+            SetCell(ws, row, 2, "ИТОГО", bold: true, fontSize: 12);
+            ws.Range(row, 3, row, 4).Merge();
+            SetCellNum(ws, row, 3, totals.Distance, bold: true, fontSize: 12, format: "0.000",
+                hAlign: XLAlignmentHorizontalValues.Center);
+            SetCell(ws, row, 5, "км.", fontSize: 12);
 
-            SetCell(ws, row, 11, "л.", fontSize: 12);
-            ws.Range(row, 11, row, 11).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            ws.Range(row, 6, row, 7).Merge();
+            SetCellNum(ws, row, 6, totals.FuelNorm, bold: true, fontSize: 12, format: _fuelFormat,
+                hAlign: XLAlignmentHorizontalValues.Center);
+            SetCell(ws, row, 8, "л.", fontSize: 12);
 
-            // Row 112: старший водитель
-            row = 112;
-            ws.Row(row).Height = 16.2;
-            SetCell(ws, row, 2, "старший водитель", fontSize: 10, fontName: "Times New Roman");
+            // Row 115: заправлено топлива за месяц
+            row = 115;
+            ws.Range(row, 2, row, 5).Merge();
+            SetCell(ws, row, 2, "Заправлено топлива за месяц", fontSize: 12);
+            ws.Range(row, 6, row, 7).Merge();
+            SetCellNum(ws, row, 6, totals.FuelRefueled, bold: true, fontSize: 12, format: _fuelFormat,
+                hAlign: XLAlignmentHorizontalValues.Center);
+            SetCell(ws, row, 8, "л.", fontSize: 12);
 
-            // Row 113: заправлено топлива
-            row = 113;
-            ws.Row(row).Height = 16.2;
-            ws.Range(row, 5, row, 8).Merge();
-            SetCell(ws, row, 5, "Заправлено топлива", fontSize: 12);
-            SetCellNum(ws, row, 9, records != null ? records.Sum(r => r.FuelRefueled) : card.FuelRefueledMonth, fontSize: 12, format: _fuelFormat);
-            SetCell(ws, row, 10, "лит.", fontSize: 12);
-
-            // Rows 114-115: empty
-            ws.Row(114).Height = 15.6;
-            ws.Row(115).Height = 15.6;
-
-            // Row 116: подписи начальника и старшего водителя
+            // Row 116: подписи
             row = 116;
-            ws.Row(row).Height = 15.6;
-            SetCell(ws, row, 2, "Начальник части _______________", fontSize: 10, fontName: "Times New Roman");
-            SetCell(ws, row, 6, "Ст. водитель _______________          _____________ ФИО", fontSize: 10, fontName: "Times New Roman");
+            SetCell(ws, row, 2, "Начальник части ______________________", fontSize: 10,
+                fontName: "Times New Roman");
+            ws.Range(row, 6, row, 8).Merge();
+            SetCell(ws, row, 6, "Ст. водитель ______________ / ____________________", fontSize: 10,
+                fontName: "Times New Roman");
 
-            // ---- Norm table: rows 118-126, cols B-D ----
+            // ---- Norm table: rows 118-127, cols B-D ----
 
             ws.Row(118).Height = 16.2;
             ws.Range(118, 2, 118, 5).Merge();

@@ -215,7 +215,7 @@ namespace AVTOKarta.Services
 
         /// <summary>
         /// Применяется ли зимняя надбавка части к дате. Если месяцы не заданы —
-        /// по умолчанию зимний период 15.11–15.03 (месяцы 11, 12, 1, 2, 3).
+        /// по умолчанию зимний период 15.11–15.03.
         /// </summary>
         public static bool IsWinterDate(DateTime date, Squad squad)
         {
@@ -224,7 +224,11 @@ namespace AVTOKarta.Services
 
             var months = squad.WinterMonths;
             if (months == null || months.Count == 0)
-                return date.Month == 11 || date.Month == 12 || date.Month <= 3;
+                return (date.Month == 11 && date.Day >= 15) ||
+                       date.Month == 12 ||
+                       date.Month == 1 ||
+                       date.Month == 2 ||
+                       (date.Month == 3 && date.Day <= 15);
 
             return months.Contains(date.Month);
         }
@@ -247,7 +251,7 @@ namespace AVTOKarta.Services
 
             string lower = workDescription.ToLower(CultureInfo.CurrentCulture);
 
-            if (lower.Contains("учен") || lower.Contains("отработ") || lower.Contains("норматив"))
+            if (lower.Contains("учеб") || lower.Contains("учен") || lower.Contains("отработ") || lower.Contains("норматив"))
                 return TripType.Training;
             if (lower.Contains("пожар") || lower.Contains("выезд на пожар"))
                 return TripType.Fire;

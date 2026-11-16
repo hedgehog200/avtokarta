@@ -162,8 +162,9 @@
                                Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                     <TextBox Text="{Binding OilAgeSurchargePercent, StringFormat=F2, TargetNullValue=0, FallbackValue=0}" Margin="0,0,0,10"/>
 
-                    <CheckBox Content="ТС использует мочевину (AdBlue)" IsChecked="{Binding UsesAdBlue}"
-                              Margin="0,0,0,8" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <ToggleButton Content="ТС использует мочевину (AdBlue)" IsChecked="{Binding UsesAdBlue, Mode=TwoWay}"
+                                  Style="{StaticResource ToggleSwitchStyle}"
+                                  Margin="0,0,0,8" FontSize="13"/>
 
                     <TextBlock Text="Норма AdBlue (% от расхода топлива):" FontWeight="SemiBold" FontSize="13"
                                Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
